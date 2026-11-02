@@ -1,0 +1,325 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file enforces role-based access control (RBAC),
+// data separation (public vs. private collections), and business logic
+// invariants for the Drone Competition Management Web App.
+//
+// Collection: users/{uid}
+//   - role: string ('admin' | 'staff', required)
+//   - active: bool (required)
+//   - email: string (optional, <= 254 chars)
+//   - displayName: string (optional, <= 120 chars)
+//
+// Collection: events/{eventId}
+//   - name / title: string (optional, <= 200 chars)
+//   - status: string (optional, <= 50 chars)
+//   - Metadata fields for event configuration and giant-screen scoreboard.
+//
+// Subcollection: events/{eventId}/tracks/{trackId}
+//   - Track configuration and real-time active participant status.
+//   - Read: Public (giant screen & staff dashboard)
+//   - Create/Delete: Admin only
+//   - Update: Admin or Staff
+//
+// Subcollection: events/{eventId}/tests/{testId}
+//   - Scoring rules, parameters, and evaluation criteria for event tests.
+//   - Read: Public
+//   - Write: Admin only
+//
+// Subcollection: events/{eventId}/participants/{participantId} (PRIVATE)
+//   - fullName: string (required, 1..200 chars, Admin-only modification)
+//   - isDisqualified: bool (optional, Admin-only modification)
+//   - disqualificationReason: string (optional, <= 1000 chars, Admin-only modification)
+//   - internalNotes: string (optional, <= 5000 chars, Staff/Admin)
+//   - requirementsChecks: map/list (optional, Staff/Admin)
+//   - accreditationStatus: string (optional, Staff/Admin)
+//   - Read: Staff or Admin ONLY (Never exposed to unauthenticated public)
+//
+// Subcollection: events/{eventId}/public_participants/{participantId} (PUBLIC PROJECTION)
+//   - Publicly safe participant summary for the giant-screen scoreboard.
+//   - Strictly FORBIDS 'internalNotes' and 'requirementsChecks'.
+//   - Read: Public
+//   - Create/Update: Staff or Admin (with forbidden private key check)
+//   - Delete: Admin only
+//
+// Subcollection: events/{eventId}/results/{resultId} (INTERNAL RESULTS)
+//   - version: int (required, starts at 1 on create, increments by +1 on update)
+//   - publicationStatus: string ('borrador' | 'publicado' | 'anulado')
+//   - Read: Staff or Admin ONLY
+//   - Create: Staff or Admin (must have version == 1)
+//   - Update: Admin, OR Staff if existing result is NOT 'publicado', new status
+//             is in ['borrador', 'publicado'], and version == resource.data.version + 1
+//   - Delete: Admin only
+//
+// Subcollection: events/{eventId}/public_results/{resultId} (PUBLIC PROJECTION)
+//   - publicationStatus: string ('publicado' | 'anulado', required)
+//   - Read: Public
+//   - Create/Update: Staff or Admin (must have publicationStatus in ['publicado', 'anulado'])
+//   - Delete: Admin only
+//
+// Subcollection: events/{eventId}/audit_logs/{logId} (IMMUTABLE AUDIT TRAIL)
+//   - Read: Staff or Admin
+//   - Create: Staff or Admin
+//   - Update/Delete: Strictly forbidden (false)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the authenticated user matches the target userId
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if the user document exists for the caller
+    function hasUserProfile() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // Retrieve the caller's profile document data
+    function currentUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Check if the caller is an active Admin
+    function isAdmin() {
+      return hasUserProfile() &&
+        currentUserData().active == true &&
+        currentUserData().role == 'admin';
+    }
+
+    // Check if the caller is an active Staff member
+    function isStaff() {
+      return hasUserProfile() &&
+        currentUserData().active == true &&
+        currentUserData().role == 'staff';
+    }
+
+    // Check if the caller is either an active Staff member or an active Admin
+    function isStaffOrAdmin() {
+      return isAdmin() || isStaff();
+    }
+
+    // Validate optional string length to prevent resource exhaustion
+    function isValidOptionalString(data, field, minLen, maxLen) {
+      return !(field in data) || data[field] == null ||
+        (data[field] is string && data[field].size() >= minLen && data[field].size() <= maxLen);
+    }
+
+    // Validate optional boolean field
+    function isValidOptionalBool(data, field) {
+      return !(field in data) || data[field] == null || data[field] is bool;
+    }
+
+    // Validate document key count limit to prevent payload bloat
+    function isWithinKeyLimit(data, maxKeys) {
+      return data.keys().size() <= maxKeys;
+    }
+
+    // ===============================================================
+    // Domain Validators (Used in both create and update)
+    // ===============================================================
+
+    function isValidUserProfile(data) {
+      return isWithinKeyLimit(data, 20) &&
+        ('role' in data) && data.role in ['admin', 'staff'] &&
+        ('active' in data) && data.active is bool &&
+        isValidOptionalString(data, 'email', 3, 254) &&
+        isValidOptionalString(data, 'displayName', 1, 150) &&
+        isValidOptionalString(data, 'fullName', 1, 150);
+    }
+
+    function isValidEvent(data) {
+      return isWithinKeyLimit(data, 30) &&
+        isValidOptionalString(data, 'name', 1, 200) &&
+        isValidOptionalString(data, 'title', 1, 200) &&
+        isValidOptionalString(data, 'description', 0, 2000) &&
+        isValidOptionalString(data, 'location', 0, 300) &&
+        isValidOptionalString(data, 'status', 1, 50);
+    }
+
+    function isValidTrack(data) {
+      return isWithinKeyLimit(data, 30) &&
+        isValidOptionalString(data, 'name', 1, 200) &&
+        isValidOptionalString(data, 'status', 1, 50) &&
+        isValidOptionalString(data, 'currentParticipantId', 0, 150) &&
+        isValidOptionalString(data, 'currentParticipantName', 0, 200) &&
+        isValidOptionalString(data, 'currentTestId', 0, 150);
+    }
+
+    function isValidTest(data) {
+      return isWithinKeyLimit(data, 40) &&
+        isValidOptionalString(data, 'name', 1, 200) &&
+        isValidOptionalString(data, 'description', 0, 2000) &&
+        isValidOptionalString(data, 'scoringType', 1, 50);
+    }
+
+    function isValidParticipant(data) {
+      return isWithinKeyLimit(data, 40) &&
+        isValidOptionalString(data, 'fullName', 1, 200) &&
+        isValidOptionalString(data, 'internalNotes', 0, 5000) &&
+        isValidOptionalString(data, 'disqualificationReason', 0, 1000) &&
+        isValidOptionalBool(data, 'isDisqualified') &&
+        isValidOptionalString(data, 'accreditationStatus', 1, 50);
+    }
+
+    function isValidPublicParticipant(data) {
+      return isWithinKeyLimit(data, 30) &&
+        !data.keys().hasAny(['internalNotes', 'requirementsChecks']) &&
+        isValidOptionalString(data, 'fullName', 1, 200) &&
+        isValidOptionalString(data, 'disqualificationReason', 0, 1000) &&
+        isValidOptionalBool(data, 'isDisqualified') &&
+        isValidOptionalString(data, 'accreditationStatus', 1, 50);
+    }
+
+    function isValidResult(data) {
+      return isWithinKeyLimit(data, 50) &&
+        ('version' in data) && data.version is int && data.version >= 1 &&
+        (!('publicationStatus' in data) || data.publicationStatus in ['borrador', 'publicado', 'anulado']) &&
+        isValidOptionalString(data, 'participantId', 1, 150) &&
+        isValidOptionalString(data, 'testId', 1, 150) &&
+        isValidOptionalString(data, 'trackId', 0, 150) &&
+        isValidOptionalString(data, 'observations', 0, 3000) &&
+        isValidOptionalString(data, 'annulmentReason', 0, 1000);
+    }
+
+    function isValidPublicResult(data) {
+      return isWithinKeyLimit(data, 40) &&
+        ('publicationStatus' in data) &&
+        data.publicationStatus in ['publicado', 'anulado'] &&
+        isValidOptionalString(data, 'participantId', 1, 150) &&
+        isValidOptionalString(data, 'testId', 1, 150) &&
+        isValidOptionalString(data, 'trackId', 0, 150) &&
+        isValidOptionalString(data, 'annulmentReason', 0, 1000);
+    }
+
+    function isValidAuditLog(data) {
+      return isWithinKeyLimit(data, 30) &&
+        isValidOptionalString(data, 'action', 1, 150) &&
+        isValidOptionalString(data, 'entityType', 1, 100) &&
+        isValidOptionalString(data, 'entityId', 1, 150) &&
+        isValidOptionalString(data, 'actorUid', 1, 150) &&
+        isValidOptionalString(data, 'actorName', 0, 200) &&
+        isValidOptionalString(data, 'details', 0, 5000);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // 1. Profiles / Roles (`users/{uid}`)
+    match /users/{uid} {
+      allow get: if isOwner(uid) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidUserProfile(request.resource.data);
+      allow update: if isAdmin() && isValidUserProfile(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // 2. Events (`events/{eventId}`) and Subcollections
+    match /events/{eventId} {
+      // Public read access for the giant-screen scoreboard
+      allow read: if true;
+      allow create: if isAdmin() && isValidEvent(request.resource.data);
+      allow update: if isAdmin() && isValidEvent(request.resource.data);
+      allow delete: if isAdmin();
+
+      // 2a. Tracks (`events/{eventId}/tracks/{trackId}`)
+      match /tracks/{trackId} {
+        allow read: if true;
+        allow create: if isAdmin() && isValidTrack(request.resource.data);
+        allow update: if isStaffOrAdmin() && isValidTrack(request.resource.data);
+        allow delete: if isAdmin();
+      }
+
+      // 2b. Tests (`events/{eventId}/tests/{testId}`)
+      match /tests/{testId} {
+        allow read: if true;
+        allow create: if isAdmin() && isValidTest(request.resource.data);
+        allow update: if isAdmin() && isValidTest(request.resource.data);
+        allow delete: if isAdmin();
+      }
+
+      // 2c. Participants (`events/{eventId}/participants/{participantId}`) - PRIVATE DATA
+      match /participants/{participantId} {
+        allow read: if isStaffOrAdmin();
+        allow create: if isAdmin() && isValidParticipant(request.resource.data);
+        allow update: if isValidParticipant(request.resource.data) && (
+          isAdmin() ||
+          (
+            isStaff() &&
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'fullName',
+              'isDisqualified',
+              'disqualificationReason'
+            ])
+          )
+        );
+        allow delete: if isAdmin();
+      }
+
+      // 2d. Public Participants (`events/{eventId}/public_participants/{participantId}`) - PUBLIC PROJECTION
+      match /public_participants/{participantId} {
+        allow read: if true;
+        allow create, update: if isStaffOrAdmin() &&
+          !request.resource.data.keys().hasAny(['internalNotes', 'requirementsChecks']) &&
+          isValidPublicParticipant(request.resource.data);
+        allow delete: if isAdmin();
+      }
+
+      // 2e. Results (`events/{eventId}/results/{resultId}`) - INTERNAL RESULTS
+      match /results/{resultId} {
+        allow read: if isStaffOrAdmin();
+        allow create: if isStaffOrAdmin() &&
+          request.resource.data.version == 1 &&
+          isValidResult(request.resource.data);
+        allow update: if isValidResult(request.resource.data) && (
+          isAdmin() ||
+          (
+            isStaff() &&
+            resource.data.publicationStatus != 'publicado' &&
+            request.resource.data.publicationStatus in ['borrador', 'publicado'] &&
+            request.resource.data.version == resource.data.version + 1
+          )
+        );
+        allow delete: if isAdmin();
+      }
+
+      // 2f. Public Results (`events/{eventId}/public_results/{resultId}`) - PUBLIC PROJECTION
+      match /public_results/{resultId} {
+        allow read: if true;
+        allow create, update: if isStaffOrAdmin() &&
+          request.resource.data.publicationStatus in ['publicado', 'anulado'] &&
+          isValidPublicResult(request.resource.data);
+        allow delete: if isAdmin();
+      }
+
+      // 2g. Audit Logs (`events/{eventId}/audit_logs/{logId}`) - IMMUTABLE AUDIT TRAIL
+      match /audit_logs/{logId} {
+        allow read: if isStaffOrAdmin();
+        allow create: if isStaffOrAdmin() && isValidAuditLog(request.resource.data);
+        allow update, delete: if false;
+      }
+    }
+
+    // Default deny for all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

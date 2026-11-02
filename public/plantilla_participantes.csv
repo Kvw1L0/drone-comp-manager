@@ -1,0 +1,6 @@
+id_interno,nombre_completo,empresa_equipo,numero_competidor,estado_acreditacion,observaciones_internas
+PIL-001,Matías Rojas Valdés,AeroTech Chile,#101,habilitado,Piloto campeón regional 2025
+PIL-002,Camila Soto Morales,DroneWorks Sur,#102,habilitado,Frecuencia verificada 5.8GHz R1
+PIL-003,Sebastián Muñoz Herrera,SkyVortex Racing,#103,pendiente,Pendiente revisión de hélice de repuesto
+PIL-004,Valentina Contreras Díaz,Andes FPV Team,#104,habilitado,Sin observaciones
+PIL-005,Matías Rojas Valdés,Condor Robotics,#105,pendiente,Homónimo de PIL-001 - distinguir por empresa Condor Robotics y #105

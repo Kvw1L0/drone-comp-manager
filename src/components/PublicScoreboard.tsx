@@ -1,0 +1,552 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Trophy,
+  Wifi,
+  WifiOff,
+  Clock,
+  AlertTriangle,
+  Pause,
+  Play,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  ArrowLeft,
+} from 'lucide-react';
+import { useCompetition } from '../context/CompetitionContext';
+import {
+  compareFloats,
+  computeEventRanking,
+  formatMsToTime,
+  formatScore,
+} from '../utils/scoring';
+import { RankingRow } from '../types/domain';
+
+interface PublicScoreboardProps {
+  onExitPublicView?: () => void;
+}
+
+const ROWS_PER_PAGE = 9;
+const PAGE_INTERVAL_MS = 8000;
+
+export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
+  onExitPublicView,
+}) => {
+  const {
+    activeEvent,
+    tests,
+    publicParticipants,
+    publicResults,
+    isOnline,
+    lastSyncTimestamp,
+  } = useCompetition();
+
+  const [viewFilter, setViewFilter] = useState<'general' | string>('general');
+  const [autoPage, setAutoPage] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+
+  // Cache last valid ranking so if connection drops, the giant screen retains the last ranking
+  const cachedRankingRef = useRef<ReturnType<typeof computeEventRanking> | null>(null);
+
+  const liveRanking = useMemo(() => {
+    const computed = computeEventRanking({
+      event: activeEvent,
+      tests,
+      participants: publicParticipants,
+      results: publicResults,
+    });
+    if (isOnline || !cachedRankingRef.current) {
+      cachedRankingRef.current = computed;
+    }
+    return isOnline ? computed : cachedRankingRef.current;
+  }, [activeEvent, tests, publicParticipants, publicResults, isOnline]);
+
+  // Sort rows either by General Ranking or by a specific Test
+  const displayedRows: RankingRow[] = useMemo(() => {
+    if (viewFilter === 'general') {
+      return liveRanking.rows;
+    }
+
+    const targetTest = tests.find((t) => t.id === viewFilter);
+    if (!targetTest) return liveRanking.rows;
+
+    const eligible = liveRanking.rows.filter((r) => !r.isDisqualified);
+    const dq = liveRanking.rows.filter((r) => r.isDisqualified);
+
+    const sortedEligible = [...eligible].sort((a, b) => {
+      const cellA = a.testCells[targetTest.id];
+      const cellB = b.testCells[targetTest.id];
+      const completedA = cellA?.status === 'completado';
+      const completedB = cellB?.status === 'completado';
+
+      if (completedA && !completedB) return -1;
+      if (!completedA && completedB) return 1;
+
+      const contribA = cellA?.contribution ?? 0;
+      const contribB = cellB?.contribution ?? 0;
+      const cmp = compareFloats(contribB, contribA);
+      if (cmp !== 0) return cmp;
+
+      if (
+        completedA &&
+        completedB &&
+        cellA.effectiveTimeMs !== null &&
+        cellB.effectiveTimeMs !== null
+      ) {
+        return cellA.effectiveTimeMs - cellB.effectiveTimeMs;
+      }
+      return 0;
+    });
+
+    return [
+      ...sortedEligible.map((r, idx) => ({
+        ...r,
+        position: idx + 1,
+      })),
+      ...dq,
+    ];
+  }, [liveRanking.rows, viewFilter, tests]);
+
+  const totalPages = Math.max(1, Math.ceil(displayedRows.length / ROWS_PER_PAGE));
+
+  // Keep currentPage within bounds if row count shrinks, WITHOUT resetting on live score updates!
+  useEffect(() => {
+    setCurrentPage((prev) => (prev >= totalPages ? 0 : prev));
+  }, [totalPages]);
+
+  // Stable auto-pagination timer that does NOT reset when liveResults update
+  useEffect(() => {
+    if (!autoPage || totalPages <= 1) return;
+    const timer = window.setInterval(() => {
+      setCurrentPage((prev) => (prev + 1) % totalPages);
+    }, PAGE_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [autoPage, totalPages]);
+
+  const podiumRows = useMemo(() => {
+    return displayedRows
+      .filter((r) => !r.isDisqualified && r.completedTestsCount > 0)
+      .slice(0, 3);
+  }, [displayedRows]);
+
+  const paginatedRows = useMemo(() => {
+    const start = currentPage * ROWS_PER_PAGE;
+    return displayedRows.slice(start, start + ROWS_PER_PAGE);
+  }, [displayedRows, currentPage]);
+
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
+
+  const renderTestCellBadge = (row: RankingRow, testId: string) => {
+    const cell = row.testCells[testId];
+    if (!cell || cell.status === 'pendiente') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-400 text-xs font-bold uppercase tracking-wide">
+          Pendiente
+        </span>
+      );
+    }
+    if (cell.status === 'dnf') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-950 border border-rose-600 text-rose-300 text-xs font-extrabold uppercase">
+          DNF (0,00)
+        </span>
+      );
+    }
+    if (cell.status === 'dq') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-950 border border-rose-600 text-rose-300 text-xs font-extrabold uppercase">
+          DQ (0,00)
+        </span>
+      );
+    }
+
+    return (
+      <div className="flex flex-col items-end">
+        <span className="text-base sm:text-lg font-extrabold text-white font-mono">
+          {formatScore(cell.contribution)}
+        </span>
+        {cell.effectiveTimeMs !== null && (
+          <span className="text-[11px] text-sky-300 font-mono">
+            {formatMsToTime(cell.effectiveTimeMs)}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-4 sm:p-6 select-none">
+      {/* Top Broadcast Header */}
+      <div className="space-y-4">
+        <header
+          className="rounded-2xl p-4 sm:p-5 border border-white/15 shadow-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4"
+          style={{
+            background: `linear-gradient(90deg, #090d16 0%, ${
+              activeEvent.primaryColor || '#0284c7'
+            }44 100%)`,
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg shrink-0 border border-white/20"
+              style={{ backgroundColor: activeEvent.primaryColor || '#0284c7' }}
+            >
+              <Trophy className="w-8 h-8 text-amber-300" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                {liveRanking.isRankingProvisional ? (
+                  <span className="px-3 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider">
+                    RANKING PROVISIONAL (PRUEBAS ABIERTAS)
+                  </span>
+                ) : (
+                  <span className="px-3 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider">
+                    CLASIFICACIÓN OFICIAL FINAL
+                  </span>
+                )}
+
+                {liveRanking.hasUnresolvedTies && (
+                  <span className="px-3 py-0.5 rounded-full bg-amber-950 border border-amber-400 text-amber-300 font-extrabold text-xs flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    DESEMPATE PENDIENTE EN TABLA
+                  </span>
+                )}
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                {activeEvent.name}
+              </h1>
+            </div>
+          </div>
+
+          {/* Right Controls: Mode Switcher + Connection Status */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* View Mode Selector: General or By Test */}
+            <div className="flex flex-wrap items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-xl border border-slate-700">
+              <button
+                type="button"
+                onClick={() => setViewFilter('general')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                  viewFilter === 'general'
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                General
+              </button>
+              {tests.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setViewFilter(t.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                    viewFilter === t.id
+                      ? 'bg-sky-400 text-slate-950'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Connection & Sync Badge */}
+            {isOnline ? (
+              <div className="px-3.5 py-2 rounded-xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs font-extrabold flex items-center gap-2">
+                <Wifi className="w-4 h-4 text-emerald-400 animate-pulse" />
+                <div>
+                  <div>EN VIVO</div>
+                  <div className="text-[10px] text-emerald-400/80 font-mono">
+                    Act: {new Date(lastSyncTimestamp).toLocaleTimeString('es-CL')}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="px-4 py-2 rounded-xl bg-rose-950 border-2 border-rose-500 text-rose-200 text-xs font-extrabold flex items-center gap-2 animate-pulse">
+                <WifiOff className="w-5 h-5 text-rose-400" />
+                <div>
+                  <div>CONEXIÓN PERDIDA</div>
+                  <div className="text-[10px] text-rose-300">
+                    Conservando último ranking recibido
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleToggleFullscreen}
+              title="Pantalla Completa 16:9"
+              className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 cursor-pointer"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+
+            {onExitPublicView && (
+              <button
+                type="button"
+                onClick={onExitPublicView}
+                className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Salir de Vista Pública
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* Top 3 Podium Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {podiumRows.map((podium, idx) => {
+            const medalColors = [
+              'from-amber-400/25 to-slate-900 border-amber-400 text-amber-300',
+              'from-slate-300/20 to-slate-900 border-slate-300 text-slate-200',
+              'from-amber-700/25 to-slate-900 border-amber-600 text-amber-400',
+            ];
+            return (
+              <div
+                key={podium.participantId}
+                className={`rounded-2xl bg-gradient-to-br ${medalColors[idx]} border-2 p-4 flex items-center justify-between shadow-xl`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl ${
+                      idx === 0
+                        ? 'bg-amber-400 text-slate-950'
+                        : idx === 1
+                        ? 'bg-slate-300 text-slate-950'
+                        : 'bg-amber-700 text-white'
+                    }`}
+                  >
+                    #{podium.position}
+                  </div>
+                  <div>
+                    <div className="text-xs font-mono font-bold uppercase text-sky-300">
+                      {podium.competitorNumber} • {podium.companyOrTeam}
+                    </div>
+                    <div className="text-lg sm:text-xl font-black text-white leading-tight">
+                      {podium.fullName}
+                    </div>
+                    <div className="text-xs text-slate-300 mt-0.5 flex items-center gap-2">
+                      <span>
+                        Pruebas: {podium.completedTestsCount}/{podium.totalTestsCount}
+                      </span>
+                      {podium.hasPendingTests && (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">
+                          En participación
+                        </span>
+                      )}
+                      {podium.hasPendingTie && (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-extrabold">
+                          Desempate pendiente
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                    {viewFilter === 'general'
+                      ? formatScore(podium.totalContribution)
+                      : formatScore(podium.testCells[viewFilter]?.contribution)}
+                  </div>
+                  <div className="text-[11px] font-extrabold uppercase tracking-wider text-amber-300">
+                    PUNTOS
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Main High-Contrast Classification Table */}
+        <div className="bg-slate-900/95 border-2 border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-950 border-b-2 border-slate-800 text-xs font-extrabold uppercase tracking-wider text-slate-300">
+                  <th className="py-3.5 px-4 w-24">Posición</th>
+                  <th className="py-3.5 px-4">Piloto Competidor</th>
+                  <th className="py-3.5 px-4">Empresa / Equipo</th>
+                  {tests.map((t) => (
+                    <th key={t.id} className="py-3.5 px-4 text-right">
+                      <div>{t.name}</div>
+                      <div className="text-[10px] text-slate-400 font-normal">
+                        {t.scoringMethod === 'time_calculated'
+                          ? `Ref: ${formatMsToTime(liveRanking.bestTimeByTestId[t.id])}`
+                          : `Máx: ${formatScore(t.maxContribution)}`}
+                      </div>
+                    </th>
+                  ))}
+                  <th className="py-3.5 px-4 text-center">Avance</th>
+                  <th className="py-3.5 px-5 text-right text-amber-300 text-sm">
+                    Total General
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/80">
+                {paginatedRows.map((row) => (
+                  <tr
+                    key={row.participantId}
+                    className={`transition ${
+                      row.isDisqualified
+                        ? 'bg-rose-950/30 text-slate-400'
+                        : row.position && row.position <= 3
+                        ? 'bg-sky-950/25'
+                        : 'hover:bg-slate-800/40'
+                    }`}
+                  >
+                    {/* Position or DQ */}
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        {row.isDisqualified ? (
+                          <span className="px-3 py-1 rounded-lg bg-rose-600 text-white font-black text-sm">
+                            DQ
+                          </span>
+                        ) : (
+                          <span
+                            className={`w-10 h-9 rounded-lg flex items-center justify-center font-black text-base ${
+                              row.position === 1
+                                ? 'bg-amber-400 text-slate-950'
+                                : row.position === 2
+                                ? 'bg-slate-300 text-slate-950'
+                                : row.position === 3
+                                ? 'bg-amber-700 text-white'
+                                : 'bg-slate-800 text-white'
+                            }`}
+                          >
+                            {row.position}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Pilot Name & Status */}
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded bg-slate-800 text-sky-300 font-mono text-xs font-extrabold">
+                          {row.competitorNumber || row.participantId}
+                        </span>
+                        <span className="text-base sm:text-lg font-extrabold text-white">
+                          {row.fullName}
+                        </span>
+                        {row.hasPendingTie && (
+                          <span className="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[11px] font-black uppercase">
+                            Desempate pendiente
+                          </span>
+                        )}
+                        {row.isDisqualified && (
+                          <span className="px-2 py-0.5 rounded-md bg-rose-950 border border-rose-600 text-rose-300 text-[11px] font-bold">
+                            Descalificado General
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Company / Team */}
+                    <td className="py-3 px-4 text-sm font-semibold text-slate-300">
+                      {row.companyOrTeam || '—'}
+                    </td>
+
+                    {/* Test Contributions */}
+                    {tests.map((t) => (
+                      <td key={t.id} className="py-3 px-4 text-right">
+                        {renderTestCellBadge(row, t.id)}
+                      </td>
+                    ))}
+
+                    {/* Completed / Total Tests Progress */}
+                    <td className="py-3 px-4 text-center">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold ${
+                          row.completedTestsCount === row.totalTestsCount
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                            : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                        }`}
+                      >
+                        <Clock className="w-3 h-3" />
+                        {row.completedTestsCount}/{row.totalTestsCount}
+                      </span>
+                    </td>
+
+                    {/* Total Contribution */}
+                    <td className="py-3 px-5 text-right">
+                      <span className="text-xl sm:text-2xl font-black text-amber-300 font-mono">
+                        {formatScore(row.totalContribution)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Pagination & Legend Bar */}
+      <footer className="mt-4 pt-3 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+        <div className="flex flex-wrap items-center gap-4">
+          <span>
+            Total pilotos en tabla: <strong className="text-white">{displayedRows.length}</strong>
+          </span>
+          <span>•</span>
+          <span>
+            <strong>Pendiente:</strong> Prueba aún no realizada (participación en curso)
+          </span>
+          <span>•</span>
+          <span>
+            <strong>DNF:</strong> No finalizó (0,00 pts)
+          </span>
+          <span>•</span>
+          <span>
+            <strong>DQ:</strong> Descalificado (excluido de podio)
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAutoPage((p) => !p)}
+            className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold flex items-center gap-1.5 cursor-pointer"
+          >
+            {autoPage ? (
+              <>
+                <Pause className="w-3.5 h-3.5 text-amber-400" /> Pausar Rotación
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5 text-emerald-400" /> Reanudar Rotación
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages)
+            }
+            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <span className="px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 font-extrabold text-white">
+            Página {currentPage + 1} de {totalPages}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setCurrentPage((prev) => (prev + 1) % totalPages)}
+            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white cursor-pointer"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </footer>
+    </div>
+  );
+};
