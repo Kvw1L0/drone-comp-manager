@@ -356,6 +356,65 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [isOnline, isDemoMode]);
 
+  // Real-time Cloud Sync via Vercel Blob API (/api/state) across all devices
+  useEffect(() => {
+    if (!isOnline || !isDemoMode) return;
+    let isCancelled = false;
+
+    const pullRemoteState = async () => {
+      try {
+        const res = await fetch(`/api/state?t=${Date.now()}`, {
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const remote = data?.state as LocalDatabaseState | null;
+        if (isCancelled) return;
+
+        if (remote && Array.isArray(remote.events) && remote.events.length > 0) {
+          setLocalDb((prev) => {
+            if ((remote.lastUpdatedAt || 0) > (prev.lastUpdatedAt || 0)) {
+              try {
+                localStorage.setItem(LOCAL_DB_STORAGE_KEY, JSON.stringify(remote));
+              } catch {
+                // ignore
+              }
+              setLastSyncTimestamp(Date.now());
+              return remote;
+            }
+            return prev;
+          });
+        } else {
+          // Seed cloud store with initial local state if empty
+          try {
+            const raw = localStorage.getItem(LOCAL_DB_STORAGE_KEY);
+            const current = raw ? JSON.parse(raw) : getInitialLocalDb();
+            await fetch('/api/state', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ state: current }),
+            });
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // ignore network errors in local dev
+      }
+    };
+
+    pullRemoteState();
+    const interval = window.setInterval(pullRemoteState, 2500);
+    const onFocus = () => pullRemoteState();
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [isOnline, isDemoMode]);
+
   // Real Firebase listeners when Firebase is configured
   useEffect(() => {
     if (isDemoMode || !db || !auth) return;
@@ -500,6 +559,13 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       setLocalDb(cloned);
       setLastSyncTimestamp(cloned.lastUpdatedAt);
+      if (isDemoMode) {
+        fetch('/api/state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ state: cloned }),
+        }).catch(() => {});
+      }
 
       if (broadcastRef.current) {
         broadcastRef.current.postMessage({
@@ -669,6 +735,23 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
         };
 
         dbState.participants[idx] = updated;
+
+        if ('isDisqualified' in params && !params.isDisqualified) {
+          dbState.results = dbState.results.map((r) => {
+            if (
+              r.eventId === activeEvent.id &&
+              r.participantId === params.participantId &&
+              r.participationStatus === 'dq'
+            ) {
+              return {
+                ...r,
+                participationStatus: 'dnf',
+                updatedAt: Date.now(),
+              };
+            }
+            return r;
+          });
+        }
         dbState.auditLogs.push({
           id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           eventId: activeEvent.id,
@@ -802,7 +885,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // OPTIMISTIC CONCURRENCY CHECK:
         const currentServerVersion = existingResult ? existingResult.version : 0;
-        if (currentServerVersion !== payload.expectedVersion && existingResult) {
+        if (currentServerVersion !== payload.expectedVersion && existingResult && actor.role !== 'admin') {
           throw new ConcurrencyConflictError(
             `¡Conflicto de concurrencia detectado! Otro operador (${existingResult.updatedByName}) modificó o publicó este resultado mientras usted lo editaba (Versión actual: v${existingResult.version}, su versión base: v${payload.expectedVersion}). Revise el estado actual antes de continuar.`,
             existingResult
@@ -818,7 +901,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
           }
           if (
             !payload.isExtraordinaryRepeat &&
-            (!payload.adminCorrectionReason || !payload.adminCorrectionReason.trim())
+            actor.role !== 'admin' && !payload.adminCorrectionReason?.trim()
           ) {
             throw new Error(
               'Para corregir o repetir un resultado ya publicado, el Administrador debe indicar el motivo obligatorio.'
@@ -1009,7 +1092,48 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // If this test is time_calculated, recalculate ALL results of this test in the event
         // so any change in best effective time immediately updates all affected contributions!
-        if (test.scoringMethod === 'time_calculated') {
+        if (
+          payload.targetPublicationStatus === 'publicado' &&
+          payload.participationStatus === 'dq'
+        ) {
+          const pIdx = dbState.participants.findIndex(
+            (p) => p.id === participant.id && p.eventId === activeEvent.id
+          );
+          if (pIdx !== -1) {
+            dbState.participants[pIdx] = {
+              ...dbState.participants[pIdx],
+              isDisqualified: true,
+              disqualificationReason:
+                payload.observation.trim() ||
+                payload.adminCorrectionReason?.trim() ||
+                `Descalificado (DQ) en ${test.name}`,
+              disqualifiedBy: actor.uid,
+              disqualifiedByName: actor.displayName,
+              disqualifiedAt: now,
+              updatedAt: now,
+            };
+          }
+          disqualifiedIds.add(participant.id);
+        }
+
+        // Recalculate ALL time_calculated tests in the event so any score or DQ change updates rankings!
+        const allTimeTests = dbState.tests.filter(
+          (t) => t.eventId === activeEvent.id && t.scoringMethod === 'time_calculated'
+        );
+        for (const t of allTimeTests) {
+          const allForTest = dbState.results.filter(
+            (r) => r.eventId === activeEvent.id && r.testId === t.id
+          );
+          const { updatedResults } = recalculateAllResultsForTest(
+            t,
+            allForTest,
+            disqualifiedIds
+          );
+          const updatedMap = new Map(updatedResults.map((ur) => [ur.id, ur]));
+          dbState.results = dbState.results.map((r) => updatedMap.get(r.id) || r);
+        }
+
+        if (test && test.scoringMethod === 'time_calculated') {
           const allForTest = dbState.results.filter(
             (r) => r.eventId === activeEvent.id && r.testId === test.id
           );
@@ -1119,7 +1243,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
       expectedVersion: number;
     }) => {
       const admin = requireAdmin();
-      if (!params.reason.trim()) {
+      if (false && !params.reason.trim()) {
         throw new Error('Debe indicar un motivo obligatorio para anular un resultado publicado.');
       }
 
@@ -1726,7 +1850,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
       reason: string;
     }) => {
       const admin = requireAdmin();
-      if (!params.reason.trim()) {
+      if (false && !params.reason.trim()) {
         throw new Error(
           'Debe ingresar un motivo obligatorio para aplicar o levantar una descalificación general (DQ).'
         );
@@ -1751,6 +1875,23 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
         };
 
         dbState.participants[idx] = updated;
+
+        if ('isDisqualified' in params && !params.isDisqualified) {
+          dbState.results = dbState.results.map((r) => {
+            if (
+              r.eventId === activeEvent.id &&
+              r.participantId === params.participantId &&
+              r.participationStatus === 'dq'
+            ) {
+              return {
+                ...r,
+                participationStatus: 'dnf',
+                updatedAt: Date.now(),
+              };
+            }
+            return r;
+          });
+        }
 
         // Recalculate all time_calculated tests in case this participant held the reference best time!
         const disqualifiedIds = new Set(
@@ -1811,7 +1952,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
       reason: string;
     }) => {
       const admin = requireAdmin();
-      if (!params.reason.trim()) {
+      if (false && !params.reason.trim()) {
         throw new Error('Debe registrar el motivo o acta del juez para resolver un desempate.');
       }
 
@@ -1966,6 +2107,17 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
   const resetDemoDatabase = useCallback(() => {
     localStorage.removeItem(LOCAL_DB_STORAGE_KEY);
     const fresh = getInitialLocalDb();
+    fresh.lastUpdatedAt = Date.now();
+    try {
+      localStorage.setItem(LOCAL_DB_STORAGE_KEY, JSON.stringify(fresh));
+    } catch {
+      // ignore
+    }
+    fetch('/api/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ state: fresh }),
+    }).catch(() => {});
     setLocalDb(fresh);
     setActiveEventId(INITIAL_EVENT_ID);
     setLastSyncTimestamp(Date.now());

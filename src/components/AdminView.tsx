@@ -2008,6 +2008,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                       <th className="py-3 px-4 text-right text-amber-300">
                         Puntos / Tiempo Total
                       </th>
+                      <th className="py-3 px-4 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/70">
@@ -2064,6 +2065,40 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                               {hasTime ? formatMsToTime(sumMs) : '—'}
                             </span>
                           </td>
+                          <td className="py-2.5 px-4 text-right space-x-1.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onEditResultInForm({
+                                  participantId: row.participantId,
+                                  testId: tests[0]?.id || 'test_velocidad',
+                                  trackId: tracks[0]?.id || 'track_1',
+                                })
+                              }
+                              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 text-xs font-bold cursor-pointer"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setParticipantGeneralDQ({
+                                  participantId: row.participantId,
+                                  isDisqualified: !row.isDisqualified,
+                                  reason: row.isDisqualified
+                                    ? 'Rehabilitado desde Ranking Admin'
+                                    : 'Descalificado (DQ) desde Ranking Admin',
+                                })
+                              }
+                              className={`px-2.5 py-1 rounded text-xs font-extrabold cursor-pointer ${
+                                row.isDisqualified
+                                  ? 'bg-emerald-950 border border-emerald-600 text-emerald-300'
+                                  : 'bg-rose-950 border border-rose-600 text-rose-300'
+                              }`}
+                            >
+                              {row.isDisqualified ? 'Quitar DQ' : 'DQ'}
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -2083,6 +2118,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                       <th className="py-3 px-4 text-right text-amber-300">
                         Total (Pts / Tiempo)
                       </th>
+                      <th className="py-3 px-3 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/70">
@@ -2133,7 +2169,18 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                           {tests.map((t) => {
                             const cell = row.testCells[t.id];
                             return (
-                              <td key={t.id} className="py-2.5 px-3 text-right font-mono">
+                              <td
+                                key={t.id}
+                                onClick={() =>
+                                  onEditResultInForm({
+                                    participantId: row.participantId,
+                                    testId: t.id,
+                                    trackId: tracks[0]?.id || 'track_1',
+                                  })
+                                }
+                                title="Clic para editar este tiempo/puntaje"
+                                className="py-2.5 px-3 text-right font-mono hover:bg-slate-900 cursor-pointer transition"
+                              >
                                 {cell && cell.status === 'completado' ? (
                                   <div>
                                     <div className="font-extrabold text-white">
@@ -2158,6 +2205,40 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                             <div className="text-[11px] text-sky-300 font-bold">
                               {hasTime ? formatMsToTime(sumMs) : '—'}
                             </div>
+                          </td>
+                          <td className="py-2.5 px-3 text-right space-x-1">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onEditResultInForm({
+                                  participantId: row.participantId,
+                                  testId: tests[0]?.id || 'test_velocidad',
+                                  trackId: tracks[0]?.id || 'track_1',
+                                })
+                              }
+                              className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 font-bold cursor-pointer"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setParticipantGeneralDQ({
+                                  participantId: row.participantId,
+                                  isDisqualified: !row.isDisqualified,
+                                  reason: row.isDisqualified
+                                    ? 'Rehabilitado desde Ranking Admin'
+                                    : 'Descalificado (DQ) desde Ranking Admin',
+                                })
+                              }
+                              className={`px-2 py-1 rounded font-extrabold cursor-pointer ${
+                                row.isDisqualified
+                                  ? 'bg-emerald-950 border border-emerald-600 text-emerald-300'
+                                  : 'bg-rose-950 border border-rose-600 text-rose-300'
+                              }`}
+                            >
+                              {row.isDisqualified ? 'Quitar DQ' : 'DQ'}
+                            </button>
                           </td>
                         </tr>
                       );

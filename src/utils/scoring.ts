@@ -471,6 +471,11 @@ export function computeEventRanking(params: {
 
   // Only published results count for the ranking
   const publishedResults = results.filter((r) => r.publicationStatus === 'publicado');
+  for (const r of publishedResults) {
+    if (r.participationStatus === 'dq') {
+      disqualifiedIds.add(r.participantId);
+    }
+  }
 
   // Compute reference best effective time for each test
   const bestTimeByTestId: Record<string, number | null> = {};
@@ -608,7 +613,7 @@ export function computeEventRanking(params: {
       fullName: p.fullName,
       companyOrTeam: p.companyOrTeam,
       competitorNumber: p.competitorNumber,
-      isDisqualified: p.isDisqualified,
+      isDisqualified: p.isDisqualified || hasTestDQ,
       disqualificationReason: 'disqualificationReason' in p ? p.disqualificationReason : undefined,
       accreditationStatus: p.accreditationStatus,
       testCells,
