@@ -8,9 +8,6 @@ import {
   WifiOff,
   LogOut,
   Sun,
-  ShieldCheck,
-  Radio,
-  Sparkles,
 } from 'lucide-react';
 import {
   CompetitionProvider,
@@ -21,6 +18,7 @@ import { OperationalDashboard } from './components/OperationalDashboard';
 import { ResultEntryView } from './components/ResultEntryView';
 import { AdminView } from './components/AdminView';
 import { PublicScoreboard } from './components/PublicScoreboard';
+import { BrandLogo } from './components/BrandLogo';
 
 type ActiveScreen = 'dashboard' | 'result_entry' | 'admin';
 
@@ -34,8 +32,6 @@ const MainShell: React.FC = () => {
     simulatedOffline,
     setSimulatedOffline,
     activeEvent,
-    events,
-    setActiveEventId,
     loginWithDemoProfile,
     logout,
   } = useCompetition();
@@ -81,202 +77,171 @@ const MainShell: React.FC = () => {
     );
   }
 
-  // 3. Authenticated Staff / Admin Operational Workspace
+  // 3. Authenticated Staff / Admin Mobile-First Operational Workspace
   return (
     <div
-      className={`min-h-screen flex flex-col ${
+      className={`min-h-screen flex flex-col pb-20 sm:pb-8 ${
         highContrastOutdoor
           ? 'bg-black text-white contrast-125'
-          : 'bg-slate-950 text-slate-100'
+          : 'text-slate-100'
       }`}
     >
-      {/* Sleek Compact Top Strip */}
-      <div className="bg-slate-900/90 border-b border-slate-800/80 px-4 py-1.5 text-xs">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            {isDemoMode && (
-              <span
-                className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold text-[11px] flex items-center gap-1"
-                title="Modo demostración local con 35 pilotos precargados"
-              >
-                <Sparkles className="w-3 h-3" />
-                DEMO
-              </span>
-            )}
-            <select
-              aria-label="Seleccionar evento activo"
-              value={activeEvent.id}
-              onChange={(e) => setActiveEventId(e.target.value)}
-              className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 font-semibold text-xs focus:outline-none focus:border-sky-500"
-            >
-              {events.map((ev) => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.name}
-                </option>
-              ))}
-            </select>
+      {/* Top Tech HUD Accent Line */}
+      <div className="h-1 w-full bg-gradient-to-r from-red-700 via-red-500 to-red-900" />
+
+      {/* Ultra-Clean Mobile-First Header */}
+      <header className="bg-slate-950/90 border-b border-red-500/25 sticky top-0 z-30 backdrop-blur-md">
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
+          {/* Brand Logo + Event Title */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <BrandLogo className="w-9 h-9 shrink-0 drop-shadow-[0_0_10px_rgba(230,0,18,0.45)]" />
+            <div className="min-w-0">
+              <div className="font-black text-white text-xs sm:text-sm uppercase tracking-wider truncate">
+                {activeEvent.name.replace('(DEMO)', '').trim()}
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                {isDemoMode ? (
+                  <select
+                    aria-label="Cambiar operador"
+                    value={currentUser.uid}
+                    onChange={(e) => {
+                      loginWithDemoProfile(e.target.value);
+                      if (
+                        e.target.value !== 'demo-admin-1' &&
+                        activeScreen === 'admin'
+                      ) {
+                        setActiveScreen('result_entry');
+                      }
+                    }}
+                    className="bg-transparent text-red-400 font-bold text-[11px] focus:outline-none cursor-pointer pr-1"
+                  >
+                    <option value="demo-admin-1" className="bg-slate-900 text-white">
+                      Carlos M. (Admin)
+                    </option>
+                    <option value="demo-staff-1" className="bg-slate-900 text-white">
+                      Andrea S. (Pista 1)
+                    </option>
+                    <option value="demo-staff-2" className="bg-slate-900 text-white">
+                      Javier M. (Pista 2)
+                    </option>
+                    <option value="demo-staff-3" className="bg-slate-900 text-white">
+                      Francisca P. (Pista 3)
+                    </option>
+                    <option value="demo-staff-4" className="bg-slate-900 text-white">
+                      Rodrigo V. (Pista 4)
+                    </option>
+                  </select>
+                ) : (
+                  <span className="text-red-400 font-bold truncate">
+                    {currentUser.displayName}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
+          {/* Desktop Navigation + Quick Status Icons */}
           <div className="flex items-center gap-1.5">
-            {/* Outdoor Sunlight High-Contrast Toggle (Icon-first) */}
-            <button
-              type="button"
-              onClick={() => setHighContrastOutdoor((v) => !v)}
-              className={`p-1.5 rounded-lg border transition cursor-pointer ${
-                highContrastOutdoor
-                  ? 'bg-amber-400 text-slate-950 border-white font-black'
-                  : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white'
-              }`}
-              title="Contraste para luz solar exterior"
-            >
-              <Sun className="w-3.5 h-3.5" />
-            </button>
+            {/* Desktop Tabs (Hidden on phones, replaced by bottom thumb bar) */}
+            <nav className="hidden sm:flex items-center gap-1.5 mr-2">
+              <button
+                type="button"
+                onClick={() => setActiveScreen('result_entry')}
+                className={`px-3.5 py-2 rounded-xl font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                  activeScreen === 'result_entry'
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                    : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                }`}
+              >
+                <Timer className="w-4 h-4" />
+                <span>Tiempos</span>
+              </button>
 
-            {/* Connectivity Status / Offline Toggle */}
+              <button
+                type="button"
+                onClick={() => setActiveScreen('dashboard')}
+                className={`px-3.5 py-2 rounded-xl font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                  activeScreen === 'dashboard'
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                    : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Pistas</span>
+              </button>
+
+              {currentUser.role === 'admin' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveScreen('admin')}
+                  className={`px-3.5 py-2 rounded-xl font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                    activeScreen === 'admin'
+                      ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                      : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Admin</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsPublicScreenMode(true)}
+                className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-red-500/40 text-red-400 font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Tv className="w-4 h-4" />
+                <span>16:9</span>
+              </button>
+            </nav>
+
+            {/* Online/Offline Compact Indicator */}
             <button
               type="button"
               onClick={() => setSimulatedOffline(!simulatedOffline)}
-              className={`px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1.5 cursor-pointer text-[11px] ${
+              className={`p-2 rounded-xl border transition cursor-pointer ${
                 !isOnline
                   ? 'bg-rose-600 border-rose-400 text-white animate-pulse'
-                  : 'bg-emerald-950/60 border-emerald-600/40 text-emerald-300'
+                  : 'bg-slate-900 border-slate-800 text-emerald-400'
               }`}
-              title="Estado de conexión (Clic para simular modo sin conexión)"
+              title={isOnline ? 'En línea (Toca para simular offline)' : 'Sin conexión (Toca para reconectar)'}
             >
               {isOnline ? (
-                <>
-                  <Wifi className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">En línea</span>
-                </>
+                <Wifi className="w-4 h-4" />
               ) : (
-                <>
-                  <WifiOff className="w-3.5 h-3.5" />
-                  <span>Offline</span>
-                </>
+                <WifiOff className="w-4 h-4" />
               )}
             </button>
 
-            {/* Quick Profile Switcher in Demo Mode */}
-            {isDemoMode && (
-              <select
-                aria-label="Cambiar operador en modo demo"
-                value={currentUser.uid}
-                onChange={(e) => {
-                  loginWithDemoProfile(e.target.value);
-                  if (
-                    e.target.value !== 'demo-admin-1' &&
-                    activeScreen === 'admin'
-                  ) {
-                    setActiveScreen('result_entry');
-                  }
-                }}
-                className="px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700 text-sky-300 font-bold text-xs cursor-pointer"
-              >
-                <option value="demo-admin-1">Carlos M. (Admin)</option>
-                <option value="demo-staff-1">Andrea S. (Pista 1)</option>
-                <option value="demo-staff-2">Javier M. (Pista 2)</option>
-                <option value="demo-staff-3">Francisca P. (Pista 3)</option>
-                <option value="demo-staff-4">Rodrigo V. (Pista 4)</option>
-              </select>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Navigation Header */}
-      <header className="bg-slate-900/95 border-b border-slate-800/80 sticky top-0 z-30 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
-          {/* Brand */}
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white shadow-lg shrink-0"
-              style={{
-                backgroundColor: activeEvent.primaryColor || '#0284c7',
-              }}
-            >
-              <Radio className="w-5 h-5" />
-            </div>
-            <div className="truncate">
-              <div className="font-extrabold text-white text-sm sm:text-base leading-tight truncate">
-                {activeEvent.name}
-              </div>
-              <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                <ShieldCheck className="w-3 h-3 text-sky-400 shrink-0" />
-                <span className="truncate">{currentUser.displayName.split('(')[0].trim()}</span>
-                <span className="px-1.5 py-0.2 rounded bg-slate-800 text-sky-300 font-bold uppercase text-[9px]">
-                  {currentUser.role}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Clean Icon-Focused Navigation Bar */}
-          <nav className="flex items-center gap-1.5 sm:gap-2">
+            {/* Sunlight High-Contrast Toggle */}
             <button
               type="button"
-              onClick={() => setActiveScreen('result_entry')}
-              className={`px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
-                activeScreen === 'result_entry'
-                  ? 'bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/20'
-                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200'
+              onClick={() => setHighContrastOutdoor((v) => !v)}
+              className={`p-2 rounded-xl border transition cursor-pointer ${
+                highContrastOutdoor
+                  ? 'bg-amber-400 text-slate-950 border-white font-black'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
               }`}
+              title="Alto contraste para sol directo"
             >
-              <Timer className="w-4 h-4" />
-              <span>Tiempos</span>
+              <Sun className="w-4 h-4" />
             </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveScreen('dashboard')}
-              className={`px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
-                activeScreen === 'dashboard'
-                  ? 'bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/20'
-                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              <span className="hidden sm:inline">Panel</span>
-            </button>
-
-            {currentUser.role === 'admin' && (
-              <button
-                type="button"
-                onClick={() => setActiveScreen('admin')}
-                className={`px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
-                  activeScreen === 'admin'
-                    ? 'bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/20'
-                    : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200'
-                }`}
-              >
-                <Settings className="w-4 h-4" />
-                <span className="hidden md:inline">Admin</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setIsPublicScreenMode(true)}
-              title="Abrir Ranking en Pantalla Gigante 16:9"
-              className="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-extrabold text-xs sm:text-sm flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <Tv className="w-4 h-4" />
-              <span className="hidden md:inline">Ranking 16:9</span>
-            </button>
-
+            {/* Logout */}
             <button
               type="button"
               onClick={() => logout()}
               title="Cerrar sesión"
-              className="p-2 rounded-xl bg-slate-800/80 hover:bg-rose-950 border border-slate-700/80 hover:border-rose-700 text-slate-400 hover:text-rose-300 transition cursor-pointer"
+              className="p-2 rounded-xl bg-slate-900 hover:bg-red-950 border border-slate-800 hover:border-red-700 text-slate-400 hover:text-red-300 transition cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
             </button>
-          </nav>
+          </div>
         </div>
       </header>
 
-      {/* Main Workspace Container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-5">
+      {/* Main Mobile-First Workspace Container */}
+      <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-4 py-3 sm:py-5">
         {activeScreen === 'dashboard' && (
           <OperationalDashboard
             onNavigateResultEntry={(params) => {
@@ -310,6 +275,70 @@ const MainShell: React.FC = () => {
           />
         )}
       </main>
+
+      {/* Mobile Bottom Thumb Navigation Bar (Visible on Phones) */}
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-950/95 border-t border-red-500/30 backdrop-blur-lg px-2 py-1.5">
+        <div className="grid grid-cols-4 gap-1 max-w-md mx-auto">
+          <button
+            type="button"
+            onClick={() => setActiveScreen('result_entry')}
+            className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[11px] transition cursor-pointer ${
+              activeScreen === 'result_entry'
+                ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Timer className="w-5 h-5" />
+            <span>Tiempos</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveScreen('dashboard')}
+            className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[11px] transition cursor-pointer ${
+              activeScreen === 'dashboard'
+                ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span>Pistas</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsPublicScreenMode(true)}
+            className="py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[11px] text-slate-400 hover:text-red-400 transition cursor-pointer"
+          >
+            <Tv className="w-5 h-5" />
+            <span>Ranking</span>
+          </button>
+
+          {currentUser.role === 'admin' ? (
+            <button
+              type="button"
+              onClick={() => setActiveScreen('admin')}
+              className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[11px] transition cursor-pointer ${
+                activeScreen === 'admin'
+                  ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Settings className="w-5 h-5" />
+              <span>Admin</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[11px] text-slate-400 hover:text-rose-400 transition cursor-pointer"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Salir</span>
+            </button>
+          )}
+        </div>
+      </nav>
     </div>
   );
 };

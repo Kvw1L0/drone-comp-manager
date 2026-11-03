@@ -60,7 +60,7 @@ import {
 } from '../utils/scoring';
 import { getFirebaseInstances, FirebaseEnvironmentStatus } from '../services/firebase';
 
-const LOCAL_DB_STORAGE_KEY = 'drone_comp_manager_local_db_v2';
+const LOCAL_DB_STORAGE_KEY = 'drone_comp_manager_local_db_v3';
 const BROADCAST_CHANNEL_NAME = 'drone_comp_realtime_sync_v1';
 
 interface LocalDatabaseState {

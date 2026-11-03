@@ -68,8 +68,8 @@ export const DEMO_EVENTS: CompetitionEvent[] = [
     name: 'Copa Nacional de Drones Profesionales 2026 (DEMO)',
     date: '2026-11-15',
     logoUrl: '',
-    primaryColor: '#0284c7',
-    secondaryColor: '#f59e0b',
+    primaryColor: '#e60012',
+    secondaryColor: '#ff2a2a',
     status: 'en_curso',
     configVersion: 1,
     accreditationRequirements: [

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Trophy,
+
   Wifi,
   WifiOff,
   Clock,
@@ -20,6 +20,7 @@ import {
   formatScore,
 } from '../utils/scoring';
 import { RankingRow } from '../types/domain';
+import { BrandLogo } from './BrandLogo';
 
 interface PublicScoreboardProps {
   onExitPublicView?: () => void;
@@ -196,7 +197,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
               className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg shrink-0 border border-white/20"
               style={{ backgroundColor: activeEvent.primaryColor || '#0284c7' }}
             >
-              <Trophy className="w-8 h-8 text-amber-300" />
+              <BrandLogo className="w-12 h-12" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-1">
