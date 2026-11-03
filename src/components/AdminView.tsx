@@ -79,6 +79,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
     clearTieResolution,
     saveStaffUser,
     resetDemoDatabase,
+    setEventRankingViewMode,
   } = useCompetition();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('eventos');
@@ -538,6 +539,40 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Ranking View Mode Selector (Controls Public Screen & Admin Table) */}
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-700">
+              <span className="px-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Vista Ranking:
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEventRankingViewMode('detallado');
+                  setActiveTab('resultados_empates');
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                  (activeEvent.rankingViewMode || 'detallado') === 'detallado'
+                    ? 'bg-sky-500 text-white shadow'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                Detallado (Pistas)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEventRankingViewMode('resumen');
+                  setActiveTab('resultados_empates');
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                  activeEvent.rankingViewMode === 'resumen'
+                    ? 'bg-sky-500 text-white shadow'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                Resumen (Pts / Tiempo)
+              </button>
+            </div>
             <button
               type="button"
               onClick={handleExportRankingCsv}
@@ -586,7 +621,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
               },
               {
                 id: 'resultados_empates',
-                label: `4. Resultados (${results.length}) y Desempates`,
+                label: `4. Ranking y Resultados (${results.length})`,
                 icon: Award,
               },
               {
@@ -1924,6 +1959,215 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
       {/* ===================================================================== */}
       {activeTab === 'resultados_empates' && (
         <div className="space-y-6">
+          {/* Live Competitor Ranking Table (Detailed vs Summary Mode) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
+                  <Award className="w-5 h-5 text-amber-400" />
+                  Ranking General de Competidores ({rankingData.rows.length} pilotos)
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Alterne entre la vista <strong>Detallada</strong> (desglose por cada pista) y la vista en <strong>Resumen</strong> (solo posición, nombre y puntos / tiempo total). Este cambio también se aplica en vivo a la Pantalla Pública 16:9.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-700 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setEventRankingViewMode('detallado')}
+                  className={`px-3.5 py-2 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                    (activeEvent.rankingViewMode || 'detallado') === 'detallado'
+                      ? 'bg-sky-500 text-white shadow'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  Vista Detallada
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEventRankingViewMode('resumen')}
+                  className={`px-3.5 py-2 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                    activeEvent.rankingViewMode === 'resumen'
+                      ? 'bg-sky-500 text-white shadow'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  Vista en Resumen
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto max-h-[520px] rounded-xl border border-slate-800">
+              {activeEvent.rankingViewMode === 'resumen' ? (
+                <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                  <thead>
+                    <tr className="bg-slate-950 border-b border-slate-800 text-slate-400 uppercase text-xs font-extrabold">
+                      <th className="py-3 px-4 w-24">Posición</th>
+                      <th className="py-3 px-4">Competidor</th>
+                      <th className="py-3 px-4 text-right text-amber-300">
+                        Puntos / Tiempo Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {rankingData.rows.map((row) => {
+                      let sumMs = 0;
+                      let hasTime = false;
+                      for (const t of tests) {
+                        const c = row.testCells[t.id];
+                        if (c && c.status === 'completado' && c.effectiveTimeMs !== null) {
+                          sumMs += c.effectiveTimeMs;
+                          hasTime = true;
+                        }
+                      }
+                      return (
+                        <tr key={row.participantId} className="hover:bg-slate-950/60">
+                          <td className="py-2.5 px-4 font-black">
+                            {row.isDisqualified ? (
+                              <span className="px-2.5 py-0.5 rounded bg-rose-600 text-white text-xs">
+                                DQ
+                              </span>
+                            ) : (
+                              <span
+                                className={`inline-flex w-8 h-7 rounded-lg items-center justify-center text-xs font-black ${
+                                  row.position === 1
+                                    ? 'bg-amber-400 text-slate-950'
+                                    : row.position === 2
+                                    ? 'bg-slate-300 text-slate-950'
+                                    : row.position === 3
+                                    ? 'bg-amber-700 text-white'
+                                    : 'bg-slate-800 text-white'
+                                }`}
+                              >
+                                #{row.position}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-4">
+                            <span className="font-mono text-sky-400 font-bold mr-2">
+                              {row.competitorNumber}
+                            </span>
+                            <span className="font-extrabold text-white">
+                              {row.fullName}
+                            </span>
+                            <span className="text-xs text-slate-400 ml-2">
+                              • {row.companyOrTeam}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-4 text-right font-mono">
+                            <span className="font-black text-amber-300 text-sm sm:text-base">
+                              {formatScore(row.totalContribution)} pts
+                            </span>
+                            <span className="mx-2 text-slate-600">/</span>
+                            <span className="font-bold text-sky-300">
+                              {hasTime ? formatMsToTime(sumMs) : '—'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-950 border-b border-slate-800 text-slate-400 uppercase font-extrabold">
+                      <th className="py-3 px-3 w-20">Pos</th>
+                      <th className="py-3 px-3">Competidor</th>
+                      {tests.map((t, idx) => (
+                        <th key={t.id} className="py-3 px-3 text-right">
+                          P{idx + 1}: {t.name}
+                        </th>
+                      ))}
+                      <th className="py-3 px-4 text-right text-amber-300">
+                        Total (Pts / Tiempo)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {rankingData.rows.map((row) => {
+                      let sumMs = 0;
+                      let hasTime = false;
+                      for (const t of tests) {
+                        const c = row.testCells[t.id];
+                        if (c && c.status === 'completado' && c.effectiveTimeMs !== null) {
+                          sumMs += c.effectiveTimeMs;
+                          hasTime = true;
+                        }
+                      }
+                      return (
+                        <tr key={row.participantId} className="hover:bg-slate-950/60">
+                          <td className="py-2.5 px-3 font-black">
+                            {row.isDisqualified ? (
+                              <span className="px-2 py-0.5 rounded bg-rose-600 text-white">
+                                DQ
+                              </span>
+                            ) : (
+                              <span
+                                className={`inline-flex w-7 h-6 rounded items-center justify-center font-black ${
+                                  row.position === 1
+                                    ? 'bg-amber-400 text-slate-950'
+                                    : row.position === 2
+                                    ? 'bg-slate-300 text-slate-950'
+                                    : row.position === 3
+                                    ? 'bg-amber-700 text-white'
+                                    : 'bg-slate-800 text-white'
+                                }`}
+                              >
+                                #{row.position}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <div className="font-bold text-white">
+                              <span className="font-mono text-sky-400 mr-1.5">
+                                {row.competitorNumber}
+                              </span>
+                              {row.fullName}
+                            </div>
+                            <div className="text-[11px] text-slate-400">
+                              {row.companyOrTeam}
+                            </div>
+                          </td>
+                          {tests.map((t) => {
+                            const cell = row.testCells[t.id];
+                            return (
+                              <td key={t.id} className="py-2.5 px-3 text-right font-mono">
+                                {cell && cell.status === 'completado' ? (
+                                  <div>
+                                    <div className="font-extrabold text-white">
+                                      {formatScore(cell.contribution)} pts
+                                    </div>
+                                    <div className="text-[11px] text-sky-300">
+                                      {formatMsToTime(cell.effectiveTimeMs)}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-500 uppercase font-bold">
+                                    {cell?.status || 'Pend.'}
+                                  </span>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td className="py-2.5 px-4 text-right font-mono">
+                            <div className="font-black text-amber-300 text-sm">
+                              {formatScore(row.totalContribution)} pts
+                            </div>
+                            <div className="text-[11px] text-sky-300 font-bold">
+                              {hasTime ? formatMsToTime(sumMs) : '—'}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+
           {/* Persistent Ties Resolution Section */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
             <h2 className="text-lg font-extrabold text-white">

@@ -11,6 +11,7 @@ export interface UserProfile {
 }
 
 export type EventStatus = 'preparacion' | 'en_curso' | 'finalizado';
+export type RankingViewMode = 'detallado' | 'resumen';
 
 export interface AccreditationRequirement {
   id: string;
@@ -46,6 +47,7 @@ export interface CompetitionEvent {
   primaryColor: string;
   secondaryColor: string;
   status: EventStatus;
+  rankingViewMode?: RankingViewMode;
   configVersion: number;
   accreditationRequirements: AccreditationRequirement[];
   tieBreakerRules: TieBreakerRule[];

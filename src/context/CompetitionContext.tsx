@@ -34,6 +34,7 @@ import {
   ParticipationStatus,
   PublicParticipant,
   PublicResult,
+  RankingViewMode,
   TieBreakerRule,
   Track,
   TrackStatus,
@@ -253,6 +254,7 @@ interface CompetitionContextValue {
   }) => Promise<void>;
 
   resetDemoDatabase: () => void;
+  setEventRankingViewMode: (mode: RankingViewMode) => Promise<void>;
 }
 
 const CompetitionContext = createContext<CompetitionContextValue | null>(null);
@@ -1946,6 +1948,21 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
     [requireAdmin, runAtomicDbTransaction, activeEvent.id]
   );
 
+  const setEventRankingViewMode = useCallback(
+    async (mode: RankingViewMode) => {
+      await runAtomicDbTransaction((dbState) => {
+        const idx = dbState.events.findIndex((e) => e.id === activeEvent.id);
+        if (idx === -1) return;
+        dbState.events[idx] = {
+          ...dbState.events[idx],
+          rankingViewMode: mode,
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    [runAtomicDbTransaction, activeEvent.id]
+  );
+
   const resetDemoDatabase = useCallback(() => {
     localStorage.removeItem(LOCAL_DB_STORAGE_KEY);
     const fresh = getInitialLocalDb();
@@ -2001,6 +2018,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
     clearTieResolution,
     saveStaffUser,
     resetDemoDatabase,
+    setEventRankingViewMode,
   };
 
   return (
