@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
-  UserCheck,
-  ClipboardEdit,
+  Timer,
   Settings,
   Tv,
   Wifi,
@@ -11,6 +10,7 @@ import {
   Sun,
   ShieldCheck,
   Radio,
+  Sparkles,
 } from 'lucide-react';
 import {
   CompetitionProvider,
@@ -18,12 +18,11 @@ import {
 } from './context/CompetitionContext';
 import { LoginView } from './components/LoginView';
 import { OperationalDashboard } from './components/OperationalDashboard';
-import { AccreditationView } from './components/AccreditationView';
 import { ResultEntryView } from './components/ResultEntryView';
 import { AdminView } from './components/AdminView';
 import { PublicScoreboard } from './components/PublicScoreboard';
 
-type ActiveScreen = 'dashboard' | 'accreditation' | 'result_entry' | 'admin';
+type ActiveScreen = 'dashboard' | 'result_entry' | 'admin';
 
 const MainShell: React.FC = () => {
   const {
@@ -41,7 +40,7 @@ const MainShell: React.FC = () => {
     logout,
   } = useCompetition();
 
-  const [activeScreen, setActiveScreen] = useState<ActiveScreen>('dashboard');
+  const [activeScreen, setActiveScreen] = useState<ActiveScreen>('result_entry');
   const [highContrastOutdoor, setHighContrastOutdoor] = useState<boolean>(false);
 
   // Contextual navigation parameters
@@ -76,7 +75,7 @@ const MainShell: React.FC = () => {
   if (!currentUser) {
     return (
       <LoginView
-        onLoginSuccess={() => setActiveScreen('dashboard')}
+        onLoginSuccess={() => setActiveScreen('result_entry')}
         onOpenPublicScreen={() => setIsPublicScreenMode(true)}
       />
     );
@@ -91,66 +90,68 @@ const MainShell: React.FC = () => {
           : 'bg-slate-950 text-slate-100'
       }`}
     >
-      {/* Demo / Offline Status Top Strip */}
-      <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs">
+      {/* Sleek Compact Top Strip */}
+      <div className="bg-slate-900/90 border-b border-slate-800/80 px-4 py-1.5 text-xs">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             {isDemoMode && (
-              <span className="px-2.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300 font-extrabold">
-                MODO DEMOSTRACIÓN LOCAL (35 Pilotos • 4 Pistas)
+              <span
+                className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold text-[11px] flex items-center gap-1"
+                title="Modo demostración local con 35 pilotos precargados"
+              >
+                <Sparkles className="w-3 h-3" />
+                DEMO
               </span>
             )}
-            <span className="text-slate-400">Evento:</span>
             <select
               aria-label="Seleccionar evento activo"
               value={activeEvent.id}
               onChange={(e) => setActiveEventId(e.target.value)}
-              className="px-2.5 py-1 rounded bg-slate-950 border border-slate-700 text-white font-bold text-xs"
+              className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 font-semibold text-xs focus:outline-none focus:border-sky-500"
             >
               {events.map((ev) => (
                 <option key={ev.id} value={ev.id}>
-                  {ev.name} ({ev.status})
+                  {ev.name}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Outdoor Sunlight High-Contrast Toggle */}
+          <div className="flex items-center gap-1.5">
+            {/* Outdoor Sunlight High-Contrast Toggle (Icon-first) */}
             <button
               type="button"
               onClick={() => setHighContrastOutdoor((v) => !v)}
-              className={`px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1.5 cursor-pointer ${
+              className={`p-1.5 rounded-lg border transition cursor-pointer ${
                 highContrastOutdoor
                   ? 'bg-amber-400 text-slate-950 border-white font-black'
-                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                  : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white'
               }`}
-              title="Optimizar contraste para lectura bajo luz solar directa en pista"
+              title="Contraste para luz solar exterior"
             >
               <Sun className="w-3.5 h-3.5" />
-              {highContrastOutdoor ? 'Luz Exterior: ACTIVO' : 'Modo Luz Exterior'}
             </button>
 
-            {/* Offline Simulation Toggle to test local draft & conflict resolution */}
+            {/* Connectivity Status / Offline Toggle */}
             <button
               type="button"
               onClick={() => setSimulatedOffline(!simulatedOffline)}
-              className={`px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1.5 cursor-pointer text-[11px] ${
                 !isOnline
                   ? 'bg-rose-600 border-rose-400 text-white animate-pulse'
-                  : 'bg-emerald-950/70 border-emerald-600/50 text-emerald-300'
+                  : 'bg-emerald-950/60 border-emerald-600/40 text-emerald-300'
               }`}
-              title="Simular corte de conexión para verificar borradores locales aislados"
+              title="Estado de conexión (Clic para simular modo sin conexión)"
             >
               {isOnline ? (
                 <>
                   <Wifi className="w-3.5 h-3.5" />
-                  Conectado (Simular Corte)
+                  <span className="hidden sm:inline">En línea</span>
                 </>
               ) : (
                 <>
                   <WifiOff className="w-3.5 h-3.5" />
-                  SIN CONEXIÓN (Reconectar)
+                  <span>Offline</span>
                 </>
               )}
             </button>
@@ -166,26 +167,16 @@ const MainShell: React.FC = () => {
                     e.target.value !== 'demo-admin-1' &&
                     activeScreen === 'admin'
                   ) {
-                    setActiveScreen('dashboard');
+                    setActiveScreen('result_entry');
                   }
                 }}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-sky-300 font-bold text-xs cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700 text-sky-300 font-bold text-xs cursor-pointer"
               >
-                <option value="demo-admin-1">
-                  👤 Carlos Mendoza (ADMIN)
-                </option>
-                <option value="demo-staff-1">
-                  👤 Andrea Silva (STAFF - Pista 1)
-                </option>
-                <option value="demo-staff-2">
-                  👤 Javier Morales (STAFF - Pista 2)
-                </option>
-                <option value="demo-staff-3">
-                  👤 Francisca Pino (STAFF - Pista 3)
-                </option>
-                <option value="demo-staff-4">
-                  👤 Rodrigo Vega (STAFF - Pista 4)
-                </option>
+                <option value="demo-admin-1">Carlos M. (Admin)</option>
+                <option value="demo-staff-1">Andrea S. (Pista 1)</option>
+                <option value="demo-staff-2">Javier M. (Pista 2)</option>
+                <option value="demo-staff-3">Francisca P. (Pista 3)</option>
+                <option value="demo-staff-4">Rodrigo V. (Pista 4)</option>
               </select>
             )}
           </div>
@@ -193,102 +184,90 @@ const MainShell: React.FC = () => {
       </div>
 
       {/* Main Navigation Header */}
-      <header className="bg-slate-900/95 border-b border-slate-800 sticky top-0 z-30 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <header className="bg-slate-900/95 border-b border-slate-800/80 sticky top-0 z-30 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
           {/* Brand */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow"
+              className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white shadow-lg shrink-0"
               style={{
                 backgroundColor: activeEvent.primaryColor || '#0284c7',
               }}
             >
               <Radio className="w-5 h-5" />
             </div>
-            <div>
-              <div className="font-extrabold text-white text-sm sm:text-base leading-tight">
+            <div className="truncate">
+              <div className="font-extrabold text-white text-sm sm:text-base leading-tight truncate">
                 {activeEvent.name}
               </div>
-              <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-sky-400" />
-                <span>{currentUser.displayName}</span>
-                <span className="px-1.5 py-0.2 rounded bg-slate-800 text-sky-300 font-bold uppercase text-[10px]">
+              <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                <ShieldCheck className="w-3 h-3 text-sky-400 shrink-0" />
+                <span className="truncate">{currentUser.displayName.split('(')[0].trim()}</span>
+                <span className="px-1.5 py-0.2 rounded bg-slate-800 text-sky-300 font-bold uppercase text-[9px]">
                   {currentUser.role}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Primary Navigation Buttons (Large Touch Targets for Field Staff) */}
-          <nav className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveScreen('dashboard')}
-              className={`px-3.5 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
-                activeScreen === 'dashboard'
-                  ? 'bg-sky-500 text-slate-950 shadow'
-                  : 'bg-slate-800/90 hover:bg-slate-800 text-slate-200'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              Panel Operativo
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveScreen('accreditation')}
-              className={`px-3.5 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
-                activeScreen === 'accreditation'
-                  ? 'bg-emerald-500 text-slate-950 shadow'
-                  : 'bg-slate-800/90 hover:bg-slate-800 text-slate-200'
-              }`}
-            >
-              <UserCheck className="w-4 h-4" />
-              Acreditación
-            </button>
-
+          {/* Clean Icon-Focused Navigation Bar */}
+          <nav className="flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={() => setActiveScreen('result_entry')}
-              className={`px-3.5 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
                 activeScreen === 'result_entry'
-                  ? 'bg-sky-500 text-slate-950 shadow'
-                  : 'bg-slate-800/90 hover:bg-slate-800 text-slate-200'
+                  ? 'bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/20'
+                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200'
               }`}
             >
-              <ClipboardEdit className="w-4 h-4" />
-              Registro Resultados
+              <Timer className="w-4 h-4" />
+              <span>Tiempos</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveScreen('dashboard')}
+              className={`px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
+                activeScreen === 'dashboard'
+                  ? 'bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/20'
+                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span className="hidden sm:inline">Panel</span>
             </button>
 
             {currentUser.role === 'admin' && (
               <button
                 type="button"
                 onClick={() => setActiveScreen('admin')}
-                className={`px-3.5 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
+                className={`px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
                   activeScreen === 'admin'
-                    ? 'bg-sky-500 text-slate-950 shadow'
-                    : 'bg-slate-800/90 hover:bg-slate-800 text-slate-200'
+                    ? 'bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/20'
+                    : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200'
                 }`}
               >
                 <Settings className="w-4 h-4" />
-                Administración
+                <span className="hidden md:inline">Admin</span>
               </button>
             )}
 
             <button
               type="button"
               onClick={() => setIsPublicScreenMode(true)}
-              className="px-3.5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 font-extrabold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer"
+              title="Abrir Ranking en Pantalla Gigante 16:9"
+              className="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-extrabold text-xs sm:text-sm flex items-center gap-1.5 transition cursor-pointer"
             >
               <Tv className="w-4 h-4" />
-              Ranking 16:9
+              <span className="hidden md:inline">Ranking 16:9</span>
             </button>
 
             <button
               type="button"
               onClick={() => logout()}
               title="Cerrar sesión"
-              className="p-2.5 rounded-xl bg-slate-800 hover:bg-rose-950 border border-slate-700 hover:border-rose-700 text-slate-300 hover:text-rose-300 transition cursor-pointer"
+              className="p-2 rounded-xl bg-slate-800/80 hover:bg-rose-950 border border-slate-700/80 hover:border-rose-700 text-slate-400 hover:text-rose-300 transition cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -297,13 +276,9 @@ const MainShell: React.FC = () => {
       </header>
 
       {/* Main Workspace Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-5">
         {activeScreen === 'dashboard' && (
           <OperationalDashboard
-            onNavigateAccreditation={(participantId) => {
-              if (participantId) setSelectedParticipantId(participantId);
-              setActiveScreen('accreditation');
-            }}
             onNavigateResultEntry={(params) => {
               if (params?.participantId)
                 setSelectedParticipantId(params.participantId);
@@ -313,16 +288,6 @@ const MainShell: React.FC = () => {
             }}
             onNavigateAdmin={() => setActiveScreen('admin')}
             onOpenPublicScreen={() => setIsPublicScreenMode(true)}
-          />
-        )}
-
-        {activeScreen === 'accreditation' && (
-          <AccreditationView
-            initialParticipantId={selectedParticipantId}
-            onGoToResultEntry={(participantId) => {
-              setSelectedParticipantId(participantId);
-              setActiveScreen('result_entry');
-            }}
           />
         )}
 

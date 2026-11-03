@@ -4,16 +4,25 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
-  ShieldAlert,
   Save,
   Send,
   RefreshCw,
   WifiOff,
   FileWarning,
-  Calculator,
   User,
   Flag,
-  MapPin,
+  Zap,
+  Sliders,
+  Trophy,
+  X,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
+  Ban,
+  Hourglass,
+  Check,
+  Building2,
+  Hash,
 } from 'lucide-react';
 import {
   ConcurrencyConflictError,
@@ -61,10 +70,12 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     saveOrPublishResult,
   } = useCompetition();
 
-  // Step 1 & 2 selections
+  // 1. Participant & Unified Track/Test selection
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+
   const [selectedParticipantId, setSelectedParticipantId] = useState<string>(
-    initialParticipantId || participants.find((p) => p.accreditationStatus === 'habilitado')?.id || participants[0]?.id || ''
+    initialParticipantId || participants[0]?.id || ''
   );
   const [selectedTestId, setSelectedTestId] = useState<string>(
     initialTestId || tests[0]?.id || ''
@@ -73,7 +84,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     initialTrackId || tracks[0]?.id || ''
   );
 
-  // Step 3 form inputs (strings so empty values are never turned into 0 automatically!)
+  // 3. Time & Score inputs
   const [participationStatus, setParticipationStatus] =
     useState<ParticipationStatus>('completado');
   const [rawScoreInput, setRawScoreInput] = useState<string>('');
@@ -83,6 +94,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
   const [centisecondsInput, setCentisecondsInput] = useState<string>('');
   const [secondsPenaltyInput, setSecondsPenaltyInput] = useState<string>('0');
   const [observation, setObservation] = useState<string>('');
+  const [showAdvancedPenalties, setShowAdvancedPenalties] = useState<boolean>(false);
 
   // Admin exception & correction inputs
   const [adminExceptionReason, setAdminExceptionReason] = useState<string>('');
@@ -96,13 +108,20 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
   const [loadedFromLocalDraft, setLoadedFromLocalDraft] =
     useState<LocalDraft | null>(null);
 
-  // Confirmation & submission lock (prevents double tap!)
+  // Confirmation & submission lock
   const [showPublishConfirmModal, setShowPublishConfirmModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{
     type: 'published' | 'draft' | 'error';
     text: string;
   } | null>(null);
+
+  // Sync props when navigating from Dashboard or Admin
+  useEffect(() => {
+    if (initialParticipantId) setSelectedParticipantId(initialParticipantId);
+    if (initialTestId) setSelectedTestId(initialTestId);
+    if (initialTrackId) setSelectedTrackId(initialTrackId);
+  }, [initialParticipantId, initialTestId, initialTrackId]);
 
   const selectedParticipant = useMemo(
     () => participants.find((p) => p.id === selectedParticipantId) || null,
@@ -114,27 +133,27 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     [tests, selectedTestId]
   );
 
-  const compatibleTracks = useMemo(() => {
-    if (!selectedTest) return tracks;
-    return tracks.filter((tr) => selectedTest.assignedTrackIds.includes(tr.id));
-  }, [tracks, selectedTest]);
-
-  // Ensure selectedTrackId is valid for selectedTest
+  // Automatically bind Track to the selected Test (Unified Pista / Prueba)
   useEffect(() => {
+    if (!selectedTest) return;
+    const compatible = tracks.filter((tr) =>
+      selectedTest.assignedTrackIds.includes(tr.id)
+    );
     if (
-      compatibleTracks.length > 0 &&
-      !compatibleTracks.some((tr) => tr.id === selectedTrackId)
+      compatible.length > 0 &&
+      !compatible.some((tr) => tr.id === selectedTrackId)
     ) {
-      setSelectedTrackId(compatibleTracks[0].id);
+      setSelectedTrackId(compatible[0].id);
+    } else if (compatible.length === 0 && tracks.length > 0 && !selectedTrackId) {
+      setSelectedTrackId(tracks[0].id);
     }
-  }, [compatibleTracks, selectedTrackId]);
+  }, [selectedTest, tracks, selectedTrackId]);
 
   const selectedTrack = useMemo(
-    () => tracks.find((tr) => tr.id === selectedTrackId) || null,
+    () => tracks.find((tr) => tr.id === selectedTrackId) || tracks[0] || null,
     [tracks, selectedTrackId]
   );
 
-  // Existing official/server result for (participantId, testId)
   const existingServerResult = useMemo(() => {
     if (!selectedParticipantId || !selectedTestId) return null;
     return (
@@ -155,7 +174,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     setAdminCorrectionReason('');
     setIsExtraordinaryRepeat(false);
 
-    // 1. Check if current operator has a saved local draft for this (userUid, eventId, participantId, testId)
     const userDrafts = loadUserDraftsForEvent(currentUser?.uid, activeEvent.id);
     const slotKey = `${selectedParticipantId}__${selectedTestId}`;
     const localDraft = userDrafts[slotKey] || null;
@@ -177,7 +195,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
 
     setLoadedFromLocalDraft(null);
 
-    // 2. Otherwise populate from existing server result if present
     if (existingServerResult && existingServerResult.publicationStatus !== 'anulado') {
       setParticipationStatus(existingServerResult.participationStatus);
       setRawScoreInput(
@@ -199,8 +216,16 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
       if (existingServerResult.trackId) {
         setSelectedTrackId(existingServerResult.trackId);
       }
+      if (
+        (existingServerResult.pointsPenalty || 0) > 0 ||
+        (existingServerResult.secondsPenaltyMs || 0) > 0 ||
+        existingServerResult.observation
+      ) {
+        setShowAdvancedPenalties(true);
+      } else {
+        setShowAdvancedPenalties(false);
+      }
     } else {
-      // Clean blank form (do NOT prefill score or time with 0!)
       setParticipationStatus('completado');
       setRawScoreInput('');
       setPointsPenaltyInput('0');
@@ -210,17 +235,15 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
       setSecondsPenaltyInput('0');
       setObservation('');
       setBaseServerVersion(existingServerResult ? existingServerResult.version : 0);
+      setShowAdvancedPenalties(false);
     }
-    // Intentionally trigger only when selection or operator changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedParticipantId, selectedTestId, currentUser?.uid, activeEvent.id]);
 
-  // Detect live concurrent modification by another operator while editing!
   const hasLiveVersionMismatch = Boolean(
     existingServerResult && existingServerResult.version > baseServerVersion
   );
 
-  // Save local draft isolated by (userUid, eventId) automatically whenever operator edits
   const handlePersistLocalDraft = () => {
     if (!currentUser || !selectedParticipantId || !selectedTestId) return;
     const draft: LocalDraft = {
@@ -246,12 +269,11 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     setStatusMessage({
       type: 'draft',
       text: isOnline
-        ? `Borrador local guardado para ${selectedParticipant?.fullName} (aislado para ${currentUser.displayName}).`
-        : `MODO SIN CONEXIÓN: Borrador guardado localmente en su dispositivo. No se mostrará "Publicado" hasta reconectar y confirmar con el servidor.`,
+        ? `Borrador guardado para ${selectedParticipant?.fullName}`
+        : `Guardado en modo offline`,
     });
   };
 
-  // Parse numeric inputs without turning empty fields into 0 automatically
   const parsedTime = useMemo(
     () => parseTimeInputsToMs(minutesInput, secondsInput, centisecondsInput),
     [minutesInput, secondsInput, centisecondsInput]
@@ -275,7 +297,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     return Number.isFinite(n) ? Math.round(n * 1000) : NaN;
   }, [secondsPenaltyInput]);
 
-  // Live calculation preview
   const liveCalculation = useMemo(() => {
     if (!selectedTest) return null;
     const disqualifiedIds = new Set(
@@ -330,7 +351,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     });
   }, [participants, searchQuery]);
 
-  // Execute server save/publish
   const executeSubmit = async (targetPublicationStatus: 'borrador' | 'publicado') => {
     if (isSubmitting || !selectedParticipant || !selectedTest || !selectedTrack) {
       return;
@@ -342,18 +362,16 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
       return;
     }
 
-    // If offline, automatically preserve local draft and refuse to show "Publicado"!
     if (!isOnline) {
       handlePersistLocalDraft();
       setShowPublishConfirmModal(false);
       setStatusMessage({
         type: 'error',
-        text: 'Conexión interrumpida: sus datos se guardaron en el borrador local de su sesión. No se puede marcar como "Publicado" hasta recibir confirmación del servidor.',
+        text: 'Sin conexión: guardado en borrador local.',
       });
       return;
     }
 
-    // If a version conflict was detected after reconnecting, require resolving conflict first!
     if (hasLiveVersionMismatch && existingServerResult) {
       setConflictModalResult(existingServerResult);
       setShowPublishConfirmModal(false);
@@ -383,7 +401,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
         adminCorrectionReason: adminCorrectionReason.trim() || undefined,
       });
 
-      // Clear local draft upon confirmed server write
       removeUserDraft(
         currentUser?.uid,
         activeEvent.id,
@@ -398,10 +415,8 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
         type: targetPublicationStatus === 'publicado' ? 'published' : 'draft',
         text:
           targetPublicationStatus === 'publicado'
-            ? `✓ PUBLICADO CON CONFIRMACIÓN DEL SERVIDOR (v${saved.version}): Resultado oficial de ${
-                selectedParticipant.fullName
-              } en ${selectedTest.name} actualizado en el ranking.`
-            : `Borrador sincronizado en el servidor (v${saved.version}) para ${selectedParticipant.fullName}.`,
+            ? `Resultado publicado: ${selectedParticipant.fullName} • ${selectedTest.name}`
+            : `Borrador guardado`,
       });
     } catch (err) {
       setShowPublishConfirmModal(false);
@@ -421,7 +436,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     }
   };
 
-  // Resolve conflict by adopting server state or keeping local values on top of new server version
   const handleResolveConflictAdoptServer = () => {
     if (!conflictModalResult && !existingServerResult) return;
     const srv = conflictModalResult || existingServerResult!;
@@ -445,7 +459,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     setConflictModalResult(null);
     setStatusMessage({
       type: 'draft',
-      text: `Se cargaron los datos actuales del servidor (v${srv.version} por ${srv.updatedByName}).`,
+      text: `Datos actualizados (v${srv.version})`,
     });
   };
 
@@ -454,10 +468,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     if (!srv) return;
     setBaseServerVersion(srv.version);
     setConflictModalResult(null);
-    setStatusMessage({
-      type: 'draft',
-      text: `Conflicto revisado: su formulario ahora apunta a la versión base v${srv.version}. Si el resultado ya fue publicado, solo un Administrador podrá sobrescribirlo con motivo.`,
-    });
   };
 
   const isAlreadyPublishedOnServer =
@@ -465,817 +475,782 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
   const isStaffBlockedFromOverwriting =
     isAlreadyPublishedOnServer && currentUser?.role !== 'admin';
 
+  const hasActivePenalties =
+    parsedPointsPenalty > 0 || parsedSecondsPenaltyMs > 0 || observation.trim().length > 0;
+
   return (
-    <div className="space-y-5 pb-12">
-      {/* Sticky Context Bar: Always displays Participant Name + Test + Track to prevent operator mistakes */}
-      <div className="sticky top-16 z-30 bg-slate-900/95 backdrop-blur border-2 border-sky-500/50 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-500/20 border border-sky-400/40">
-            <User className="w-4 h-4 text-sky-300" />
-            <div>
-              <div className="text-[10px] uppercase font-bold text-sky-300">
-                Piloto Seleccionado
-              </div>
-              <div className="text-sm sm:text-base font-extrabold text-white">
-                {selectedParticipant
-                  ? `${selectedParticipant.fullName} (${selectedParticipant.competitorNumber})`
-                  : 'Ninguno'}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/40">
-            <Flag className="w-4 h-4 text-amber-300" />
-            <div>
-              <div className="text-[10px] uppercase font-bold text-amber-300">
-                Prueba Activa ({selectedTest?.scoringMethod === 'time_calculated' ? 'Por Tiempo' : 'Manual'})
-              </div>
-              <div className="text-sm sm:text-base font-extrabold text-white">
-                {selectedTest?.name || 'Ninguna'}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700">
-            <MapPin className="w-4 h-4 text-emerald-400" />
-            <div>
-              <div className="text-[10px] uppercase font-bold text-slate-400">
-                Pista Física
-              </div>
-              <div className="text-sm font-bold text-slate-200">
-                {selectedTrack?.name || '—'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 self-end sm:self-center">
-          {!isOnline && (
-            <span className="px-3 py-1.5 rounded-xl bg-rose-950 border border-rose-600 text-rose-200 text-xs font-extrabold flex items-center gap-1.5 animate-pulse">
-              <WifiOff className="w-4 h-4" /> SIN CONEXIÓN (Borrador Local)
-            </span>
-          )}
+    <div className="max-w-4xl mx-auto space-y-5 pb-12">
+      {/* Alerts & Status Notifications */}
+      {!isOnline && (
+        <div className="px-4 py-2.5 rounded-2xl bg-rose-950/90 border border-rose-500/60 text-rose-200 text-xs font-bold flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <WifiOff className="w-4 h-4 text-rose-400 animate-pulse" />
+            Modo sin conexión — Los tiempos se guardan localmente
+          </span>
           {loadedFromLocalDraft && (
-            <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
-              Borrador local recuperado
+            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
+              Borrador activo
             </span>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Live Concurrency Conflict Banner */}
       {(hasLiveVersionMismatch || conflictModalResult) && existingServerResult && (
-        <div className="p-5 rounded-2xl bg-rose-950/90 border-2 border-rose-500 text-white shadow-2xl space-y-3">
-          <div className="flex items-start gap-3">
-            <FileWarning className="w-6 h-6 text-rose-300 shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-base font-extrabold text-rose-200">
-                ¡Alerta de Concurrencia! Otro operador modificó este resultado
-              </h3>
-              <p className="text-xs sm:text-sm text-rose-100 mt-1">
-                Mientras usted tenía abierto este formulario (versión base{' '}
-                <strong>v{baseServerVersion}</strong>), el operador{' '}
-                <strong>{existingServerResult.updatedByName}</strong> guardó la{' '}
-                <strong>versión v{existingServerResult.version}</strong> con estado{' '}
-                <strong className="uppercase">{existingServerResult.publicationStatus}</strong>{' '}
-                (Aporte: {formatScore(existingServerResult.contribution)} pts). Debe resolver este
-                conflicto antes de publicar un borrador desactualizado.
-              </p>
+        <div className="p-4 rounded-2xl bg-rose-950/90 border border-rose-500 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <FileWarning className="w-5 h-5 text-rose-300 shrink-0" />
+            <div className="text-xs">
+              <div className="font-extrabold text-rose-200">
+                Actualizado por {existingServerResult.updatedByName} (v{existingServerResult.version})
+              </div>
+              <div className="text-rose-300">
+                Aporte actual: {formatScore(existingServerResult.contribution)} pts
+              </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 pt-1">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleResolveConflictAdoptServer}
-              className="px-4 py-2.5 rounded-xl bg-white text-slate-950 font-extrabold text-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-white text-slate-950 font-extrabold text-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4" />
-              Cargar los datos del servidor (Recomendado)
+              <RefreshCw className="w-3.5 h-3.5" />
+              Cargar actual
             </button>
             <button
               type="button"
               onClick={handleResolveConflictKeepMyDraftOverNewVersion}
-              className="px-4 py-2.5 rounded-xl bg-rose-800 hover:bg-rose-700 border border-rose-500 text-white font-bold text-xs cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-white font-bold text-xs cursor-pointer"
             >
-              Conservar mis datos en pantalla y actualizar versión base a v{existingServerResult.version}
+              Mantener el mío
             </button>
           </div>
         </div>
       )}
 
-      {/* Status Feedback Banner */}
       {statusMessage && (
         <div
-          className={`p-4 rounded-2xl border-2 text-sm font-bold flex items-center gap-3 ${
+          className={`px-4 py-3 rounded-2xl border text-xs sm:text-sm font-bold flex items-center justify-between gap-3 transition ${
             statusMessage.type === 'published'
-              ? 'bg-emerald-950/90 border-emerald-500 text-emerald-200'
+              ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-200'
               : statusMessage.type === 'draft'
-              ? 'bg-sky-950/90 border-sky-500 text-sky-200'
-              : 'bg-rose-950/90 border-rose-500 text-rose-200'
+              ? 'bg-sky-950/80 border-sky-500/60 text-sky-200'
+              : 'bg-rose-950/80 border-rose-500/60 text-rose-200'
           }`}
         >
-          {statusMessage.type === 'published' ? (
-            <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
-          ) : (
-            <AlertTriangle className="w-6 h-6 text-amber-400 shrink-0" />
-          )}
-          <span>{statusMessage.text}</span>
+          <div className="flex items-center gap-2.5">
+            {statusMessage.type === 'published' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+            )}
+            <span>{statusMessage.text}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusMessage(null)}
+            className="p-1 text-slate-400 hover:text-white cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Step 1 (Participant) & Step 2 (Track & Test) */}
-        <div className="lg:col-span-5 space-y-5">
-          {/* STEP 1: Select Participant */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="px-2.5 py-1 rounded-md bg-sky-500/20 text-sky-300 text-xs font-extrabold uppercase">
-                Paso 1 de 5
-              </span>
-              <span className="text-xs text-slate-400">Seleccionar Piloto</span>
-            </div>
+      {/* =================================================================== */}
+      {/* STEP 1: BUSCADOR DE PARTICIPANTE                                    */}
+      {/* =================================================================== */}
+      <section className="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 shadow-xl space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-400 font-black text-xs flex items-center justify-center">
+              1
+            </span>
+            <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <User className="w-4 h-4 text-sky-400" />
+              Participante
+            </h2>
+          </div>
 
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar piloto por nombre, empresa o #..."
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-sky-500"
-              />
-            </div>
+          {selectedParticipant && (
+            <span className="px-2.5 py-1 rounded-full bg-slate-800 text-sky-300 font-mono text-xs font-bold flex items-center gap-1.5">
+              <Hash className="w-3 h-3" />
+              {selectedParticipant.competitorNumber.replace('#', '')}
+            </span>
+          )}
+        </div>
 
-            <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
-              {filteredParticipants.map((p) => {
+        {/* Search Input + Quick Results */}
+        <div className="relative">
+          <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onFocus={() => setIsSearchDropdownOpen(true)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setIsSearchDropdownOpen(true);
+            }}
+            placeholder="Buscar piloto por nombre, # número o equipo..."
+            className="w-full pl-12 pr-10 py-3.5 rounded-2xl bg-slate-950 border border-slate-800 focus:border-sky-500 text-white text-sm sm:text-base font-medium focus:outline-none transition shadow-inner"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setIsSearchDropdownOpen(false);
+              }}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Selected Pilot Card or Filtered List */}
+        {(isSearchDropdownOpen || searchQuery.trim().length > 0) ? (
+          <div className="max-h-60 overflow-y-auto rounded-2xl bg-slate-950 border border-slate-800 divide-y divide-slate-800/60">
+            {filteredParticipants.length === 0 ? (
+              <div className="p-4 text-center text-xs text-slate-500">
+                No se encontraron pilotos con &ldquo;{searchQuery}&rdquo;
+              </div>
+            ) : (
+              filteredParticipants.map((p) => {
                 const isSelected = p.id === selectedParticipantId;
+                const completedCount = results.filter(
+                  (r) =>
+                    r.participantId === p.id &&
+                    r.publicationStatus === 'publicado'
+                ).length;
+
                 return (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => setSelectedParticipantId(p.id)}
-                    className={`w-full p-3 rounded-xl border text-left flex items-center justify-between gap-2 transition cursor-pointer ${
+                    onClick={() => {
+                      setSelectedParticipantId(p.id);
+                      setSearchQuery('');
+                      setIsSearchDropdownOpen(false);
+                    }}
+                    className={`w-full px-4 py-3 text-left flex items-center justify-between gap-3 transition cursor-pointer ${
                       isSelected
-                        ? 'bg-sky-950 border-sky-400 text-white'
-                        : 'bg-slate-950/60 hover:bg-slate-800 border-slate-800 text-slate-200'
+                        ? 'bg-sky-500/15 text-white'
+                        : 'hover:bg-slate-900 text-slate-200'
                     }`}
                   >
-                    <div>
-                      <div className="font-bold text-sm flex items-center gap-1.5">
-                        <span className="text-sky-400 font-mono">{p.competitorNumber}</span>
-                        <span>{p.fullName}</span>
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {p.companyOrTeam} • ID: {p.id}
-                      </div>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                        p.isDisqualified
-                          ? 'bg-rose-950 text-rose-300 border border-rose-700'
-                          : p.accreditationStatus === 'habilitado'
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : 'bg-amber-500/20 text-amber-300'
-                      }`}
-                    >
-                      {p.isDisqualified
-                        ? 'DQ'
-                        : p.accreditationStatus === 'habilitado'
-                        ? 'Habilitado'
-                        : 'No Habilitado'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {selectedParticipant &&
-              selectedParticipant.accreditationStatus !== 'habilitado' && (
-                <div className="p-3.5 rounded-xl bg-amber-950/80 border border-amber-600 text-amber-200 text-xs space-y-2">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
-                    Piloto NO Habilitado ({selectedParticipant.accreditationStatus.toUpperCase()})
-                  </div>
-                  <p>
-                    Se impide publicar resultados de participantes no habilitados, salvo una
-                    excepción autorizada por el Administrador con motivo registrado.
-                  </p>
-                  {currentUser?.role === 'admin' && (
-                    <input
-                      type="text"
-                      value={adminExceptionReason}
-                      onChange={(e) => setAdminExceptionReason(e.target.value)}
-                      placeholder="Motivo de excepción administrativa (Obligatorio para publicar)..."
-                      className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-amber-500 text-white text-xs"
-                    />
-                  )}
-                </div>
-              )}
-          </div>
-
-          {/* STEP 2: Select Test & Track */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="px-2.5 py-1 rounded-md bg-sky-500/20 text-sky-300 text-xs font-extrabold uppercase">
-                Paso 2 de 5
-              </span>
-              <span className="text-xs text-slate-400">Seleccionar Prueba y Pista</span>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-300 mb-2">
-                Modalidad de Evaluación (Prueba)
-              </label>
-              <div className="grid grid-cols-1 gap-2">
-                {tests.map((test) => {
-                  const resForTest = results.find(
-                    (r) =>
-                      r.participantId === selectedParticipantId &&
-                      r.testId === test.id &&
-                      r.publicationStatus === 'publicado'
-                  );
-                  const isSelected = test.id === selectedTestId;
-
-                  return (
-                    <button
-                      key={test.id}
-                      type="button"
-                      onClick={() => setSelectedTestId(test.id)}
-                      className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition cursor-pointer ${
-                        isSelected
-                          ? 'bg-sky-950 border-sky-400 text-white'
-                          : 'bg-slate-950/60 hover:bg-slate-800 border-slate-800 text-slate-300'
-                      }`}
-                    >
-                      <div>
-                        <div className="font-extrabold text-sm flex items-center gap-2">
-                          <span>{test.name}</span>
-                          {test.status === 'cerrada' && (
-                            <span className="px-2 py-0.5 rounded bg-rose-950 text-rose-300 text-[10px]">
-                              CERRADA
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span
+                        className={`px-2.5 py-1 rounded-lg font-mono text-xs font-extrabold shrink-0 ${
+                          isSelected
+                            ? 'bg-sky-500 text-slate-950'
+                            : 'bg-slate-800 text-sky-300'
+                        }`}
+                      >
+                        {p.competitorNumber}
+                      </span>
+                      <div className="truncate">
+                        <div className="font-bold text-sm truncate flex items-center gap-2">
+                          <span>{p.fullName}</span>
+                          {p.isDisqualified && (
+                            <span className="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[10px] font-black">
+                              DQ
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          Método:{' '}
-                          {test.scoringMethod === 'time_calculated'
-                            ? 'Calculado por tiempo'
-                            : 'Puntaje manual'}{' '}
-                          • Aporte máx: {formatScore(test.maxContribution)}%
+                        <div className="text-xs text-slate-400 truncate flex items-center gap-1.5">
+                          <Building2 className="w-3 h-3 text-slate-500" />
+                          <span>{p.companyOrTeam}</span>
                         </div>
                       </div>
-                      {resForTest ? (
-                        <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold">
-                          Ya Publicado ({formatScore(resForTest.contribution)})
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 text-xs font-semibold">
-                          Pendiente
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                    </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-300 mb-2">
-                Pista Física asignada a {selectedTest?.name}
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {compatibleTracks.map((tr) => (
-                  <button
-                    key={tr.id}
-                    type="button"
-                    onClick={() => setSelectedTrackId(tr.id)}
-                    className={`p-3 rounded-xl border text-left transition cursor-pointer ${
-                      tr.id === selectedTrackId
-                        ? 'bg-emerald-950/70 border-emerald-400 text-white font-extrabold'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:bg-slate-800'
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[11px] text-slate-400 font-mono">
+                        {completedCount}/{tests.length}
+                      </span>
+                      {isSelected && <Check className="w-4 h-4 text-sky-400" />}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          selectedParticipant && (
+            <div
+              onClick={() => setIsSearchDropdownOpen(true)}
+              className="p-4 rounded-2xl bg-gradient-to-r from-sky-950/60 via-slate-950 to-slate-950 border border-sky-500/40 flex items-center justify-between gap-4 cursor-pointer hover:border-sky-400 transition group"
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-sky-500 text-slate-950 font-black font-mono text-base flex items-center justify-center shrink-0 shadow-lg shadow-sky-500/20">
+                  {selectedParticipant.competitorNumber}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-base sm:text-lg font-extrabold text-white truncate flex items-center gap-2">
+                    <span>{selectedParticipant.fullName}</span>
+                    {selectedParticipant.isDisqualified && (
+                      <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white text-[10px] font-black">
+                        DQ
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-sky-300/90 font-medium flex items-center gap-1.5 truncate">
+                    <Building2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>{selectedParticipant.companyOrTeam}</span>
+                  </div>
+                </div>
+              </div>
+
+              <span className="px-3 py-1.5 rounded-xl bg-slate-900 group-hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 shrink-0">
+                Cambiar
+                <ChevronDown className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          )
+        )}
+      </section>
+
+      {/* =================================================================== */}
+      {/* STEP 2: SELECCIONAR PISTA / PRUEBA (UNIFICADO)                      */}
+      {/* =================================================================== */}
+      <section className="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 shadow-xl space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-black text-xs flex items-center justify-center">
+              2
+            </span>
+            <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <Flag className="w-4 h-4 text-amber-400" />
+              Pista / Prueba
+            </h2>
+          </div>
+
+          {selectedTrack && (
+            <span className="text-xs text-slate-400 font-semibold">
+              {selectedTrack.name}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {tests.map((test, idx) => {
+            const resForTest = results.find(
+              (r) =>
+                r.participantId === selectedParticipantId &&
+                r.testId === test.id &&
+                r.publicationStatus === 'publicado'
+            );
+            const isSelected = test.id === selectedTestId;
+            const isTimeMethod = test.scoringMethod === 'time_calculated';
+            const trackForTest =
+              tracks.find((tr) => test.assignedTrackIds.includes(tr.id)) ||
+              tracks[idx] ||
+              tracks[0];
+
+            return (
+              <button
+                key={test.id}
+                type="button"
+                onClick={() => {
+                  setSelectedTestId(test.id);
+                  if (trackForTest) setSelectedTrackId(trackForTest.id);
+                }}
+                className={`p-4 rounded-2xl border-2 text-left transition flex flex-col justify-between gap-3 cursor-pointer ${
+                  isSelected
+                    ? 'bg-sky-950/70 border-sky-400 text-white shadow-lg shadow-sky-500/10'
+                    : 'bg-slate-950/70 hover:bg-slate-950 border-slate-800/90 text-slate-300'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      isSelected
+                        ? 'bg-sky-400 text-slate-950'
+                        : 'bg-slate-800 text-slate-300'
                     }`}
                   >
-                    <div className="text-xs sm:text-sm font-bold">{tr.name}</div>
-                    <div className="text-[11px] text-slate-400 uppercase">{tr.status}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+                    {isTimeMethod ? (
+                      <Zap className="w-5 h-5" />
+                    ) : (
+                      <Sliders className="w-5 h-5" />
+                    )}
+                  </div>
+
+                  {resForTest ? (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-extrabold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {formatScore(resForTest.contribution)} pts
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[11px] font-semibold">
+                      Pendiente
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-sky-400">
+                    Pista {idx + 1}
+                  </div>
+                  <div className="font-extrabold text-base text-white leading-snug">
+                    {test.name}
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
+                    <Clock className="w-3 h-3 text-slate-500" />
+                    <span>
+                      {isTimeMethod ? 'Por Tiempo' : `Tiempo + Juez (${test.maxBaseScore}p)`}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* =================================================================== */}
+      {/* STEP 3: INGRESO DE TIEMPO Y PUBLICACIÓN                             */}
+      {/* =================================================================== */}
+      <section className="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-5 sm:p-6 shadow-xl space-y-5">
+        {/* Top Row: Step Header + Compact Status Pills */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-black text-xs flex items-center justify-center">
+              3
+            </span>
+            <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-emerald-400" />
+              Tiempo en {selectedTest?.name}
+            </h2>
+          </div>
+
+          {/* Compact Icon Status Selector */}
+          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+            {(
+              [
+                { id: 'completado', label: 'Válido', icon: CheckCircle2, activeCls: 'bg-emerald-500 text-slate-950' },
+                { id: 'dnf', label: 'DNF', icon: Ban, activeCls: 'bg-rose-600 text-white' },
+                { id: 'dq', label: 'DQ', icon: AlertTriangle, activeCls: 'bg-rose-600 text-white' },
+                { id: 'pendiente', label: 'Pendiente', icon: Hourglass, activeCls: 'bg-amber-500 text-slate-950' },
+              ] as const
+            ).map((st) => {
+              const Icon = st.icon;
+              const active = participationStatus === st.id;
+              return (
+                <button
+                  key={st.id}
+                  type="button"
+                  onClick={() => setParticipationStatus(st.id)}
+                  className={`px-2.5 py-1.5 rounded-lg font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                    active
+                      ? st.activeCls
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{st.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Right Column: Step 3 (Values Entry), Step 4 (Calculation Preview), Step 5 (Publish) */}
-        <div className="lg:col-span-7 space-y-5">
-          {/* Warning if an official published result already exists */}
-          {isAlreadyPublishedOnServer && existingServerResult && (
-            <div className="p-4 rounded-2xl bg-amber-950/80 border-2 border-amber-500/80 text-amber-100 space-y-3">
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div className="text-xs sm:text-sm">
-                  <strong>Aviso de Resultado Oficial Existente:</strong> Ya existe un resultado
-                  publicado (Intento #{existingServerResult.attemptNumber}, v
-                  {existingServerResult.version}) para{' '}
-                  <strong>{selectedParticipant?.fullName}</strong> en{' '}
-                  <strong>{selectedTest?.name}</strong> registrado por{' '}
-                  <em>{existingServerResult.updatedByName}</em>.
+        {/* Existing Published Result Notice (Compact) */}
+        {isAlreadyPublishedOnServer && existingServerResult && (
+          <div className="p-3.5 rounded-2xl bg-amber-950/60 border border-amber-500/50 text-amber-100 text-xs space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-bold flex items-center gap-2">
+                <RotateCcw className="w-4 h-4 text-amber-400 shrink-0" />
+                Resultado ya publicado (Intento #{existingServerResult.attemptNumber})
+              </span>
+              {currentUser?.role !== 'admin' && (
+                <span className="text-rose-300 font-bold">
+                  Solo Admin puede modificar
+                </span>
+              )}
+            </div>
+
+            {currentUser?.role === 'admin' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <div className="flex items-center gap-3 bg-slate-950/80 px-3 py-2 rounded-xl border border-slate-800">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={!isExtraordinaryRepeat}
+                      onChange={() => setIsExtraordinaryRepeat(false)}
+                    />
+                    <span>Corregir actual</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={isExtraordinaryRepeat}
+                      onChange={() => setIsExtraordinaryRepeat(true)}
+                    />
+                    <span>Nuevo intento (#{existingServerResult.attemptNumber + 1})</span>
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  value={adminCorrectionReason}
+                  onChange={(e) => setAdminCorrectionReason(e.target.value)}
+                  placeholder="Motivo de corrección o repetición..."
+                  className="px-3 py-2 rounded-xl bg-slate-950 border border-amber-500/60 text-white text-xs focus:outline-none"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Main Time Entry Box */}
+        {participationStatus === 'completado' && selectedTest && (
+          <div className="space-y-4">
+            {/* Digital Stopwatch Input */}
+            <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800/90 space-y-3">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span className="font-bold uppercase tracking-wider flex items-center gap-1.5 text-slate-300">
+                  <Clock className="w-3.5 h-3.5 text-sky-400" />
+                  Cronómetro Oficial (MM : SS . CC)
+                </span>
+                <span className="font-mono text-[11px]">
+                  Máx: {(selectedTest.timeLimitMs / 1000).toFixed(0)}s
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 items-center">
+                <div className="text-center">
+                  <input
+                    type="number"
+                    min="0"
+                    value={minutesInput}
+                    onChange={(e) => setMinutesInput(e.target.value)}
+                    placeholder="00"
+                    className="w-full py-4 px-2 rounded-2xl bg-slate-900 border-2 border-slate-800 focus:border-sky-500 text-white text-center text-2xl sm:text-3xl font-black font-mono focus:outline-none transition"
+                  />
+                  <span className="block text-[10px] uppercase tracking-wider text-slate-500 font-bold mt-1.5">
+                    Minutos
+                  </span>
+                </div>
+
+                <div className="text-center">
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={secondsInput}
+                    onChange={(e) => setSecondsInput(e.target.value)}
+                    placeholder="00"
+                    className="w-full py-4 px-2 rounded-2xl bg-slate-900 border-2 border-slate-800 focus:border-sky-500 text-white text-center text-2xl sm:text-3xl font-black font-mono focus:outline-none transition"
+                  />
+                  <span className="block text-[10px] uppercase tracking-wider text-slate-500 font-bold mt-1.5">
+                    Segundos
+                  </span>
+                </div>
+
+                <div className="text-center">
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    value={centisecondsInput}
+                    onChange={(e) => setCentisecondsInput(e.target.value)}
+                    placeholder="00"
+                    className="w-full py-4 px-2 rounded-2xl bg-slate-900 border-2 border-slate-800 focus:border-sky-500 text-sky-300 text-center text-2xl sm:text-3xl font-black font-mono focus:outline-none transition"
+                  />
+                  <span className="block text-[10px] uppercase tracking-wider text-slate-500 font-bold mt-1.5">
+                    Centésimas
+                  </span>
                 </div>
               </div>
 
-              {currentUser?.role !== 'admin' ? (
-                <div className="p-3 rounded-xl bg-rose-950/90 border border-rose-700 text-rose-200 text-xs font-bold">
-                  Su perfil de Staff no permite sobrescribir resultados publicados. Para corregir o
-                  registrar una repetición extraordinaria, cambie a o solicite autorización de un
-                  Administrador.
-                </div>
-              ) : (
-                <div className="p-3.5 rounded-xl bg-slate-950/90 border border-amber-500/50 space-y-2.5">
-                  <div className="text-xs font-bold text-amber-300 uppercase">
-                    Autorización de Administrador (Conserva el intento anterior en el historial)
-                  </div>
-                  <div className="flex flex-wrap gap-3 text-xs">
-                    <label className="flex items-center gap-2 cursor-pointer">
+              {/* Time Limit Exceeded Inline Action */}
+              {liveCalculation?.exceedsTimeLimit && (
+                <div className="p-3 rounded-xl bg-rose-950/90 border border-rose-600 text-rose-200 text-xs flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-bold flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                    Supera el límite ({(selectedTest.timeLimitMs / 1000).toFixed(0)}s)
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setParticipationStatus('dnf')}
+                      className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs cursor-pointer"
+                    >
+                      Marcar DNF
+                    </button>
+                    {currentUser?.role === 'admin' && (
                       <input
-                        type="radio"
-                        checked={!isExtraordinaryRepeat}
-                        onChange={() => setIsExtraordinaryRepeat(false)}
+                        type="text"
+                        value={adminExceptionReason}
+                        onChange={(e) => setAdminExceptionReason(e.target.value)}
+                        placeholder="Motivo excepción Admin..."
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-rose-400 text-white text-xs"
                       />
-                      <span>Corrección administrativa del intento actual</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={isExtraordinaryRepeat}
-                        onChange={() => setIsExtraordinaryRepeat(true)}
-                      />
-                      <span>
-                        Autorizar Repetición Extraordinaria (Nuevo Intento #
-                        {existingServerResult.attemptNumber + 1})
-                      </span>
-                    </label>
+                    )}
                   </div>
-                  <input
-                    type="text"
-                    value={adminCorrectionReason}
-                    onChange={(e) => setAdminCorrectionReason(e.target.value)}
-                    placeholder="Ingrese motivo obligatorio de la corrección o repetición extraordinaria..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-amber-500 text-white text-xs"
-                  />
                 </div>
               )}
             </div>
-          )}
 
-          {/* STEP 3: Score, Time, Penalties & Status */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5">
-            <div className="flex items-center justify-between">
-              <span className="px-2.5 py-1 rounded-md bg-sky-500/20 text-sky-300 text-xs font-extrabold uppercase">
-                Paso 3 de 5
-              </span>
-              <span className="text-xs text-slate-400">
-                Ingresar Estado, {selectedTest?.scoringMethod === 'manual' ? 'Puntos, ' : ''}
-                Tiempo y Penalizaciones
-              </span>
-            </div>
-
-            {/* Participation Status Buttons */}
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-300 mb-2">
-                Estado de Participación en {selectedTest?.name}
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {(
-                  [
-                    { id: 'completado', label: 'Completado', color: 'emerald' },
-                    { id: 'dnf', label: 'DNF (No Finalizó)', color: 'rose' },
-                    { id: 'pendiente', label: 'Pendiente', color: 'amber' },
-                    { id: 'dq', label: 'DQ en Prueba', color: 'rose' },
-                  ] as const
-                ).map((st) => (
-                  <button
-                    key={st.id}
-                    type="button"
-                    onClick={() => setParticipationStatus(st.id)}
-                    className={`py-3 px-3 rounded-xl border font-extrabold text-xs sm:text-sm transition cursor-pointer ${
-                      participationStatus === st.id
-                        ? st.id === 'completado'
-                          ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                          : st.id === 'pendiente'
-                          ? 'bg-amber-500 text-slate-950 border-amber-400'
-                          : 'bg-rose-600 text-white border-rose-400'
-                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    {st.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {participationStatus === 'completado' && selectedTest && (
-              <div className="space-y-5">
-                {/* Method A ONLY: Manual Raw Score */}
-                {selectedTest.scoringMethod === 'manual' ? (
-                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                    <label className="block text-xs font-extrabold uppercase text-sky-300 mb-1">
-                      Puntaje Bruto del Juez (Máximo permitido: {selectedTest.maxBaseScore} pts)
-                    </label>
-                    <p className="text-xs text-slate-400 mb-2.5">
-                      Ingrese el valor final entregado por los jueces para {selectedTest.name}.
-                    </p>
-                    <input
-                      type="number"
-                      min="0"
-                      max={selectedTest.maxBaseScore}
-                      step="0.01"
-                      value={rawScoreInput}
-                      onChange={(e) => setRawScoreInput(e.target.value)}
-                      placeholder={`Ej: 88 (0 a ${selectedTest.maxBaseScore})`}
-                      className="w-full px-4 py-3.5 rounded-xl bg-slate-900 border-2 border-slate-700 focus:border-sky-500 text-white text-lg font-extrabold font-mono"
-                    />
+            {/* Judge Score (Only when the selected track/test uses manual scoring) */}
+            {selectedTest.scoringMethod === 'manual' && (
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center shrink-0">
+                    <Sliders className="w-4 h-4" />
                   </div>
-                ) : (
-                  <div className="p-3.5 rounded-xl bg-sky-950/40 border border-sky-800/60 text-xs text-sky-200 flex items-center gap-2.5">
-                    <Clock className="w-5 h-5 text-sky-400 shrink-0" />
-                    <span>
-                      <strong>Método Calculado por Tiempo ({selectedTest.name}):</strong> El
-                      puntaje manual está deshabilitado porque el puntaje base se calcula
-                      automáticamente en función del mejor tiempo efectivo válido de la prueba.
-                    </span>
-                  </div>
-                )}
-
-                {/* Time Input: Minutes, Seconds, Centiseconds */}
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-extrabold uppercase text-amber-300">
-                      Tiempo Registrado (Límite: {(selectedTest.timeLimitMs / 1000).toFixed(0)}s =
-                      05:00.00)
-                    </label>
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMinutesInput('5');
-                          setSecondsInput('00');
-                          setCentisecondsInput('00');
-                        }}
-                        className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 cursor-pointer"
-                      >
-                        Probar 300,00s exactos
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMinutesInput('5');
-                          setSecondsInput('01');
-                          setCentisecondsInput('00');
-                        }}
-                        className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-rose-300 cursor-pointer"
-                      >
-                        Probar exceso 301,00s
-                      </button>
+                  <div>
+                    <div className="text-xs font-extrabold uppercase text-white">
+                      Puntaje de Juez (0 – {selectedTest.maxBaseScore} pts)
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Evaluación técnica de {selectedTest.name}
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <span className="block text-[11px] text-slate-400 font-bold mb-1">
-                        Minutos (mm)
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={minutesInput}
-                        onChange={(e) => setMinutesInput(e.target.value)}
-                        placeholder="00"
-                        className="w-full px-3 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-center text-lg font-extrabold font-mono"
-                      />
-                    </div>
-                    <div>
-                      <span className="block text-[11px] text-slate-400 font-bold mb-1">
-                        Segundos (0-59)
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="59"
-                        value={secondsInput}
-                        onChange={(e) => setSecondsInput(e.target.value)}
-                        placeholder="00"
-                        className="w-full px-3 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-center text-lg font-extrabold font-mono"
-                      />
-                    </div>
-                    <div>
-                      <span className="block text-[11px] text-slate-400 font-bold mb-1">
-                        Centésimas (0-99)
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="99"
-                        value={centisecondsInput}
-                        onChange={(e) => setCentisecondsInput(e.target.value)}
-                        placeholder="00"
-                        className="w-full px-3 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-center text-lg font-extrabold font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  {parsedTime.ms !== null && (
-                    <div className="mt-2 text-xs text-slate-400 font-mono flex items-center justify-between">
-                      <span>
-                        Tiempo registrado: <strong>{formatMsToTime(parsedTime.ms, true)}</strong>
-                      </span>
-                      <span>Almacenado exacto: {parsedTime.ms} ms</span>
-                    </div>
-                  )}
-
-                  {/* Exceeds 300s limit warning & action */}
-                  {liveCalculation?.exceedsTimeLimit && (
-                    <div className="mt-3 p-3.5 rounded-xl bg-rose-950/90 border border-rose-600 text-rose-200 text-xs space-y-2.5">
-                      <div className="font-extrabold flex items-center gap-1.5">
-                        <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-                        ¡Tiempo registrado supera el límite de{' '}
-                        {(selectedTest.timeLimitMs / 1000).toFixed(0)} segundos!
-                      </div>
-                      <p>
-                        Al superar el límite de tiempo se impide publicar como completado. Debe
-                        registrar como <strong>DNF</strong> o contar con una excepción
-                        administrativa justificada.
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setParticipationStatus('dnf')}
-                          className="px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs cursor-pointer"
-                        >
-                          Cambiar estado a DNF ahora
-                        </button>
-                      </div>
-                      {currentUser?.role === 'admin' && (
-                        <input
-                          type="text"
-                          value={adminExceptionReason}
-                          onChange={(e) => setAdminExceptionReason(e.target.value)}
-                          placeholder="Excepción Admin: indique motivo justificado para permitir publicar sobre 300s..."
-                          className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-rose-400 text-white text-xs"
-                        />
-                      )}
-                    </div>
-                  )}
                 </div>
 
-                {/* Penalties (Points Penalty & Seconds Penalty) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                    <label className="block text-xs font-bold uppercase text-rose-300 mb-1">
-                      Penalización en Puntos Base (-Pts)
-                    </label>
-                    <p className="text-[11px] text-slate-400 mb-2">
-                      Valor positivo a descontar del puntaje base antes de ponderar.
-                    </p>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      value={pointsPenaltyInput}
-                      onChange={(e) => setPointsPenaltyInput(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold font-mono"
-                    />
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {[0, 2, 5, 10, 15].map((pts) => (
-                        <button
-                          key={pts}
-                          type="button"
-                          onClick={() =>
-                            setPointsPenaltyInput(
-                              pts === 0
-                                ? '0'
-                                : String(
-                                    (Number(pointsPenaltyInput.replace(',', '.')) || 0) + pts
-                                  )
-                            )
-                          }
-                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-rose-300 border border-slate-700 cursor-pointer"
-                        >
-                          {pts === 0 ? 'Limpiar (0)' : `+${pts} pts`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                <input
+                  type="number"
+                  min="0"
+                  max={selectedTest.maxBaseScore}
+                  step="0.01"
+                  value={rawScoreInput}
+                  onChange={(e) => setRawScoreInput(e.target.value)}
+                  placeholder={`0 - ${selectedTest.maxBaseScore}`}
+                  className="w-full sm:w-40 px-4 py-3 rounded-xl bg-slate-900 border-2 border-slate-700 focus:border-sky-500 text-white text-center text-xl font-black font-mono focus:outline-none"
+                />
+              </div>
+            )}
 
-                  {selectedTest.enableSecondsPenalty && (
-                    <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                      <label className="block text-xs font-bold uppercase text-amber-300 mb-1">
-                        Penalización en Segundos (+Seg)
-                      </label>
-                      <p className="text-[11px] text-slate-400 mb-2">
-                        Segundos que se suman para el tiempo efectivo (después de evaluar límite).
-                      </p>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={secondsPenaltyInput}
-                        onChange={(e) => setSecondsPenaltyInput(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold font-mono"
-                      />
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {[0, 2, 5, 10].map((sec) => (
+            {/* Collapsible Penalties & Notes */}
+            <div className="rounded-2xl bg-slate-950/60 border border-slate-800/80 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedPenalties((v) => !v)}
+                className="w-full px-4 py-3 flex items-center justify-between text-xs font-bold text-slate-300 hover:text-white cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <span>Penalizaciones y Observaciones (Opcional)</span>
+                  {hasActivePenalties && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px]">
+                      Activo
+                    </span>
+                  )}
+                </span>
+                {showAdvancedPenalties ? (
+                  <ChevronUp className="w-4 h-4 text-slate-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                )}
+              </button>
+
+              {showAdvancedPenalties && (
+                <div className="p-4 pt-2 border-t border-slate-800/80 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {selectedTest.enableSecondsPenalty && (
+                      <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold uppercase text-amber-300">
+                            + Segundos Penalización
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={secondsPenaltyInput}
+                            onChange={(e) => setSecondsPenaltyInput(e.target.value)}
+                            className="w-20 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-right font-mono text-xs font-bold"
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {[0, 2, 5, 10].map((sec) => (
+                            <button
+                              key={sec}
+                              type="button"
+                              onClick={() =>
+                                setSecondsPenaltyInput(
+                                  sec === 0
+                                    ? '0'
+                                    : String(
+                                        (Number(secondsPenaltyInput.replace(',', '.')) || 0) + sec
+                                      )
+                                )
+                              }
+                              className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-amber-300 cursor-pointer"
+                            >
+                              {sec === 0 ? '0s' : `+${sec}s`}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-bold uppercase text-rose-300">
+                          - Puntos Descuento
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={pointsPenaltyInput}
+                          onChange={(e) => setPointsPenaltyInput(e.target.value)}
+                          className="w-20 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-right font-mono text-xs font-bold"
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {[0, 2, 5, 10].map((pts) => (
                           <button
-                            key={sec}
+                            key={pts}
                             type="button"
                             onClick={() =>
-                              setSecondsPenaltyInput(
-                                sec === 0
+                              setPointsPenaltyInput(
+                                pts === 0
                                   ? '0'
                                   : String(
-                                      (Number(secondsPenaltyInput.replace(',', '.')) || 0) + sec
+                                      (Number(pointsPenaltyInput.replace(',', '.')) || 0) + pts
                                     )
                               )
                             }
-                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-slate-700 cursor-pointer"
+                            className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-rose-300 cursor-pointer"
                           >
-                            {sec === 0 ? 'Limpiar (0s)' : `+${sec} seg`}
+                            {pts === 0 ? '0p' : `-${pts}p`}
                           </button>
                         ))}
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Optional Observation */}
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-300 mb-1.5">
-                Observación de la Prueba (Opcional)
-              </label>
-              <input
-                type="text"
-                value={observation}
-                onChange={(e) => setObservation(e.target.value)}
-                placeholder="Ej: Penalización de 2 puntos por roce en baliza 3..."
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm"
-              />
-            </div>
-          </div>
-
-          {/* STEP 4: Calculation Summary Card */}
-          {selectedTest && liveCalculation && (
-            <div className="bg-slate-900 border-2 border-slate-800 rounded-2xl p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="px-2.5 py-1 rounded-md bg-sky-500/20 text-sky-300 text-xs font-extrabold uppercase flex items-center gap-1.5">
-                  <Calculator className="w-3.5 h-3.5" />
-                  Paso 4 de 5 • Resumen de Cálculo en Vivo
-                </span>
-                <span className="text-xs text-amber-300 font-semibold">
-                  {selectedTest.status === 'abierta'
-                    ? 'Puntaje Provisional (Prueba Abierta)'
-                    : 'Prueba Cerrada'}
-                </span>
-              </div>
-
-              {liveCalculation.validationErrors.length > 0 ? (
-                <div className="p-3.5 rounded-xl bg-rose-950/60 border border-rose-700 text-rose-200 text-xs space-y-1">
-                  {liveCalculation.validationErrors.map((err, i) => (
-                    <div key={i}>• {err}</div>
-                  ))}
-                </div>
-              ) : participationStatus === 'dnf' ? (
-                <div className="p-4 rounded-xl bg-rose-950/50 border border-rose-700 text-rose-200 text-sm font-bold flex items-center justify-between">
-                  <span>Estado DNF (No Finalizó): Nunca se trata como tiempo 0s</span>
-                  <span className="text-lg font-extrabold">Aporte: 0,00 pts (Muestra DNF)</span>
-                </div>
-              ) : participationStatus === 'pendiente' ? (
-                <div className="p-4 rounded-xl bg-amber-950/50 border border-amber-700 text-amber-200 text-sm font-bold flex items-center justify-between">
-                  <span>Estado Pendiente: No equivale a 0 puntos</span>
-                  <span className="text-lg font-extrabold">Muestra &ldquo;Pendiente&rdquo;</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-[11px] uppercase text-slate-400 font-bold">
-                      {selectedTest.scoringMethod === 'time_calculated'
-                        ? 'Tiempo Efectivo'
-                        : 'Tiempo Control'}
-                    </div>
-                    <div className="text-base font-extrabold text-white font-mono mt-1">
-                      {formatMsToTime(liveCalculation.effectiveTimeMs)}
-                    </div>
-                    {selectedTest.scoringMethod === 'time_calculated' && (
-                      <div className="text-[10px] text-sky-300 mt-0.5">
-                        Mejor ref: {formatMsToTime(liveCalculation.referenceBestTimeMs)}
-                      </div>
-                    )}
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-[11px] uppercase text-slate-400 font-bold">
-                      Puntaje Base
-                    </div>
-                    <div className="text-base font-extrabold text-white font-mono mt-1">
-                      {formatScore(liveCalculation.calculatedBaseScore)}
-                    </div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">
-                      Máx: {selectedTest.maxBaseScore}
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                    <div className="text-[11px] uppercase text-slate-400 font-bold">
-                      Puntaje Neto
-                    </div>
-                    <div className="text-base font-extrabold text-sky-300 font-mono mt-1">
-                      {formatScore(liveCalculation.netScore)}
-                    </div>
-                    <div className="text-[10px] text-rose-400 mt-0.5">
-                      Desc.: -{formatScore(parsedPointsPenalty)} pts
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-500/50">
-                    <div className="text-[11px] uppercase text-emerald-300 font-extrabold">
-                      Aporte al Ranking
-                    </div>
-                    <div className="text-xl font-extrabold text-emerald-400 font-mono mt-0.5">
-                      {formatScore(liveCalculation.contribution)}
-                    </div>
-                    <div className="text-[10px] text-emerald-300/80">
-                      de {formatScore(selectedTest.maxContribution)} máx.
-                    </div>
-                  </div>
+                  <input
+                    type="text"
+                    value={observation}
+                    onChange={(e) => setObservation(e.target.value)}
+                    placeholder="Nota u observación opcional..."
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-sky-500"
+                  />
                 </div>
               )}
             </div>
-          )}
-
-          {/* STEP 5: Save Draft or Publish Official Result */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={handlePersistLocalDraft}
-              className="py-3.5 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer"
-            >
-              <Save className="w-4 h-4 text-sky-400" />
-              Guardar Borrador Local
-            </button>
-
-            <button
-              type="button"
-              disabled={
-                isSubmitting ||
-                isStaffBlockedFromOverwriting ||
-                Boolean(liveCalculation && liveCalculation.validationErrors.length > 0)
-              }
-              onClick={() => setShowPublishConfirmModal(true)}
-              className="flex-1 py-4 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-extrabold text-base flex items-center justify-center gap-2 shadow-xl transition cursor-pointer"
-            >
-              <Send className="w-5 h-5" />
-              {isSubmitting
-                ? 'Confirmando con servidor...'
-                : `Paso 5: Publicar Resultado de ${selectedParticipant?.fullName || 'Piloto'}`}
-            </button>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Confirmation Modal with Pilot Name, Test, Track, and Calculated Score */}
+        {/* Compact Live Score & Time Summary Pill */}
+        {selectedTest && liveCalculation && (
+          <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+                  Tiempo Efectivo
+                </div>
+                <div className="text-lg font-black text-white font-mono">
+                  {participationStatus === 'completado'
+                    ? formatMsToTime(liveCalculation.effectiveTimeMs)
+                    : participationStatus.toUpperCase()}
+                </div>
+              </div>
+
+              <div className="h-8 w-px bg-slate-800" />
+
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+                  Puntaje Neto
+                </div>
+                <div className="text-lg font-black text-sky-300 font-mono">
+                  {formatScore(liveCalculation.netScore)}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 bg-emerald-950/50 border border-emerald-500/40 px-4 py-2 rounded-xl">
+              <Trophy className="w-5 h-5 text-emerald-400" />
+              <div className="text-right">
+                <div className="text-[10px] uppercase font-extrabold text-emerald-300">
+                  Aporte Ranking
+                </div>
+                <div className="text-xl font-black text-emerald-400 font-mono leading-tight">
+                  {formatScore(liveCalculation.contribution)}{' '}
+                  <span className="text-xs font-normal text-emerald-300/70">
+                    / {formatScore(selectedTest.maxContribution)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+          <button
+            type="button"
+            onClick={handlePersistLocalDraft}
+            title="Guardar borrador local"
+            className="py-3.5 px-4 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer"
+          >
+            <Save className="w-4 h-4 text-sky-400" />
+            <span>Borrador</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={
+              isSubmitting ||
+              isStaffBlockedFromOverwriting ||
+              Boolean(liveCalculation && liveCalculation.validationErrors.length > 0)
+            }
+            onClick={() => setShowPublishConfirmModal(true)}
+            className="flex-1 py-4 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-500/15 transition cursor-pointer"
+          >
+            <Send className="w-5 h-5" />
+            {isSubmitting
+              ? 'Publicando...'
+              : `Publicar Resultado • ${selectedParticipant?.fullName.split(' ')[0] || 'Piloto'}`}
+          </button>
+        </div>
+      </section>
+
+      {/* Clean Confirmation Modal */}
       {showPublishConfirmModal && selectedParticipant && selectedTest && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-slate-900 border-2 border-emerald-500 rounded-2xl p-6 shadow-2xl space-y-5">
-            <h3 className="text-xl font-extrabold text-white">
-              Confirmar Publicación Oficial en el Ranking
-            </h3>
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                Confirmar Resultado
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowPublishConfirmModal(false)}
+                className="p-1 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Piloto:</span>
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs sm:text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Piloto</span>
                 <span className="font-extrabold text-white">
                   {selectedParticipant.fullName} ({selectedParticipant.competitorNumber})
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Empresa / Equipo:</span>
-                <span className="font-semibold text-sky-300">
-                  {selectedParticipant.companyOrTeam}
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Pista / Prueba</span>
+                <span className="font-bold text-sky-300">
+                  {selectedTest.name}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Prueba y Pista:</span>
-                <span className="font-bold text-amber-300">
-                  {selectedTest.name} — {selectedTrack?.name}
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Tiempo Efectivo</span>
+                <span className="font-mono font-bold text-white">
+                  {participationStatus === 'completado'
+                    ? formatMsToTime(liveCalculation?.effectiveTimeMs)
+                    : participationStatus.toUpperCase()}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Estado de Participación:</span>
-                <span className="font-extrabold uppercase text-white">
-                  {participationStatus}
-                </span>
-              </div>
-              <div className="flex justify-between pt-2 border-t border-slate-800">
-                <span className="text-slate-300 font-bold">Aporte Calculado:</span>
-                <span className="text-lg font-extrabold text-emerald-400 font-mono">
+              <div className="flex justify-between items-center pt-2.5 border-t border-slate-800">
+                <span className="text-slate-300 font-bold">Aporte al Ranking</span>
+                <span className="text-lg font-black text-emerald-400 font-mono">
                   {participationStatus === 'dnf'
                     ? 'DNF (0,00 pts)'
                     : `${formatScore(liveCalculation?.contribution)} pts`}
@@ -1283,23 +1258,23 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3">
+            <div className="flex items-center gap-2.5">
               <button
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => setShowPublishConfirmModal(false)}
-                className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm cursor-pointer"
+                className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm cursor-pointer"
               >
-                Cancelar y Revisar
+                Cancelar
               </button>
               <button
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => executeSubmit('publicado')}
-                className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-extrabold text-sm flex items-center gap-2 cursor-pointer"
+                className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <CheckCircle2 className="w-5 h-5" />
-                {isSubmitting ? 'Publicando...' : `Confirmar y Publicar a ${selectedParticipant.fullName}`}
+                <CheckCircle2 className="w-4 h-4" />
+                {isSubmitting ? 'Publicando...' : 'Publicar'}
               </button>
             </div>
           </div>

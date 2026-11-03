@@ -6,20 +6,20 @@ import {
   PlayCircle,
   PauseCircle,
   XCircle,
-  UserCheck,
-  ClipboardEdit,
+  Timer,
   Tv,
   Settings,
   AlertTriangle,
   Award,
   ArrowRight,
+  Users,
+  Zap,
 } from 'lucide-react';
 import { useCompetition } from '../context/CompetitionContext';
 import { computeEventRanking, formatMsToTime, formatScore } from '../utils/scoring';
 import { TrackStatus } from '../types/domain';
 
 interface OperationalDashboardProps {
-  onNavigateAccreditation: (participantId?: string) => void;
   onNavigateResultEntry: (params?: {
     participantId?: string;
     trackId?: string;
@@ -30,7 +30,6 @@ interface OperationalDashboardProps {
 }
 
 export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
-  onNavigateAccreditation,
   onNavigateResultEntry,
   onNavigateAdmin,
   onOpenPublicScreen,
@@ -44,14 +43,6 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
     currentUser,
     updateTrackLiveState,
   } = useCompetition();
-
-  const accreditedCount = participants.filter(
-    (p) => p.accreditationStatus === 'habilitado'
-  ).length;
-  const pendingAccreditationCount = participants.filter(
-    (p) => p.accreditationStatus === 'pendiente'
-  ).length;
-  const disqualifiedCount = participants.filter((p) => p.isDisqualified).length;
 
   const publishedResults = results
     .filter((r) => r.publicationStatus === 'publicado')
@@ -84,13 +75,13 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Event Hero & Quick Actions */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-lg">
+      {/* Compact Event Hero & Quick Actions */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <span
-                className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 ${
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 ${
                   activeEvent.status === 'en_curso'
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                     : activeEvent.status === 'preparacion'
@@ -98,116 +89,99 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
                     : 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
                 }`}
               >
-                <Flag className="w-3.5 h-3.5" />
-                Estado: {activeEvent.status.replace('_', ' ')}
+                <Flag className="w-3 h-3" />
+                {activeEvent.status.replace('_', ' ')}
               </span>
-              <span className="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 text-xs font-semibold">
-                Fecha: {activeEvent.date}
-              </span>
-              <span className="px-2.5 py-1 rounded-md bg-slate-800 text-slate-400 text-xs">
-                Reglas v{activeEvent.configVersion}
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[11px] font-semibold">
+                {activeEvent.date}
               </span>
               {rankingSummary.isRankingProvisional && (
-                <span className="px-2.5 py-1 rounded-md bg-amber-950/90 border border-amber-700 text-amber-300 text-xs font-bold">
-                  Puntajes y Ranking Provisionales (Pruebas Abiertas)
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-950/90 border border-amber-700/60 text-amber-300 text-[11px] font-bold">
+                  En Curso
                 </span>
               )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
               {activeEvent.name}
             </h1>
           </div>
 
           {/* Primary Operational CTA Buttons */}
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => onNavigateAccreditation()}
-              className="flex-1 sm:flex-initial px-5 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg transition cursor-pointer"
-            >
-              <UserCheck className="w-5 h-5" />
-              Acreditar Pilotos ({pendingAccreditationCount} pend.)
-            </button>
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               onClick={() => onNavigateResultEntry()}
-              className="flex-1 sm:flex-initial px-5 py-3.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg transition cursor-pointer"
+              className="flex-1 sm:flex-initial px-5 py-3 rounded-2xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-sky-500/15 transition cursor-pointer"
             >
-              <ClipboardEdit className="w-5 h-5" />
-              Registrar Resultado
+              <Timer className="w-4 h-4" />
+              Registrar Tiempo
             </button>
             <button
               type="button"
               onClick={onOpenPublicScreen}
-              className="px-4 py-3.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 font-bold text-sm flex items-center gap-2 transition cursor-pointer"
+              className="px-4 py-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer"
             >
-              <Tv className="w-5 h-5" />
-              Pantalla 16:9
+              <Tv className="w-4 h-4" />
+              Ranking 16:9
             </button>
             {currentUser?.role === 'admin' && (
               <button
                 type="button"
                 onClick={onNavigateAdmin}
-                className="px-4 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-sm flex items-center gap-2 transition cursor-pointer"
+                className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer"
+                title="Configuración y Administración"
               >
-                <Settings className="w-5 h-5" />
-                Administrar
+                <Settings className="w-4 h-4" />
               </button>
             )}
           </div>
         </div>
 
-        {/* KPI Counters */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mt-6 pt-5 border-t border-slate-800">
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <div className="text-xs font-bold uppercase text-slate-400">
-              Pilotos Habilitados
+        {/* Clean 3-Card KPI Strip with Icons */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-5 pt-5 border-t border-slate-800/80">
+          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5" />
             </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400">
-                {accreditedCount}
-              </span>
-              <span className="text-xs text-slate-400">de {participants.length} inscritos</span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <div className="text-xs font-bold uppercase text-slate-400">
-              Acreditación Pendiente
-            </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-amber-400">
-                {pendingAccreditationCount}
-              </span>
-              <span className="text-xs text-slate-400">
-                {disqualifiedCount > 0 ? `• ${disqualifiedCount} DQ` : 'por verificar'}
-              </span>
+            <div>
+              <div className="text-[11px] font-bold uppercase text-slate-400">
+                Pilotos en Competencia
+              </div>
+              <div className="text-xl sm:text-2xl font-black text-white">
+                {participants.filter((p) => !p.isDisqualified).length}{' '}
+                <span className="text-xs font-normal text-slate-500">activos</span>
+              </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <div className="text-xs font-bold uppercase text-slate-400">
-              Resultados Publicados
+          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-sky-400">
-                {publishedResults.length}
-              </span>
-              <span className="text-xs text-slate-400">
-                de {participants.length * tests.length} posibles
-              </span>
+            <div>
+              <div className="text-[11px] font-bold uppercase text-slate-400">
+                Tiempos Registrados
+              </div>
+              <div className="text-xl sm:text-2xl font-black text-sky-400">
+                {publishedResults.length}{' '}
+                <span className="text-xs font-normal text-slate-500">
+                  / {participants.length * tests.length}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-            <div className="text-xs font-bold uppercase text-slate-400">
-              Mejor Tiempo Velocidad
+          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 flex items-center justify-center shrink-0">
+              <Zap className="w-5 h-5" />
             </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-xl sm:text-2xl font-extrabold text-amber-300 font-mono">
+            <div>
+              <div className="text-[11px] font-bold uppercase text-slate-400">
+                Mejor Tiempo Velocidad
+              </div>
+              <div className="text-xl sm:text-2xl font-black text-amber-300 font-mono">
                 {formatMsToTime(rankingSummary.bestTimeByTestId['test_velocidad'])}
-              </span>
-              <span className="text-xs text-slate-400">ref. 100 pts</span>
+              </div>
             </div>
           </div>
         </div>
@@ -216,16 +190,13 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
       {/* 4 Simultaneous Tracks Status Grid */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
-            <PlayCircle className="w-5 h-5 text-sky-400" />
-            Estado Operativo de las {tracks.length} Pistas Simultáneas
+          <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+            <PlayCircle className="w-4 h-4 text-sky-400" />
+            Pistas Activas ({tracks.length})
           </h2>
-          <span className="text-xs text-slate-400">
-            Seleccione una pista para cargar resultados directamente
-          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5">
           {tracks.map((track) => {
             const currentPilot = participants.find(
               (p) => p.id === track.currentParticipantId
@@ -240,57 +211,39 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
                 key={track.id}
                 className={`rounded-2xl border p-4 flex flex-col justify-between transition ${
                   track.status === 'operativa'
-                    ? 'bg-slate-900 border-emerald-500/40'
+                    ? 'bg-slate-900/90 border-emerald-500/35'
                     : track.status === 'en_pausa'
-                    ? 'bg-slate-900/90 border-amber-500/40'
-                    : 'bg-slate-900/60 border-rose-500/40'
+                    ? 'bg-slate-900/80 border-amber-500/35'
+                    : 'bg-slate-900/50 border-rose-500/35'
                 }`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <h3 className="font-extrabold text-white text-base">{track.name}</h3>
+                    <h3 className="font-extrabold text-white text-sm truncate">
+                      {track.name}
+                    </h3>
                     <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 shrink-0 ${
                         track.status === 'operativa'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          ? 'bg-emerald-500/20 text-emerald-300'
                           : track.status === 'en_pausa'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                          ? 'bg-amber-500/20 text-amber-300'
+                          : 'bg-rose-500/20 text-rose-300'
                       }`}
                     >
-                      {track.status === 'operativa' && <CheckCircle2 className="w-3.5 h-3.5" />}
-                      {track.status === 'en_pausa' && <PauseCircle className="w-3.5 h-3.5" />}
-                      {track.status === 'cerrada' && <XCircle className="w-3.5 h-3.5" />}
+                      {track.status === 'operativa' && <CheckCircle2 className="w-3 h-3" />}
+                      {track.status === 'en_pausa' && <PauseCircle className="w-3 h-3" />}
+                      {track.status === 'cerrada' && <XCircle className="w-3 h-3" />}
                       {track.status === 'operativa'
-                        ? 'OPERATIVA'
+                        ? 'Activa'
                         : track.status === 'en_pausa'
-                        ? 'EN PAUSA'
-                        : 'CERRADA'}
+                        ? 'Pausa'
+                        : 'Cerrada'}
                     </span>
                   </div>
 
-                  {/* Assigned Tests Badges */}
-                  <div className="mb-3">
-                    <div className="text-[11px] font-bold uppercase text-slate-400 mb-1">
-                      Pruebas habilitadas en esta pista:
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {assignedTests.map((t) => (
-                        <span
-                          key={t.id}
-                          className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-xs text-sky-300 font-medium"
-                        >
-                          {t.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Active Pilot in Track */}
-                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 mb-3">
-                    <div className="text-[11px] font-bold uppercase text-slate-400 mb-1">
-                      Piloto / Turno Actual en Pista:
-                    </div>
+                  <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 mb-3 space-y-2">
                     <select
                       aria-label={`Piloto en ${track.name}`}
                       value={track.currentParticipantId || ''}
@@ -302,19 +255,19 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
                           track.currentTestId || assignedTests[0]?.id || null
                         )
                       }
-                      className="w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-semibold mb-2"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white font-semibold"
                     >
-                      <option value="">— Pista Libre / Sin piloto asignado —</option>
+                      <option value="">— Pista Libre —</option>
                       {participants
-                        .filter((p) => p.accreditationStatus === 'habilitado' && !p.isDisqualified)
+                        .filter((p) => !p.isDisqualified)
                         .map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.competitorNumber} - {p.fullName} ({p.companyOrTeam})
+                            {p.competitorNumber} • {p.fullName}
                           </option>
                         ))}
                     </select>
 
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
                       <select
                         aria-label={`Prueba activa en ${track.name}`}
                         value={track.currentTestId || ''}
@@ -326,12 +279,11 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
                             e.target.value || null
                           )
                         }
-                        className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-sky-300"
+                        className="flex-1 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-sky-300"
                       >
-                        <option value="">— Seleccionar modalidad —</option>
                         {assignedTests.map((t) => (
                           <option key={t.id} value={t.id}>
-                            Prueba: {t.name}
+                            {t.name}
                           </option>
                         ))}
                       </select>
@@ -347,10 +299,10 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
                             track.currentTestId || null
                           )
                         }
-                        className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300"
+                        className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300"
                       >
-                        <option value="operativa">Operativa</option>
-                        <option value="en_pausa">En Pausa</option>
+                        <option value="operativa">Activa</option>
+                        <option value="en_pausa">Pausa</option>
                         <option value="cerrada">Cerrada</option>
                       </select>
                     </div>
@@ -366,12 +318,12 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
                       testId: currentTest?.id || assignedTests[0]?.id,
                     })
                   }
-                  className="w-full py-2.5 px-3 rounded-xl bg-sky-500/20 hover:bg-sky-500 hover:text-slate-950 border border-sky-500/40 text-sky-300 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  className="w-full py-2 px-3 rounded-xl bg-sky-500/15 hover:bg-sky-500 hover:text-slate-950 border border-sky-500/35 text-sky-300 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
-                  <ClipboardEdit className="w-4 h-4" />
+                  <Timer className="w-3.5 h-3.5" />
                   {currentPilot
-                    ? `Evaluar a ${currentPilot.fullName.split(' ')[0]} en ${track.name.split('-')[0]}`
-                    : `Registrar en ${track.name.split('-')[0]}`}
+                    ? `Cronometrar a ${currentPilot.fullName.split(' ')[0]}`
+                    : `Ir a ${track.name.split('-')[0].trim()}`}
                 </button>
               </div>
             );
@@ -382,67 +334,56 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
       {/* Bottom Split: Recent Published Results & Top Classification Preview */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Recent Results */}
-        <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5">
+        <div className="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-extrabold text-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-emerald-400" />
-              Últimos Resultados Publicados en Tiempo Real
+            <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-emerald-400" />
+              Últimos Tiempos
             </h2>
-            <span className="text-xs text-slate-400">
-              Total publicados: {publishedResults.length}
+            <span className="text-xs text-slate-400 font-mono">
+              {publishedResults.length} registros
             </span>
           </div>
 
-          <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
-            {publishedResults.slice(0, 10).map((res) => {
+          <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+            {publishedResults.slice(0, 8).map((res) => {
               const pilot = participants.find((p) => p.id === res.participantId);
               const test = tests.find((t) => t.id === res.testId);
-              const track = tracks.find((tr) => tr.id === res.trackId);
 
               return (
                 <div
                   key={res.id}
-                  className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                  className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex items-center justify-between gap-2"
                 >
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-sky-300 font-mono text-xs font-bold">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-800 text-sky-300 font-mono text-xs font-bold shrink-0">
                         {pilot?.competitorNumber || res.participantId}
                       </span>
-                      <span className="font-bold text-white text-sm">
+                      <span className="font-bold text-white text-sm truncate">
                         {pilot?.fullName || res.participantId}
                       </span>
-                      <span className="text-xs text-slate-400">
-                        ({pilot?.companyOrTeam || 'Sin equipo'})
-                      </span>
                     </div>
-                    <div className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-2">
-                      <span className="text-slate-300 font-semibold">
-                        Prueba: {test?.name || res.testId}
+                    <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
+                      <span className="text-sky-300/90 font-medium">
+                        {test?.name || res.testId}
                       </span>
                       <span>•</span>
-                      <span>{track?.name || res.trackId}</span>
-                      <span>•</span>
-                      <span>Por: {res.updatedByName} (v{res.version})</span>
+                      <span className="truncate">{pilot?.companyOrTeam}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 self-end sm:self-center">
-                    {res.participationStatus === 'dnf' ? (
-                      <span className="px-3 py-1 rounded-lg bg-rose-950 border border-rose-700 text-rose-300 font-extrabold text-xs">
-                        DNF (0,00 pts)
-                      </span>
-                    ) : res.participationStatus === 'dq' ? (
-                      <span className="px-3 py-1 rounded-lg bg-rose-950 border border-rose-700 text-rose-300 font-extrabold text-xs">
-                        DQ (0,00 pts)
+                  <div className="shrink-0 text-right">
+                    {res.participationStatus === 'dnf' || res.participationStatus === 'dq' ? (
+                      <span className="px-2.5 py-1 rounded-lg bg-rose-950 border border-rose-700 text-rose-300 font-extrabold text-xs uppercase">
+                        {res.participationStatus}
                       </span>
                     ) : (
-                      <div className="text-right">
-                        <div className="text-sm font-extrabold text-emerald-400">
-                          Aporte: {formatScore(res.contribution)} pts
+                      <div>
+                        <div className="text-sm font-black text-emerald-400 font-mono">
+                          +{formatScore(res.contribution)} pts
                         </div>
-                        <div className="text-xs text-slate-400 font-mono">
-                          Neto: {formatScore(res.netScore)} | Tiempo:{' '}
+                        <div className="text-[11px] text-slate-400 font-mono">
                           {formatMsToTime(res.effectiveTimeMs)}
                         </div>
                       </div>
@@ -454,43 +395,39 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
           </div>
         </div>
 
-        {/* Live Top 6 + Tie Alerts Preview */}
-        <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+        {/* Live Top 6 Preview */}
+        <div className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-extrabold text-white flex items-center gap-2">
-                <Award className="w-5 h-5 text-amber-400" />
-                Líderes Provisionales
+              <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                <Award className="w-4 h-4 text-amber-400" />
+                Top Clasificación
               </h2>
               <button
                 type="button"
                 onClick={onOpenPublicScreen}
                 className="text-xs font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1 cursor-pointer"
               >
-                Ver Ranking Completo <ArrowRight className="w-3.5 h-3.5" />
+                Pantalla 16:9 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {rankingSummary.hasUnresolvedTies && (
-              <div className="mb-3 p-3 rounded-xl bg-amber-950/70 border border-amber-700/70 text-amber-200 text-xs flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <strong>Empate persistente detectado:</strong> Existen pilotos que mantienen
-                  igualdad tras los 4 criterios de desempate. Se muestran en la misma posición
-                  con indicación de <em>Desempate pendiente</em>.
-                </div>
+              <div className="mb-3 p-2.5 rounded-xl bg-amber-950/60 border border-amber-700/60 text-amber-200 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Empate pendiente de resolución en tabla</span>
               </div>
             )}
 
             <div className="space-y-2">
-              {rankingSummary.rows.slice(0, 7).map((row) => (
+              {rankingSummary.rows.slice(0, 6).map((row) => (
                 <div
                   key={row.participantId}
-                  className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-2"
+                  className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex items-center justify-between gap-2"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <span
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center font-extrabold text-xs ${
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
                         row.position === 1
                           ? 'bg-amber-400 text-slate-950'
                           : row.position === 2
@@ -500,28 +437,24 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
                           : 'bg-slate-800 text-slate-300'
                       }`}
                     >
-                      #{row.position}
+                      {row.position}
                     </span>
-                    <div>
-                      <div className="font-bold text-sm text-white flex items-center gap-1.5">
+                    <div className="truncate">
+                      <div className="font-bold text-sm text-white truncate">
                         {row.fullName}
-                        {row.hasPendingTie && (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300 text-[10px] font-bold">
-                            EMPATE PENDIENTE
-                          </span>
-                        )}
                       </div>
-                      <div className="text-xs text-slate-400">
-                        {row.competitorNumber} • {row.companyOrTeam} • {row.completedTestsCount}/
-                        {row.totalTestsCount} pruebas
+                      <div className="text-[11px] text-slate-400 truncate">
+                        {row.competitorNumber} • {row.companyOrTeam}
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-extrabold text-white font-mono">
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-black text-amber-300 font-mono">
                       {formatScore(row.totalContribution)}
                     </div>
-                    <div className="text-[10px] text-slate-400">PTS TOTAL</div>
+                    <div className="text-[10px] text-slate-500 font-mono">
+                      {row.completedTestsCount}/{row.totalTestsCount}
+                    </div>
                   </div>
                 </div>
               ))}

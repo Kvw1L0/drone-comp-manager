@@ -321,7 +321,7 @@ export const DEMO_PARTICIPANTS: Participant[] = RAW_PILOTS.map((raw) => ({
   normalizedName: normalizeSearchText(raw.name),
   companyOrTeam: raw.company,
   competitorNumber: raw.number,
-  accreditationStatus: raw.accredited ? 'habilitado' : 'pendiente',
+  accreditationStatus: 'habilitado',
   requirementsChecks: {
     licencia_vigente: raw.accredited,
     pertenencia_institucional: raw.accredited,
