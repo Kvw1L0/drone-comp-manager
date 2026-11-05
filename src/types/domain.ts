@@ -12,6 +12,8 @@ export interface UserProfile {
 
 export type EventStatus = 'preparacion' | 'en_curso' | 'finalizado';
 export type RankingViewMode = 'detallado' | 'resumen';
+export type TeamDivision = 'distribucion' | 'transmision';
+export type RankingTeamFilter = 'todos' | 'distribucion' | 'transmision';
 
 export interface AccreditationRequirement {
   id: string;
@@ -48,6 +50,7 @@ export interface CompetitionEvent {
   secondaryColor: string;
   status: EventStatus;
   rankingViewMode?: RankingViewMode;
+  rankingTeamFilter?: RankingTeamFilter;
   configVersion: number;
   accreditationRequirements: AccreditationRequirement[];
   tieBreakerRules: TieBreakerRule[];
@@ -97,6 +100,7 @@ export interface Participant {
   fullName: string;
   normalizedName: string;
   companyOrTeam: string;
+  teamDivision?: TeamDivision;
   competitorNumber: string;
   accreditationStatus: AccreditationStatus;
   requirementsChecks: Record<string, boolean>;
@@ -115,6 +119,7 @@ export interface PublicParticipant {
   eventId: string;
   fullName: string;
   companyOrTeam: string;
+  teamDivision?: TeamDivision;
   competitorNumber: string;
   accreditationStatus: AccreditationStatus;
   isDisqualified: boolean;
@@ -272,6 +277,7 @@ export interface RankingRow {
   participantId: string;
   fullName: string;
   companyOrTeam: string;
+  teamDivision?: TeamDivision;
   competitorNumber: string;
   isDisqualified: boolean;
   disqualificationReason?: string;

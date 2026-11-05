@@ -20,8 +20,10 @@ import {
   computeEventRanking,
   formatMsToTime,
   formatScore,
+  filterAndRankByDivision,
+  formatTeamDivisionLabel,
 } from '../utils/scoring';
-import { RankingRow, RankingViewMode } from '../types/domain';
+import { RankingRow, RankingTeamFilter, RankingViewMode } from '../types/domain';
 import { BrandLogo } from './BrandLogo';
 
 interface PublicScoreboardProps {
@@ -41,6 +43,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
     isOnline,
     lastSyncTimestamp,
     setEventRankingViewMode,
+    setEventRankingTeamFilter,
   } = useCompetition();
 
   const [viewFilter, setViewFilter] = useState<'general' | string>('general');
@@ -49,6 +52,8 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
 
   const rankingViewMode: RankingViewMode =
     activeEvent.rankingViewMode || 'detallado';
+  const teamFilter: RankingTeamFilter =
+    activeEvent.rankingTeamFilter || 'todos';
 
   const rowsPerPage = rankingViewMode === 'resumen' ? 12 : 9;
 
@@ -88,15 +93,16 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
 
   // Sort rows either by General Ranking or by a specific Test
   const displayedRows: RankingRow[] = useMemo(() => {
+    const baseRows = filterAndRankByDivision(liveRanking.rows, teamFilter);
     if (viewFilter === 'general') {
-      return liveRanking.rows;
+      return baseRows;
     }
 
     const targetTest = tests.find((t) => t.id === viewFilter);
-    if (!targetTest) return liveRanking.rows;
+    if (!targetTest) return baseRows;
 
-    const eligible = liveRanking.rows.filter((r) => !r.isDisqualified);
-    const dq = liveRanking.rows.filter((r) => r.isDisqualified);
+    const eligible = baseRows.filter((r) => !r.isDisqualified);
+    const dq = baseRows.filter((r) => r.isDisqualified);
 
     const sortedEligible = [...eligible].sort((a, b) => {
       const cellA = a.testCells[targetTest.id];
@@ -130,7 +136,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       })),
       ...dq,
     ];
-  }, [liveRanking.rows, viewFilter, tests]);
+  }, [liveRanking.rows, viewFilter, tests, teamFilter]);
 
   const totalPages = Math.max(1, Math.ceil(displayedRows.length / rowsPerPage));
 
@@ -250,6 +256,42 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
 
           {/* Right Controls: Detailed/Summary Switcher + Filter + Connection Status */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Team Division Filter (Todos / Distribución / Transmisión) */}
+            <div className="flex items-center gap-1 bg-slate-900/95 p-1.5 rounded-xl border border-slate-700">
+              <button
+                type="button"
+                onClick={() => setEventRankingTeamFilter('todos')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                  teamFilter === 'todos'
+                    ? 'bg-red-600 text-white shadow'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                Todos
+              </button>
+              <button
+                type="button"
+                onClick={() => setEventRankingTeamFilter('distribucion')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                  teamFilter === 'distribucion'
+                    ? 'bg-amber-400 text-slate-950 shadow'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                ⚡ Distribución
+              </button>
+              <button
+                type="button"
+                onClick={() => setEventRankingTeamFilter('transmision')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                  teamFilter === 'transmision'
+                    ? 'bg-cyan-400 text-slate-950 shadow'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                🗼 Transmisión
+              </button>
+            </div>
             {/* Ranking View Mode Toggle (Detallado vs Resumen) */}
             <div className="flex items-center gap-1 bg-slate-900/95 p-1.5 rounded-xl border border-slate-700">
               <button
@@ -382,7 +424,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-mono font-bold uppercase text-sky-300 truncate">
-                        {podium.competitorNumber} • {podium.companyOrTeam}
+                        {podium.competitorNumber} • {formatTeamDivisionLabel(podium.teamDivision)} • {podium.companyOrTeam}
                       </div>
                       <div className="text-lg sm:text-xl font-black text-white leading-tight truncate">
                         {podium.fullName}
@@ -519,6 +561,15 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                             <span className="text-lg sm:text-xl font-extrabold text-white">
                               {row.fullName}
                             </span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[11px] font-black uppercase ${
+                                row.teamDivision === 'transmision'
+                                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                              }`}
+                            >
+                              {formatTeamDivisionLabel(row.teamDivision)}
+                            </span>
                             <span className="text-xs sm:text-sm text-slate-400 font-semibold">
                               • {row.companyOrTeam}
                             </span>
@@ -635,7 +686,18 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                         </td>
 
                         <td className="py-3 px-4 text-sm font-semibold text-slate-300">
-                          {row.companyOrTeam || '—'}
+                          <div className="flex flex-col items-start gap-1">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                row.teamDivision === 'transmision'
+                                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                              }`}
+                            >
+                              {formatTeamDivisionLabel(row.teamDivision)}
+                            </span>
+                            <span>{row.companyOrTeam || '—'}</span>
+                          </div>
                         </td>
 
                         {tests.map((t) => (

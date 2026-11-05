@@ -35,6 +35,7 @@ import {
   PublicParticipant,
   PublicResult,
   RankingViewMode,
+  RankingTeamFilter,
   TieBreakerRule,
   Track,
   TrackStatus,
@@ -61,7 +62,7 @@ import {
 } from '../utils/scoring';
 import { getFirebaseInstances, FirebaseEnvironmentStatus } from '../services/firebase';
 
-const LOCAL_DB_STORAGE_KEY = 'drone_comp_manager_local_db_v4';
+const LOCAL_DB_STORAGE_KEY = 'drone_comp_manager_local_db_v5';
 const BROADCAST_CHANNEL_NAME = 'drone_comp_realtime_sync_v1';
 
 interface LocalDatabaseState {
@@ -255,6 +256,7 @@ interface CompetitionContextValue {
 
   resetDemoDatabase: () => void;
   setEventRankingViewMode: (mode: RankingViewMode) => Promise<void>;
+  setEventRankingTeamFilter: (filter: RankingTeamFilter) => Promise<void>;
   toggleTrackResultDQ: (params: { participantId: string; testId: string; trackId?: string }) => Promise<void>;
 }
 
@@ -2108,6 +2110,21 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
     [runAtomicDbTransaction, activeEvent.id]
   );
 
+  const setEventRankingTeamFilter = useCallback(
+    async (filter: RankingTeamFilter) => {
+      await runAtomicDbTransaction((dbState) => {
+        const idx = dbState.events.findIndex((e) => e.id === activeEvent.id);
+        if (idx === -1) return;
+        dbState.events[idx] = {
+          ...dbState.events[idx],
+          rankingTeamFilter: filter,
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    [runAtomicDbTransaction, activeEvent.id]
+  );
+
   const toggleTrackResultDQ = useCallback(
     async (params: { participantId: string; testId: string; trackId?: string }) => {
       const actor = requireStaffOrAdmin();
@@ -2301,6 +2318,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
     saveStaffUser,
     resetDemoDatabase,
     setEventRankingViewMode,
+    setEventRankingTeamFilter,
     toggleTrackResultDQ,
   };
 

@@ -23,6 +23,7 @@ import {
   AccreditationRequirement,
   EvaluationTest,
   Participant,
+  TeamDivision,
   TieBreakerRule,
   Track,
   UserRole,
@@ -31,6 +32,8 @@ import {
   computeEventRanking,
   formatMsToTime,
   formatScore,
+  filterAndRankByDivision,
+  formatTeamDivisionLabel,
 } from '../utils/scoring';
 import {
   buildParticipantFromCsvRow,
@@ -80,6 +83,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
     saveStaffUser,
     resetDemoDatabase,
     setEventRankingViewMode,
+    setEventRankingTeamFilter,
     toggleTrackResultDQ,
   } = useCompetition();
 
@@ -283,6 +287,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
     id: string;
     fullName: string;
     companyOrTeam: string;
+    teamDivision: TeamDivision;
     competitorNumber: string;
     accreditationStatus: Participant['accreditationStatus'];
     internalNotes: string;
@@ -375,6 +380,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
           eventId: activeEvent.id,
           fullName: editingParticipant.fullName,
           companyOrTeam: editingParticipant.companyOrTeam,
+          teamDivision: editingParticipant.teamDivision,
           competitorNumber: editingParticipant.competitorNumber,
           accreditationStatus: editingParticipant.accreditationStatus,
           requirementsChecks: checks,
@@ -1685,6 +1691,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                     id: `PIL-${String(participants.length + 1).padStart(3, '0')}`,
                     fullName: '',
                     companyOrTeam: '',
+                    teamDivision: 'distribucion',
                     competitorNumber: `#${100 + participants.length + 1}`,
                     accreditationStatus: 'pendiente',
                     internalNotes: '',
@@ -1774,6 +1781,24 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                       }
                       className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Equipo / Área (Distribución o Transmisión)
+                    </label>
+                    <select
+                      value={editingParticipant.teamDivision}
+                      onChange={(e) =>
+                        setEditingParticipant({
+                          ...editingParticipant,
+                          teamDivision: e.target.value as TeamDivision,
+                        })
+                      }
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold"
+                    >
+                      <option value="distribucion">⚡ Distribución</option>
+                      <option value="transmision">🗼 Transmisión</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">
@@ -1898,7 +1923,18 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-slate-300">{p.companyOrTeam}</td>
+                      <td className="py-2.5 px-3 text-slate-300">
+                        <span
+                          className={`mr-2 px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                            p.teamDivision === 'transmision'
+                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                          }`}
+                        >
+                          {formatTeamDivisionLabel(p.teamDivision)}
+                        </span>
+                        {p.companyOrTeam}
+                      </td>
                       <td className="py-2.5 px-3 uppercase font-bold">
                         <span
                           className={
@@ -1922,6 +1958,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                               id: p.id,
                               fullName: p.fullName,
                               companyOrTeam: p.companyOrTeam,
+                              teamDivision: p.teamDivision || 'distribucion',
                               competitorNumber: p.competitorNumber,
                               accreditationStatus: p.accreditationStatus,
                               internalNotes: p.internalNotes,
@@ -1997,6 +2034,130 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                   Vista en Resumen
                 </button>
               </div>
+
+              <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-700 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setEventRankingTeamFilter('todos')}
+                  className={`px-3 py-2 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                    (activeEvent.rankingTeamFilter || 'todos') === 'todos'
+                      ? 'bg-red-600 text-white shadow'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  🏆 Todos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEventRankingTeamFilter('distribucion')}
+                  className={`px-3 py-2 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                    activeEvent.rankingTeamFilter === 'distribucion'
+                      ? 'bg-amber-400 text-slate-950 shadow'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  ⚡ Distribución
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEventRankingTeamFilter('transmision')}
+                  className={`px-3 py-2 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                    activeEvent.rankingTeamFilter === 'transmision'
+                      ? 'bg-cyan-400 text-slate-950 shadow'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  🗼 Transmisión
+                </button>
+              </div>
+            </div>
+
+            {/* Podios 1°, 2° y 3° Lugar por Equipo (Distribución vs Transmisión) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {(['distribucion', 'transmision'] as const).map((divKey) => {
+                const divRows = filterAndRankByDivision(rankingData.rows, divKey).filter(
+                  (r) => !r.isDisqualified && r.completedTestsCount > 0
+                );
+                const top3 = divRows.slice(0, 3);
+                const isTrans = divKey === 'transmision';
+                return (
+                  <div
+                    key={divKey}
+                    className={`p-4 rounded-xl border ${
+                      isTrans
+                        ? 'bg-cyan-950/20 border-cyan-500/40'
+                        : 'bg-amber-950/20 border-amber-500/40'
+                    } space-y-2.5`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`text-xs font-black uppercase tracking-wider ${
+                          isTrans ? 'text-cyan-300' : 'text-amber-300'
+                        }`}
+                      >
+                        {isTrans
+                          ? '🗼 Podio Equipo Transmisión (1°, 2° y 3° Lugar)'
+                          : '⚡ Podio Equipo Distribución (1°, 2° y 3° Lugar)'}
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-bold">
+                        {divRows.length} clasificados
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {top3.map((p) => {
+                        let sumMs = 0;
+                        let hasTime = false;
+                        for (const t of tests) {
+                          const c = p.testCells[t.id];
+                          if (c && c.status === 'completado' && c.effectiveTimeMs !== null) {
+                            sumMs += c.effectiveTimeMs;
+                            hasTime = true;
+                          }
+                        }
+                        return (
+                          <div
+                            key={p.participantId}
+                            className="p-2.5 rounded-lg bg-slate-950/90 border border-slate-800 flex flex-col justify-between"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between text-xs font-black">
+                                <span
+                                  className={
+                                    p.position === 1
+                                      ? 'text-amber-400'
+                                      : p.position === 2
+                                      ? 'text-slate-300'
+                                      : 'text-amber-600'
+                                  }
+                                >
+                                  #{p.position}° Lugar
+                                </span>
+                                <span className="font-mono text-sky-400">
+                                  {p.competitorNumber}
+                                </span>
+                              </div>
+                              <div className="text-xs font-extrabold text-white truncate mt-0.5">
+                                {p.fullName}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate">
+                                {p.companyOrTeam}
+                              </div>
+                            </div>
+                            <div className="mt-2 pt-1.5 border-t border-slate-800 flex items-center justify-between font-mono text-[11px]">
+                              <span className="font-black text-amber-300">
+                                {formatScore(p.totalContribution)} pts
+                              </span>
+                              <span className="text-sky-300 font-bold">
+                                {hasTime ? formatMsToTime(sumMs) : '—'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="overflow-x-auto max-h-[520px] rounded-xl border border-slate-800">
@@ -2013,7 +2174,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/70">
-                    {rankingData.rows.map((row) => {
+                    {filterAndRankByDivision(rankingData.rows, activeEvent.rankingTeamFilter || 'todos').map((row) => {
                       let sumMs = 0;
                       let hasTime = false;
                       for (const t of tests) {
@@ -2052,6 +2213,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                             </span>
                             <span className="font-extrabold text-white">
                               {row.fullName}
+                            </span>
+                            <span
+                              className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-black uppercase ${
+                                row.teamDivision === 'transmision'
+                                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                              }`}
+                            >
+                              {formatTeamDivisionLabel(row.teamDivision)}
                             </span>
                             <span className="text-xs text-slate-400 ml-2">
                               • {row.companyOrTeam}
@@ -2123,7 +2293,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/70">
-                    {rankingData.rows.map((row) => {
+                    {filterAndRankByDivision(rankingData.rows, activeEvent.rankingTeamFilter || 'todos').map((row) => {
                       let sumMs = 0;
                       let hasTime = false;
                       for (const t of tests) {
@@ -2163,8 +2333,17 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                               </span>
                               {row.fullName}
                             </div>
-                            <div className="text-[11px] text-slate-400">
-                              {row.companyOrTeam}
+                            <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                                  row.teamDivision === 'transmision'
+                                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                }`}
+                              >
+                                {formatTeamDivisionLabel(row.teamDivision)}
+                              </span>
+                              <span>{row.companyOrTeam}</span>
                             </div>
                           </td>
                           {tests.map((t) => {

@@ -583,7 +583,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                       )}
                     </div>
                     <div className="text-[11px] text-slate-400 truncate">
-                      {selectedParticipant.companyOrTeam}
+                      {selectedParticipant.teamDivision === 'transmision' ? '🗼 Transmisión' : '⚡ Distribución'} • {selectedParticipant.companyOrTeam}
                     </div>
                   </div>
                 </div>
@@ -669,7 +669,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                               {p.fullName}
                             </div>
                             <div className="text-[11px] text-slate-400 truncate">
-                              {p.companyOrTeam}
+                              {p.teamDivision === 'transmision' ? '🗼 Transmisión' : '⚡ Distribución'} • {p.companyOrTeam}
                             </div>
                           </div>
                         </div>

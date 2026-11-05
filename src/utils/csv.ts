@@ -4,6 +4,7 @@ import {
   EvaluationTest,
   Participant,
   RankingRow,
+  TeamDivision,
 } from '../types/domain';
 import { formatMsToTime, formatScore, normalizeSearchText } from './scoring';
 
@@ -12,6 +13,7 @@ export interface CsvParticipantPreviewRow {
   id: string;
   fullName: string;
   companyOrTeam: string;
+  teamDivision: TeamDivision;
   competitorNumber: string;
   accreditationStatus: AccreditationStatus;
   internalNotes: string;
@@ -107,6 +109,10 @@ export function parseAndValidateParticipantsCsv(
     const competitorNumber = (cols[3] || '').trim();
     const rawStatus = normalizeSearchText(cols[4] || 'pendiente');
     const internalNotes = (cols[5] || '').trim();
+    const rawDivisionText = normalizeSearchText(`${cols[4] || ''} ${cols[5] || ''} ${cols[6] || ''}`);
+    const teamDivision: TeamDivision = rawDivisionText.includes('transmision')
+      ? 'transmision'
+      : 'distribucion';
 
     const id =
       rawId ||
@@ -206,6 +212,7 @@ export function parseAndValidateParticipantsCsv(
       id,
       fullName,
       companyOrTeam,
+      teamDivision,
       competitorNumber,
       accreditationStatus,
       internalNotes,
@@ -237,6 +244,7 @@ export function buildParticipantFromCsvRow(
     fullName: row.fullName,
     normalizedName: normalizeSearchText(row.fullName),
     companyOrTeam: row.companyOrTeam,
+    teamDivision: row.teamDivision,
     competitorNumber: row.competitorNumber,
     accreditationStatus: row.accreditationStatus,
     requirementsChecks: checks,
@@ -259,6 +267,7 @@ export function generateRankingCsv(
     'Numero',
     'Nombre_Completo',
     'Empresa_Equipo',
+    'Equipo_Area',
     'Estado_Acreditacion',
     'Estado_General',
     ...sortedTests.flatMap((t) => [
@@ -322,6 +331,7 @@ export function generateRankingCsv(
       r.competitorNumber || '—',
       r.fullName,
       r.companyOrTeam || '—',
+      r.teamDivision === 'transmision' ? 'Transmisión' : 'Distribución',
       r.accreditationStatus,
       generalState,
       ...testCols,

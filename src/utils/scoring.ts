@@ -612,6 +612,7 @@ export function computeEventRanking(params: {
       participantId: p.id,
       fullName: p.fullName,
       companyOrTeam: p.companyOrTeam,
+      teamDivision: p.teamDivision || 'distribucion',
       competitorNumber: p.competitorNumber,
       isDisqualified: p.isDisqualified,
       disqualificationReason: 'disqualificationReason' in p ? p.disqualificationReason : undefined,
@@ -765,4 +766,50 @@ export function computeEventRanking(params: {
     isRankingProvisional,
     hasUnresolvedTies,
   };
+}
+
+
+export function formatTeamDivisionLabel(division?: 'distribucion' | 'transmision'): string {
+  return division === 'transmision' ? 'Transmisión' : 'Distribución';
+}
+
+export function filterAndRankByDivision(
+  rows: RankingRow[],
+  divisionFilter: 'todos' | 'distribucion' | 'transmision'
+): RankingRow[] {
+  if (divisionFilter === 'todos') {
+    return rows;
+  }
+
+  const filtered = rows.filter(
+    (r) => (r.teamDivision || 'distribucion') === divisionFilter
+  );
+
+  const eligible = filtered.filter((r) => !r.isDisqualified);
+  const dq = filtered.filter((r) => r.isDisqualified);
+
+  let lastGeneralPos: number | null = null;
+  let lastAssignedDivisionPos = 1;
+
+  const reRankedEligible = eligible.map((r, idx) => {
+    let divPos = idx + 1;
+    if (
+      idx > 0 &&
+      r.position !== null &&
+      lastGeneralPos !== null &&
+      r.position === lastGeneralPos
+    ) {
+      divPos = lastAssignedDivisionPos;
+    } else {
+      lastAssignedDivisionPos = divPos;
+    }
+    lastGeneralPos = r.position;
+
+    return {
+      ...r,
+      position: divPos,
+    };
+  });
+
+  return [...reRankedEligible, ...dq];
 }

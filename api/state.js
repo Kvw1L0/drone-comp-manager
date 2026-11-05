@@ -1,6 +1,6 @@
 import { get, put } from '@vercel/blob';
 
-const STATE_BLOB_PATH = 'state/competition-db-v4.json';
+const STATE_BLOB_PATH = 'state/competition-db-v5.json';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

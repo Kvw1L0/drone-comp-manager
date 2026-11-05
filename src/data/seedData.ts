@@ -314,12 +314,13 @@ const RAW_PILOTS: Array<{
   { id: 'PIL-035', name: 'Héctor Zambrano Cuevas', company: 'Cumbre Robotics', number: '#135', accredited: false, notes: 'Por acreditar en mesa de entrada.' },
 ];
 
-export const DEMO_PARTICIPANTS: Participant[] = RAW_PILOTS.map((raw) => ({
+export const DEMO_PARTICIPANTS: Participant[] = RAW_PILOTS.map((raw, idx) => ({
   id: raw.id,
   eventId: INITIAL_EVENT_ID,
   fullName: raw.name === 'agustín yáñez núñez' ? 'Agustín Yáñez Núñez' : raw.name,
   normalizedName: normalizeSearchText(raw.name),
   companyOrTeam: raw.company,
+  teamDivision: idx % 2 === 0 ? 'distribucion' : 'transmision',
   competitorNumber: raw.number,
   accreditationStatus: 'habilitado',
   requirementsChecks: {
@@ -530,6 +531,7 @@ export function toPublicParticipant(p: Participant): PublicParticipant {
     eventId: p.eventId,
     fullName: p.fullName,
     companyOrTeam: p.companyOrTeam,
+    teamDivision: p.teamDivision || 'distribucion',
     competitorNumber: p.competitorNumber,
     accreditationStatus: p.accreditationStatus,
     isDisqualified: p.isDisqualified,
