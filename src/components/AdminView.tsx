@@ -80,6 +80,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
     saveStaffUser,
     resetDemoDatabase,
     setEventRankingViewMode,
+    toggleTrackResultDQ,
   } = useCompetition();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('eventos');
@@ -2096,7 +2097,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                                   : 'bg-rose-950 border border-rose-600 text-rose-300'
                               }`}
                             >
-                              {row.isDisqualified ? 'Quitar DQ' : 'DQ'}
+                              {row.isDisqualified ? 'Quitar DQ Total' : 'DQ Certamen'}
                             </button>
                           </td>
                         </tr>
@@ -2168,18 +2169,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                           </td>
                           {tests.map((t) => {
                             const cell = row.testCells[t.id];
+                            const isTrackDQ = cell?.status === 'dq';
                             return (
                               <td
                                 key={t.id}
-                                onClick={() =>
-                                  onEditResultInForm({
-                                    participantId: row.participantId,
-                                    testId: t.id,
-                                    trackId: tracks[0]?.id || 'track_1',
-                                  })
-                                }
-                                title="Clic para editar este tiempo/puntaje"
-                                className="py-2.5 px-3 text-right font-mono hover:bg-slate-900 cursor-pointer transition"
+                                className="py-2.5 px-3 text-right font-mono hover:bg-slate-900/70 transition"
                               >
                                 {cell && cell.status === 'completado' ? (
                                   <div>
@@ -2190,11 +2184,52 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                                       {formatMsToTime(cell.effectiveTimeMs)}
                                     </div>
                                   </div>
+                                ) : isTrackDQ ? (
+                                  <div>
+                                    <div className="font-extrabold text-rose-400">
+                                      0,00 pts
+                                    </div>
+                                    <div className="text-[10px] font-black uppercase text-rose-300">
+                                      DQ PISTA
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <span className="text-slate-500 uppercase font-bold">
-                                    {cell?.status || 'Pend.'}
+                                  <span className="text-slate-500 uppercase font-bold block">
+                                    {cell?.status === 'dnf' ? 'DNF (0,00)' : 'Pend.'}
                                   </span>
                                 )}
+                                <div className="mt-1 flex items-center justify-end gap-1 font-sans">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onEditResultInForm({
+                                        participantId: row.participantId,
+                                        testId: t.id,
+                                        trackId: tracks[0]?.id || 'track_1',
+                                      })
+                                    }
+                                    className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 text-[10px] font-bold cursor-pointer"
+                                  >
+                                    Editar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      toggleTrackResultDQ({
+                                        participantId: row.participantId,
+                                        testId: t.id,
+                                      })
+                                    }
+                                    title="Descalificar solo en esta pista (0,00 pts en esta pista, sigue compitiendo en las demás)"
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold cursor-pointer ${
+                                      isTrackDQ
+                                        ? 'bg-emerald-950 border border-emerald-600 text-emerald-300'
+                                        : 'bg-rose-950/90 border border-rose-700 text-rose-300 hover:bg-rose-900'
+                                    }`}
+                                  >
+                                    {isTrackDQ ? 'Quitar DQ' : 'DQ Pista'}
+                                  </button>
+                                </div>
                               </td>
                             );
                           })}
@@ -2237,7 +2272,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                                   : 'bg-rose-950 border border-rose-600 text-rose-300'
                               }`}
                             >
-                              {row.isDisqualified ? 'Quitar DQ' : 'DQ'}
+                              {row.isDisqualified ? 'Quitar DQ Total' : 'DQ Certamen'}
                             </button>
                           </td>
                         </tr>
@@ -2498,6 +2533,25 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                             className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 font-bold cursor-pointer"
                           >
                             Corregir / Repetir
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              toggleTrackResultDQ({
+                                participantId: r.participantId,
+                                testId: r.testId,
+                                trackId: r.trackId,
+                              })
+                            }
+                            className={`px-2.5 py-1 rounded font-bold cursor-pointer ${
+                              r.participationStatus === 'dq' && r.publicationStatus === 'publicado'
+                                ? 'bg-emerald-950 border border-emerald-600 text-emerald-300'
+                                : 'bg-rose-950 border border-rose-700 text-rose-300 hover:bg-rose-900'
+                            }`}
+                          >
+                            {r.participationStatus === 'dq' && r.publicationStatus === 'publicado'
+                              ? 'Quitar DQ Pista'
+                              : 'DQ Pista (0 pts)'}
                           </button>
                           {r.publicationStatus === 'publicado' && (
                             <button

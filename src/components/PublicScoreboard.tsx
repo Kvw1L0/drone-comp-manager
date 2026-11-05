@@ -428,6 +428,15 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                               {formatScore(cell.contribution)} pts
                             </div>
                           </div>
+                        ) : cell?.status === 'dq' || cell?.status === 'dnf' ? (
+                          <div className="mt-0.5">
+                            <div className="text-xs font-black text-rose-400 font-mono uppercase">
+                              {cell.status}
+                            </div>
+                            <div className="text-[10px] font-bold text-rose-300 font-mono">
+                              0,00 pts
+                            </div>
+                          </div>
                         ) : (
                           <div className="text-[11px] font-bold text-slate-400 uppercase mt-1">
                             {cell?.status && cell.status !== 'pendiente'

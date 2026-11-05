@@ -473,7 +473,7 @@ export function computeEventRanking(params: {
   const publishedResults = results.filter((r) => r.publicationStatus === 'publicado');
   for (const r of publishedResults) {
     if (r.participationStatus === 'dq') {
-      disqualifiedIds.add(r.participantId);
+      // Per-track DQ only zeroes this track; general DQ is controlled by p.isDisqualified
     }
   }
 
@@ -613,7 +613,7 @@ export function computeEventRanking(params: {
       fullName: p.fullName,
       companyOrTeam: p.companyOrTeam,
       competitorNumber: p.competitorNumber,
-      isDisqualified: p.isDisqualified || hasTestDQ,
+      isDisqualified: p.isDisqualified,
       disqualificationReason: 'disqualificationReason' in p ? p.disqualificationReason : undefined,
       accreditationStatus: p.accreditationStatus,
       testCells,

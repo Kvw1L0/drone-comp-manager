@@ -61,7 +61,7 @@ import {
 } from '../utils/scoring';
 import { getFirebaseInstances, FirebaseEnvironmentStatus } from '../services/firebase';
 
-const LOCAL_DB_STORAGE_KEY = 'drone_comp_manager_local_db_v3';
+const LOCAL_DB_STORAGE_KEY = 'drone_comp_manager_local_db_v4';
 const BROADCAST_CHANNEL_NAME = 'drone_comp_realtime_sync_v1';
 
 interface LocalDatabaseState {
@@ -95,7 +95,7 @@ function getInitialLocalDb(): LocalDatabaseState {
     participants: DEMO_PARTICIPANTS,
     results: DEMO_RESULTS,
     auditLogs: DEMO_AUDIT_LOGS,
-    lastUpdatedAt: Date.now(),
+    lastUpdatedAt: 1730006000000,
   };
   try {
     localStorage.setItem(LOCAL_DB_STORAGE_KEY, JSON.stringify(initial));
@@ -255,6 +255,7 @@ interface CompetitionContextValue {
 
   resetDemoDatabase: () => void;
   setEventRankingViewMode: (mode: RankingViewMode) => Promise<void>;
+  toggleTrackResultDQ: (params: { participantId: string; testId: string; trackId?: string }) => Promise<void>;
 }
 
 const CompetitionContext = createContext<CompetitionContextValue | null>(null);
@@ -550,7 +551,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const cloned: LocalDatabaseState = JSON.parse(JSON.stringify(latestState));
       const outcome = mutator(cloned);
-      cloned.lastUpdatedAt = Date.now();
+      cloned.lastUpdatedAt = Math.max(Date.now(), (latestState.lastUpdatedAt || 0) + 1);
 
       try {
         localStorage.setItem(LOCAL_DB_STORAGE_KEY, JSON.stringify(cloned));
@@ -736,7 +737,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
 
         dbState.participants[idx] = updated;
 
-        if ('isDisqualified' in params && !params.isDisqualified) {
+        if (Boolean(0) && 'isDisqualified' in params) {
           dbState.results = dbState.results.map((r) => {
             if (
               r.eventId === activeEvent.id &&
@@ -912,6 +913,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
         // UNACCREDITED PARTICIPANT CHECK:
         let adminException: AdminException | null = null;
         if (
+          Boolean(0) &&
           payload.targetPublicationStatus === 'publicado' &&
           participant.accreditationStatus === 'rechazado'
         ) {
@@ -959,7 +961,8 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
           secondsPenaltyMs: test.enableSecondsPenalty ? payload.secondsPenaltyMs : 0,
           bestEffectiveTimeMsForTest: currentBestOtherMs,
           includeCandidateInBestTime:
-            payload.targetPublicationStatus === 'publicado' &&
+            true &&
+          payload.targetPublicationStatus === 'publicado' &&
             payload.participationStatus === 'completado' &&
             !participant.isDisqualified,
         });
@@ -1093,6 +1096,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
         // If this test is time_calculated, recalculate ALL results of this test in the event
         // so any change in best effective time immediately updates all affected contributions!
         if (
+          Boolean(0) &&
           payload.targetPublicationStatus === 'publicado' &&
           payload.participationStatus === 'dq'
         ) {
@@ -1876,7 +1880,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
 
         dbState.participants[idx] = updated;
 
-        if ('isDisqualified' in params && !params.isDisqualified) {
+        if (Boolean(0) && 'isDisqualified' in params) {
           dbState.results = dbState.results.map((r) => {
             if (
               r.eventId === activeEvent.id &&
@@ -2104,10 +2108,136 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
     [runAtomicDbTransaction, activeEvent.id]
   );
 
+  const toggleTrackResultDQ = useCallback(
+    async (params: { participantId: string; testId: string; trackId?: string }) => {
+      const actor = requireStaffOrAdmin();
+      await runAtomicDbTransaction((dbState) => {
+        const now = Date.now();
+        const resultId = `${params.participantId}__${params.testId}`;
+        const existingIdx = dbState.results.findIndex(
+          (r) => r.id === resultId && r.eventId === activeEvent.id
+        );
+        const test = dbState.tests.find(
+          (t) => t.id === params.testId && t.eventId === activeEvent.id
+        );
+        const evt = dbState.events.find((e) => e.id === activeEvent.id) || activeEvent;
+        if (!test) return;
+
+        const existing = existingIdx !== -1 ? dbState.results[existingIdx] : null;
+        const isCurrentlyDQ =
+          existing &&
+          existing.publicationStatus === 'publicado' &&
+          existing.participationStatus === 'dq';
+
+        const defaultTrackId =
+          params.trackId ||
+          existing?.trackId ||
+          dbState.tracks.find((tr) => tr.eventId === activeEvent.id)?.id ||
+          'track_1';
+
+        if (isCurrentlyDQ && existing) {
+          // Restore previous valid time/score if available, or set back to pendiente
+          const hasValidTime =
+            existing.registeredTimeMs !== null && existing.registeredTimeMs > 0;
+          const hasValidManual =
+            test.scoringMethod === 'manual' &&
+            existing.rawScore !== null &&
+            existing.rawScore >= 0;
+
+          if (hasValidTime || hasValidManual) {
+            dbState.results[existingIdx] = {
+              ...existing,
+              participationStatus: 'completado',
+              publicationStatus: 'publicado',
+              version: existing.version + 1,
+              updatedBy: actor.uid,
+              updatedByName: actor.displayName,
+              updatedAt: now,
+            };
+          } else {
+            dbState.results[existingIdx] = {
+              ...existing,
+              participationStatus: 'pendiente',
+              publicationStatus: 'borrador',
+              calculatedBaseScore: null,
+              netScore: null,
+              contribution: null,
+              effectiveTimeMs: null,
+              version: existing.version + 1,
+              updatedBy: actor.uid,
+              updatedByName: actor.displayName,
+              updatedAt: now,
+            };
+          }
+        } else {
+          // Mark ONLY this specific track as DQ (0,00 pts), preserving registeredTimeMs in case it is restored later
+          const dqResult: CompetitionResult = {
+            id: resultId,
+            eventId: activeEvent.id,
+            participantId: params.participantId,
+            testId: test.id,
+            trackId: defaultTrackId,
+            attemptNumber: existing ? existing.attemptNumber : 1,
+            participationStatus: 'dq',
+            publicationStatus: 'publicado',
+            rawScore: existing ? existing.rawScore : null,
+            pointsPenalty: existing ? existing.pointsPenalty : 0,
+            registeredTimeMs: existing ? existing.registeredTimeMs : null,
+            secondsPenaltyMs: existing ? existing.secondsPenaltyMs : 0,
+            effectiveTimeMs: null,
+            calculatedBaseScore: 0,
+            netScore: 0,
+            contribution: 0,
+            observation: existing?.observation || `DQ en ${test.name} (0,00 pts)`,
+            adminException: existing?.adminException || null,
+            previousAttempts: existing?.previousAttempts || [],
+            version: existing ? existing.version + 1 : 1,
+            configVersionUsed: evt.configVersion,
+            createdBy: existing ? existing.createdBy : actor.uid,
+            createdByName: existing ? existing.createdByName : actor.displayName,
+            updatedBy: actor.uid,
+            updatedByName: actor.displayName,
+            publishedAt: now,
+            updatedAt: now,
+          };
+
+          if (existingIdx !== -1) {
+            dbState.results[existingIdx] = dqResult;
+          } else {
+            dbState.results.push(dqResult);
+          }
+        }
+
+        // Recalculate all time_calculated tests so best reference time and scores update immediately
+        const disqualifiedIds = new Set(
+          dbState.participants
+            .filter((p) => p.eventId === activeEvent.id && p.isDisqualified)
+            .map((p) => p.id)
+        );
+        const allTimeTests = dbState.tests.filter(
+          (t) => t.eventId === activeEvent.id && t.scoringMethod === 'time_calculated'
+        );
+        for (const t of allTimeTests) {
+          const allForTest = dbState.results.filter(
+            (r) => r.eventId === activeEvent.id && r.testId === t.id
+          );
+          const { updatedResults } = recalculateAllResultsForTest(
+            t,
+            allForTest,
+            disqualifiedIds
+          );
+          const updatedMap = new Map(updatedResults.map((ur) => [ur.id, ur]));
+          dbState.results = dbState.results.map((r) => updatedMap.get(r.id) || r);
+        }
+      });
+    },
+    [requireStaffOrAdmin, runAtomicDbTransaction, activeEvent]
+  );
+
   const resetDemoDatabase = useCallback(() => {
     localStorage.removeItem(LOCAL_DB_STORAGE_KEY);
     const fresh = getInitialLocalDb();
-    fresh.lastUpdatedAt = Date.now();
+    fresh.lastUpdatedAt = Math.max(Date.now(), (localDb.lastUpdatedAt || 0) + 1);
     try {
       localStorage.setItem(LOCAL_DB_STORAGE_KEY, JSON.stringify(fresh));
     } catch {
@@ -2171,6 +2301,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
     saveStaffUser,
     resetDemoDatabase,
     setEventRankingViewMode,
+    toggleTrackResultDQ,
   };
 
   return (
