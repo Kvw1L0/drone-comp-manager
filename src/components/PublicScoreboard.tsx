@@ -232,19 +232,19 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 {liveRanking.isRankingProvisional ? (
-                  <span className="px-3 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider">
-                    RANKING PROVISIONAL (PRUEBAS ABIERTAS)
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider">
+                    EN VIVO
                   </span>
                 ) : (
-                  <span className="px-3 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider">
-                    CLASIFICACIÓN OFICIAL FINAL
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider">
+                    FINAL
                   </span>
                 )}
 
                 {liveRanking.hasUnresolvedTies && (
-                  <span className="px-3 py-0.5 rounded-full bg-amber-950 border border-amber-400 text-amber-300 font-extrabold text-xs flex items-center gap-1">
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-950 border border-amber-400 text-amber-300 font-extrabold text-xs flex items-center gap-1">
                     <AlertTriangle className="w-3.5 h-3.5" />
-                    DESEMPATE PENDIENTE EN TABLA
+                    DESEMPATE PENDIENTE
                   </span>
                 )}
               </div>

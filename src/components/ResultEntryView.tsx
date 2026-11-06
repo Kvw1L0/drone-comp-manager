@@ -4,21 +4,15 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
-  Save,
   Send,
   RefreshCw,
   WifiOff,
   FileWarning,
-  Sliders,
   X,
   ChevronDown,
   ChevronUp,
-  ChevronLeft,
   ChevronRight,
-  RotateCcw,
   Ban,
-  Check,
-  Zap,
 } from 'lucide-react';
 import {
   ConcurrencyConflictError,
@@ -49,6 +43,8 @@ interface ResultEntryViewProps {
   initialTestId?: string;
 }
 
+type WizardStep = 'pilot' | 'track' | 'time';
+
 export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
   initialParticipantId,
   initialTrackId,
@@ -65,8 +61,11 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     saveOrPublishResult,
   } = useCompetition();
 
+  const [step, setStep] = useState<WizardStep>(
+    initialParticipantId && initialTestId ? 'time' : 'pilot'
+  );
+  const [pilotFilter, setPilotFilter] = useState<'todos' | 'distribucion' | 'transmision'>('todos');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const [selectedParticipantId, setSelectedParticipantId] = useState<string>(
     initialParticipantId || participants[0]?.id || ''
@@ -232,26 +231,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     existingServerResult && existingServerResult.version > baseServerVersion
   );
 
-  const handleClearInputs = () => {
-    setParticipationStatus('completado');
-    setMinutesInput('');
-    setSecondsInput('');
-    setCentisecondsInput('');
-    setRawScoreInput('');
-    setPointsPenaltyInput('0');
-    setSecondsPenaltyInput('0');
-    setObservation('');
-  };
-
-  const handleStepPilot = (delta: number) => {
-    if (participants.length === 0) return;
-    const nextIdx =
-      (currentParticipantIndex + delta + participants.length) %
-      participants.length;
-    setSelectedParticipantId(participants[nextIdx].id);
-    setIsSearchOpen(false);
-  };
-
   const handlePersistLocalDraft = () => {
     if (!currentUser || !selectedParticipantId || !selectedTestId) return;
     const draft: LocalDraft = {
@@ -347,15 +326,19 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
   ]);
 
   const filteredParticipants = useMemo(() => {
+    let list = participants;
+    if (pilotFilter !== 'todos') {
+      list = list.filter((p) => (p.teamDivision || 'distribucion') === pilotFilter);
+    }
     const q = normalizeSearchText(searchQuery);
-    if (!q) return participants;
-    return participants.filter((p) => {
+    if (!q) return list;
+    return list.filter((p) => {
       const hay = `${p.normalizedName} ${normalizeSearchText(
         p.companyOrTeam
       )} ${normalizeSearchText(p.competitorNumber)} ${normalizeSearchText(p.id)}`;
       return hay.includes(q);
     });
-  }, [participants, searchQuery]);
+  }, [participants, searchQuery, pilotFilter]);
 
   const executeSubmit = async (targetPublicationStatus: 'borrador' | 'publicado') => {
     if (isSubmitting || !selectedParticipant || !selectedTest || !selectedTrack) {
@@ -465,11 +448,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
   const isStaffBlockedFromOverwriting =
     isAlreadyPublishedOnServer && currentUser?.role !== 'admin';
 
-  const hasActivePenalties =
-    parsedPointsPenalty > 0 ||
-    parsedSecondsPenaltyMs > 0 ||
-    observation.trim().length > 0;
-
   return (
     <div className="max-w-lg mx-auto space-y-3">
       {/* Status Toast */}
@@ -548,587 +526,593 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
       )}
 
       {/* =================================================================== */}
-      {/* SINGLE MOBILE-FIRST HUD CARD                                        */}
+      {/* 3-STEP MOBILE-FIRST WIZARD                                          */}
       {/* =================================================================== */}
       <div className="kv-hud-card rounded-3xl p-4 sm:p-5 space-y-4">
-        {/* 1. PILOT SELECTOR BAR */}
-        <div className="space-y-2">
-          {!isSearchOpen && selectedParticipant ? (
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => handleStepPilot(-1)}
-                aria-label="Piloto anterior"
-                className="p-3 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 active:scale-95 transition cursor-pointer shrink-0"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
+        {/* Step Indicator Bar */}
+        <div className="flex items-center justify-between gap-1 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800 text-xs font-extrabold">
+          <button
+            type="button"
+            onClick={() => setStep('pilot')}
+            className={`flex-1 py-1.5 px-2 rounded-xl text-center transition cursor-pointer ${
+              step === 'pilot'
+                ? 'bg-red-600 text-white shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            1. Piloto
+          </button>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+          <button
+            type="button"
+            onClick={() => selectedParticipant && setStep('track')}
+            disabled={!selectedParticipant}
+            className={`flex-1 py-1.5 px-2 rounded-xl text-center transition cursor-pointer disabled:opacity-30 ${
+              step === 'track'
+                ? 'bg-red-600 text-white shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            2. Pista
+          </button>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+          <button
+            type="button"
+            onClick={() => selectedParticipant && selectedTest && setStep('time')}
+            disabled={!selectedParticipant || !selectedTest}
+            className={`flex-1 py-1.5 px-2 rounded-xl text-center transition cursor-pointer disabled:opacity-30 ${
+              step === 'time'
+                ? 'bg-red-600 text-white shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            3. Tiempo
+          </button>
+        </div>
 
-              <button
-                type="button"
-                onClick={() => setIsSearchOpen(true)}
-                className="flex-1 min-w-0 p-2.5 px-3 rounded-2xl bg-slate-950 hover:bg-slate-900 border border-sky-500/40 flex items-center justify-between gap-2 text-left transition cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="px-2.5 py-1 rounded-xl bg-sky-500 text-white font-mono font-black text-xs shrink-0 shadow-sm shadow-sky-500/30">
-                    {selectedParticipant.competitorNumber}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="font-extrabold text-sm sm:text-base text-white truncate flex items-center gap-1.5">
-                      <span className="truncate">{selectedParticipant.fullName}</span>
-                      {selectedParticipant.isDisqualified && (
-                        <span className="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[9px] font-black">
-                          DQ
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[11px] text-slate-400 truncate">
-                      {selectedParticipant.teamDivision === 'transmision' ? '🗼 Transmisión' : '⚡ Distribución'} • {selectedParticipant.companyOrTeam}
-                    </div>
-                  </div>
-                </div>
-                <div className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-sky-400 shrink-0">
-                  <Search className="w-4 h-4" />
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleStepPilot(1)}
-                aria-label="Siguiente piloto"
-                className="p-3 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 active:scale-95 transition cursor-pointer shrink-0"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="relative">
-                <Search className="w-4 h-4 text-sky-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  autoFocus
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar piloto por nombre o #..."
-                  className="w-full pl-10 pr-9 py-3 rounded-2xl bg-slate-950 border border-sky-500 text-white text-sm font-semibold focus:outline-none"
-                />
+        {/* ================================================================= */}
+        {/* PASO 1: SELECCIONAR PILOTO                                        */}
+        {/* ================================================================= */}
+        {step === 'pilot' && (
+          <div className="space-y-3">
+            {/* Quick Search */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-sky-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por nombre o número (#101)..."
+                className="w-full pl-10 pr-9 py-3 rounded-2xl bg-slate-950 border border-slate-700 focus:border-red-500 text-white text-sm font-semibold focus:outline-none"
+              />
+              {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setIsSearchOpen(false);
-                  }}
+                  onClick={() => setSearchQuery('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
-              </div>
-
-              <div className="max-h-56 overflow-y-auto rounded-2xl bg-slate-950 border border-slate-800 divide-y divide-slate-800/70">
-                {filteredParticipants.length === 0 ? (
-                  <div className="p-4 text-center text-xs text-slate-500">
-                    Sin resultados para &ldquo;{searchQuery}&rdquo;
-                  </div>
-                ) : (
-                  filteredParticipants.map((p) => {
-                    const isSelected = p.id === selectedParticipantId;
-                    const doneCount = results.filter(
-                      (r) =>
-                        r.participantId === p.id &&
-                        r.publicationStatus === 'publicado'
-                    ).length;
-
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedParticipantId(p.id);
-                          setSearchQuery('');
-                          setIsSearchOpen(false);
-                        }}
-                        className={`w-full px-3.5 py-2.5 text-left flex items-center justify-between gap-2 transition cursor-pointer ${
-                          isSelected
-                            ? 'bg-sky-500/20 text-white'
-                            : 'hover:bg-slate-900 text-slate-200'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span
-                            className={`px-2 py-0.5 rounded-lg font-mono text-xs font-black shrink-0 ${
-                              isSelected
-                                ? 'bg-sky-500 text-white'
-                                : 'bg-slate-800 text-sky-300'
-                            }`}
-                          >
-                            {p.competitorNumber}
-                          </span>
-                          <div className="truncate">
-                            <div className="font-bold text-sm truncate">
-                              {p.fullName}
-                            </div>
-                            <div className="text-[11px] text-slate-400 truncate">
-                              {p.teamDivision === 'transmision' ? '🗼 Transmisión' : '⚡ Distribución'} • {p.companyOrTeam}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[10px] text-slate-400 font-mono">
-                            {doneCount}/{tests.length}
-                          </span>
-                          {isSelected && <Check className="w-4 h-4 text-sky-400" />}
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* 2. UNIFIED TRACK / TEST SEGMENTED TABS */}
-        <div className="grid grid-cols-3 gap-2">
-          {tests.map((test, idx) => {
-            const resForTest = results.find(
-              (r) =>
-                r.participantId === selectedParticipantId &&
-                r.testId === test.id &&
-                r.publicationStatus === 'publicado'
-            );
-            const isSelected = test.id === selectedTestId;
-            const trackForTest =
-              tracks.find((tr) => test.assignedTrackIds.includes(tr.id)) ||
-              tracks[idx] ||
-              tracks[0];
-
-            return (
+            {/* Team Filter Pills */}
+            <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
               <button
-                key={test.id}
                 type="button"
-                onClick={() => {
-                  setSelectedTestId(test.id);
-                  if (trackForTest) setSelectedTrackId(trackForTest.id);
-                }}
-                className={`p-2.5 rounded-2xl border text-left transition flex flex-col justify-between gap-1.5 cursor-pointer active:scale-[0.98] ${
-                  isSelected
-                    ? 'bg-sky-500/20 border-sky-500 text-white shadow-md shadow-sky-500/15'
-                    : 'bg-slate-950/90 border-slate-800 text-slate-300 hover:border-slate-700'
+                onClick={() => setPilotFilter('todos')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  pilotFilter === 'todos'
+                    ? 'bg-red-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <div className="flex items-center justify-between gap-1">
-                  <span
-                    className={`text-[10px] font-black uppercase tracking-wider ${
-                      isSelected ? 'text-sky-300' : 'text-slate-400'
-                    }`}
-                  >
-                    Pista {idx + 1}
-                  </span>
-                  {resForTest ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  ) : (
-                    <span className="w-2 h-2 rounded-full bg-slate-700 shrink-0" />
-                  )}
-                </div>
-
-                <div className="font-extrabold text-xs sm:text-sm text-white truncate">
-                  {test.name}
-                </div>
-
-                <div className="text-[10px] font-mono truncate">
-                  {resForTest ? (
-                    <span className="text-emerald-400 font-bold">
-                      {formatScore(resForTest.contribution)} pts
-                    </span>
-                  ) : (
-                    <span className="text-slate-500">Pendiente</span>
-                  )}
-                </div>
+                Todos ({participants.length})
               </button>
-            );
-          })}
-        </div>
-
-        {/* 3. STATUS BAR & EXISTING RESULT NOTICE */}
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-            {(
-              [
-                {
-                  id: 'completado',
-                  label: 'Válido',
-                  icon: CheckCircle2,
-                  activeCls: 'bg-emerald-500 text-slate-950',
-                },
-                {
-                  id: 'dnf',
-                  label: 'DNF',
-                  icon: Ban,
-                  activeCls: 'bg-rose-600 text-white',
-                },
-                {
-                  id: 'dq',
-                  label: 'DQ',
-                  icon: AlertTriangle,
-                  activeCls: 'bg-rose-600 text-white',
-                },
-              ] as const
-            ).map((st) => {
-              const Icon = st.icon;
-              const active = participationStatus === st.id;
-              return (
-                <button
-                  key={st.id}
-                  type="button"
-                  onClick={() => setParticipationStatus(st.id)}
-                  className={`px-2.5 py-1.5 rounded-lg font-extrabold text-xs flex items-center gap-1 transition cursor-pointer ${
-                    active ? st.activeCls : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{st.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            type="button"
-            onClick={handleClearInputs}
-            title="Limpiar campos"
-            className="px-2.5 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white text-xs font-bold flex items-center gap-1 cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Limpiar</span>
-          </button>
-        </div>
-
-        {isAlreadyPublishedOnServer && existingServerResult && (
-          <div className="p-3 rounded-2xl bg-amber-950/60 border border-amber-500/50 text-amber-100 text-xs space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-bold">
-                Ya registrado (Intento #{existingServerResult.attemptNumber})
-              </span>
-              {currentUser?.role !== 'admin' && (
-                <span className="text-rose-300 font-bold">Bloqueado (Solo Admin)</span>
-              )}
+              <button
+                type="button"
+                onClick={() => setPilotFilter('distribucion')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  pilotFilter === 'distribucion'
+                    ? 'bg-amber-400 text-slate-950 shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                ⚡ Distribución
+              </button>
+              <button
+                type="button"
+                onClick={() => setPilotFilter('transmision')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  pilotFilter === 'transmision'
+                    ? 'bg-cyan-400 text-slate-950 shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                🗼 Transmisión
+              </button>
             </div>
 
-            {currentUser?.role === 'admin' && (
-              <div className="space-y-2 pt-1">
-                <div className="flex items-center gap-3 text-[11px]">
-                  <label className="flex items-center gap-1 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={!isExtraordinaryRepeat}
-                      onChange={() => setIsExtraordinaryRepeat(false)}
-                    />
-                    <span>Corregir</span>
-                  </label>
-                  <label className="flex items-center gap-1 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={isExtraordinaryRepeat}
-                      onChange={() => setIsExtraordinaryRepeat(true)}
-                    />
-                    <span>Nuevo intento (#{existingServerResult.attemptNumber + 1})</span>
-                  </label>
+            {/* Pilot Cards List */}
+            <div className="max-h-[380px] overflow-y-auto space-y-1.5 pr-0.5 rounded-2xl">
+              {filteredParticipants.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-500 bg-slate-950 rounded-2xl border border-slate-800">
+                  Sin pilotos encontrados para esta búsqueda.
                 </div>
-                <input
-                  type="text"
-                  value={adminCorrectionReason}
-                  onChange={(e) => setAdminCorrectionReason(e.target.value)}
-                  placeholder="Motivo de corrección Admin..."
-                  className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-amber-500/60 text-white text-xs focus:outline-none"
-                />
-              </div>
-            )}
+              ) : (
+                filteredParticipants.map((p) => {
+                  const doneCount = results.filter(
+                    (r) =>
+                      r.participantId === p.id &&
+                      r.publicationStatus === 'publicado'
+                  ).length;
+                  const isSelected = p.id === selectedParticipantId;
+
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedParticipantId(p.id);
+                        setStep('track');
+                      }}
+                      className={`w-full p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition cursor-pointer active:scale-[0.99] ${
+                        isSelected
+                          ? 'bg-red-950/40 border-red-500/80 text-white shadow-md'
+                          : 'bg-slate-950/90 border-slate-800/90 text-slate-200 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-12 h-10 rounded-xl bg-slate-900 border border-slate-700 font-mono font-black text-sm text-sky-400 flex items-center justify-center shrink-0">
+                          {p.competitorNumber}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="font-extrabold text-sm text-white truncate flex items-center gap-1.5">
+                            <span className="truncate">{p.fullName}</span>
+                            {p.isDisqualified && (
+                              <span className="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[9px] font-black">
+                                DQ
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase ${
+                                p.teamDivision === 'transmision'
+                                  ? 'bg-cyan-500/20 text-cyan-300'
+                                  : 'bg-amber-500/20 text-amber-300'
+                              }`}
+                            >
+                              {p.teamDivision === 'transmision' ? 'Transmisión' : 'Distribución'}
+                            </span>
+                            <span className="truncate">• {p.companyOrTeam}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={`px-2 py-1 rounded-xl text-xs font-mono font-bold ${
+                            doneCount === tests.length
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              : 'bg-slate-900 text-slate-400 border border-slate-800'
+                          }`}
+                        >
+                          {doneCount}/{tests.length}
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-slate-500" />
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
 
-        {/* 4. STOPWATCH & SCORE INPUTS */}
-        {participationStatus === 'completado' && selectedTest && (
+        {/* ================================================================= */}
+        {/* PASO 2: SELECCIONAR PISTA / PRUEBA                                */}
+        {/* ================================================================= */}
+        {step === 'track' && selectedParticipant && (
           <div className="space-y-3">
-            {/* Digital Time Inputs (Mobile Numpad Ready) */}
-            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
-              <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-sky-400" />
-                  Tiempo (MM : SS . CC)
+            {/* Header with Selected Pilot Info */}
+            <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="px-2 py-1 rounded-xl bg-red-600 text-white font-mono font-black text-xs shrink-0">
+                  {selectedParticipant.competitorNumber}
                 </span>
-                <span className="font-mono">
-                  Límite {(selectedTest.timeLimitMs / 1000).toFixed(0)}s
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2.5">
-                <div>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    value={minutesInput}
-                    onChange={(e) => setMinutesInput(e.target.value)}
-                    placeholder="00"
-                    aria-label="Minutos"
-                    className="w-full py-3 px-2 rounded-xl bg-slate-900 border-2 border-slate-800 focus:border-sky-500 text-white text-center text-2xl font-black font-mono focus:outline-none"
-                  />
-                  <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
-                    Min
-                  </span>
-                </div>
-
-                <div>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    max="59"
-                    value={secondsInput}
-                    onChange={(e) => setSecondsInput(e.target.value)}
-                    placeholder="00"
-                    aria-label="Segundos"
-                    className="w-full py-3 px-2 rounded-xl bg-slate-900 border-2 border-slate-800 focus:border-sky-500 text-white text-center text-2xl font-black font-mono focus:outline-none"
-                  />
-                  <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
-                    Seg
-                  </span>
-                </div>
-
-                <div>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    max="99"
-                    value={centisecondsInput}
-                    onChange={(e) => setCentisecondsInput(e.target.value)}
-                    placeholder="00"
-                    aria-label="Centésimas"
-                    className="w-full py-3 px-2 rounded-xl bg-slate-900 border-2 border-slate-800 focus:border-sky-500 text-sky-300 text-center text-2xl font-black font-mono focus:outline-none"
-                  />
-                  <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
-                    Cent
-                  </span>
-                </div>
-              </div>
-
-              {liveCalculation?.exceedsTimeLimit && (
-                <div className="p-2.5 rounded-xl bg-rose-950/90 border border-rose-600 text-rose-200 text-xs flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-bold flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                    Excede {(selectedTest.timeLimitMs / 1000).toFixed(0)}s
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setParticipationStatus('dnf')}
-                      className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-extrabold text-[11px] cursor-pointer"
-                    >
-                      Pasar a DNF
-                    </button>
-                    {currentUser?.role === 'admin' && (
-                      <input
-                        type="text"
-                        value={adminExceptionReason}
-                        onChange={(e) => setAdminExceptionReason(e.target.value)}
-                        placeholder="Excepción Admin..."
-                        className="w-32 px-2 py-1 rounded-lg bg-slate-950 border border-rose-400 text-white text-[11px]"
-                      />
-                    )}
+                <div className="min-w-0">
+                  <div className="font-extrabold text-sm text-white truncate">
+                    {selectedParticipant.fullName}
+                  </div>
+                  <div className="text-[11px] text-slate-400 truncate">
+                    {selectedParticipant.teamDivision === 'transmision' ? '🗼 Transmisión' : '⚡ Distribución'} • {selectedParticipant.companyOrTeam}
                   </div>
                 </div>
-              )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setStep('pilot')}
+                className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold cursor-pointer shrink-0"
+              >
+                Cambiar
+              </button>
             </div>
 
-            {/* Judge Score (for Habilidades / Destreza) */}
-            {selectedTest.scoringMethod === 'manual' && (
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-extrabold uppercase text-slate-200 flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5 text-sky-400" />
-                    Puntaje Juez (0–{selectedTest.maxBaseScore})
-                  </span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    max={selectedTest.maxBaseScore}
-                    step="0.5"
-                    value={rawScoreInput}
-                    onChange={(e) => setRawScoreInput(e.target.value)}
-                    placeholder="100"
-                    className="w-28 py-2 px-3 rounded-xl bg-slate-900 border-2 border-slate-700 focus:border-sky-500 text-white text-center text-xl font-black font-mono focus:outline-none"
-                  />
+            {/* 3 Big Track Cards */}
+            <div className="space-y-2">
+              {tests.map((test, idx) => {
+                const resForTest = results.find(
+                  (r) =>
+                    r.participantId === selectedParticipant.id &&
+                    r.testId === test.id &&
+                    r.publicationStatus === 'publicado'
+                );
+                const trackForTest =
+                  tracks.find((tr) => test.assignedTrackIds.includes(tr.id)) ||
+                  tracks[idx] ||
+                  tracks[0];
+                const isDQ = resForTest?.participationStatus === 'dq';
+                const isDone = resForTest?.participationStatus === 'completado';
+
+                return (
+                  <button
+                    key={test.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTestId(test.id);
+                      if (trackForTest) setSelectedTrackId(trackForTest.id);
+                      setStep('time');
+                    }}
+                    className="w-full p-4 rounded-2xl bg-slate-950/90 hover:bg-slate-900 border border-slate-800 hover:border-red-500/60 text-left flex items-center justify-between gap-3 transition cursor-pointer active:scale-[0.99]"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-700 flex flex-col items-center justify-center font-black shrink-0">
+                        <span className="text-[9px] uppercase text-slate-400 font-bold">PISTA</span>
+                        <span className="text-base text-white">{idx + 1}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-black text-sm text-white truncate">
+                          {test.name}
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          {test.scoringMethod === 'time_calculated'
+                            ? `Límite ${(test.timeLimitMs / 1000).toFixed(0)}s`
+                            : `Puntaje Juez (Máx ${test.maxContribution} pts)`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      {isDone ? (
+                        <div>
+                          <div className="text-xs font-mono font-black text-emerald-400">
+                            {formatScore(resForTest.contribution)} pts
+                          </div>
+                          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300 font-bold">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Registrado
+                          </span>
+                        </div>
+                      ) : isDQ ? (
+                        <span className="px-2.5 py-1 rounded-xl bg-rose-950 border border-rose-600 text-rose-300 text-xs font-black">
+                          DQ PISTA (0 pts)
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-black flex items-center gap-1 shadow">
+                          Ingresar →
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* PASO 3: INGRESO DE TIEMPO & PUBLICAR                              */}
+        {/* ================================================================= */}
+        {step === 'time' && selectedParticipant && selectedTest && (
+          <div className="space-y-3.5">
+            {/* Header: Pilot + Track Bar */}
+            <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="px-2 py-1 rounded-xl bg-red-600 text-white font-mono font-black text-xs shrink-0">
+                  {selectedParticipant.competitorNumber}
+                </span>
+                <div className="min-w-0">
+                  <div className="font-extrabold text-sm text-white truncate">
+                    {selectedParticipant.fullName}
+                  </div>
+                  <div className="text-[11px] text-red-400 font-bold truncate">
+                    {selectedTest.name}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  {[100, 95, 90, 85, 80].map((val) => (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => setRawScoreInput(String(val))}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold font-mono transition cursor-pointer ${
-                        rawScoreInput === String(val)
-                          ? 'bg-sky-500 text-white'
-                          : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
-                      }`}
-                    >
-                      {val}
-                    </button>
-                  ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setStep('track')}
+                className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold cursor-pointer shrink-0"
+              >
+                Volver a Pistas
+              </button>
+            </div>
+
+            {/* Status Pills: Válido | DNF | DQ Pista */}
+            <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+              <button
+                type="button"
+                onClick={() => setParticipationStatus('completado')}
+                className={`flex-1 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1 transition cursor-pointer ${
+                  participationStatus === 'completado'
+                    ? 'bg-emerald-500 text-slate-950 shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Válido
+              </button>
+              <button
+                type="button"
+                onClick={() => setParticipationStatus('dnf')}
+                className={`flex-1 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1 transition cursor-pointer ${
+                  participationStatus === 'dnf'
+                    ? 'bg-rose-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Ban className="w-3.5 h-3.5" />
+                DNF
+              </button>
+              <button
+                type="button"
+                onClick={() => setParticipationStatus('dq')}
+                className={`flex-1 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1 transition cursor-pointer ${
+                  participationStatus === 'dq'
+                    ? 'bg-rose-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                DQ Pista (0 pts)
+              </button>
+            </div>
+
+            {/* Time / Score Input */}
+            {participationStatus === 'completado' ? (
+              <div className="space-y-3">
+                {/* Large Digital Clock Inputs */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span className="font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-red-500" />
+                      Tiempo de Vuelo
+                    </span>
+                    <span className="font-mono text-slate-400">
+                      Límite {(selectedTest.timeLimitMs / 1000).toFixed(0)}s
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        value={minutesInput}
+                        onChange={(e) => setMinutesInput(e.target.value)}
+                        placeholder="00"
+                        aria-label="Minutos"
+                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-800 focus:border-red-500 text-white text-center text-3xl font-black font-mono focus:outline-none"
+                      />
+                      <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
+                        Min
+                      </span>
+                    </div>
+
+                    <div>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        max="59"
+                        value={secondsInput}
+                        onChange={(e) => setSecondsInput(e.target.value)}
+                        placeholder="00"
+                        aria-label="Segundos"
+                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-800 focus:border-red-500 text-white text-center text-3xl font-black font-mono focus:outline-none"
+                      />
+                      <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
+                        Seg
+                      </span>
+                    </div>
+
+                    <div>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        max="99"
+                        value={centisecondsInput}
+                        onChange={(e) => setCentisecondsInput(e.target.value)}
+                        placeholder="00"
+                        aria-label="Centésimas"
+                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-800 focus:border-red-500 text-red-400 text-center text-3xl font-black font-mono focus:outline-none"
+                      />
+                      <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
+                        Cent
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Score Juez si aplica */}
+                {selectedTest.scoringMethod === 'manual' && (
+                  <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3">
+                    <span className="text-xs font-extrabold uppercase text-slate-200">
+                      Puntaje Juez (0–{selectedTest.maxBaseScore})
+                    </span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      max={selectedTest.maxBaseScore}
+                      step="0.5"
+                      value={rawScoreInput}
+                      onChange={(e) => setRawScoreInput(e.target.value)}
+                      placeholder="100"
+                      className="w-28 py-2 px-3 rounded-xl bg-slate-900 border-2 border-slate-700 focus:border-red-500 text-white text-center text-xl font-black font-mono focus:outline-none"
+                    />
+                  </div>
+                )}
+
+                {/* Compact Collapsible Penalties */}
+                <div className="rounded-2xl bg-slate-950/80 border border-slate-800/80 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowPenalties((v) => !v)}
+                    className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-bold text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <span>Penalizaciones u Observación</span>
+                    {showPenalties ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  {showPenalties && (
+                    <div className="p-3 pt-2 border-t border-slate-800 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        {selectedTest.enableSecondsPenalty && (
+                          <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold text-amber-300">
+                                + Segundos
+                              </span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={secondsPenaltyInput}
+                                onChange={(e) => setSecondsPenaltyInput(e.target.value)}
+                                className="w-12 px-1 py-0.5 rounded bg-slate-950 border border-slate-700 text-white text-right font-mono text-xs"
+                              />
+                            </div>
+                            <div className="flex gap-1">
+                              {[0, 2, 5].map((s) => (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  onClick={() => setSecondsPenaltyInput(String(s))}
+                                  className="flex-1 py-0.5 rounded bg-slate-800 text-[10px] text-amber-300 font-bold"
+                                >
+                                  {s === 0 ? '0s' : `+${s}s`}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold text-rose-300">
+                              - Puntos
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={pointsPenaltyInput}
+                              onChange={(e) => setPointsPenaltyInput(e.target.value)}
+                              className="w-12 px-1 py-0.5 rounded bg-slate-950 border border-slate-700 text-white text-right font-mono text-xs"
+                            />
+                          </div>
+                          <div className="flex gap-1">
+                            {[0, 2, 5].map((p) => (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() => setPointsPenaltyInput(String(p))}
+                                className="flex-1 py-0.5 rounded bg-slate-800 text-[10px] text-rose-300 font-bold"
+                              >
+                                {p === 0 ? '0p' : `-${p}p`}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <input
+                        type="text"
+                        value={observation}
+                        onChange={(e) => setObservation(e.target.value)}
+                        placeholder="Observación opcional..."
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="p-5 rounded-2xl bg-rose-950/40 border border-rose-500/50 text-center space-y-1">
+                <div className="text-rose-200 font-black text-sm">
+                  {participationStatus === 'dq'
+                    ? 'Descalificación en esta pista (0,00 pts)'
+                    : 'Prueba no completada (DNF - 0,00 pts)'}
+                </div>
+                <div className="text-[11px] text-rose-300/80">
+                  El piloto conserva sus puntos en las demás pistas y continúa en el ranking.
                 </div>
               </div>
             )}
 
-            {/* Compact Collapsible Penalties */}
-            <div className="rounded-2xl bg-slate-950/80 border border-slate-800/80 overflow-hidden">
+            {/* Big Action Buttons */}
+            <div className="space-y-2 pt-1">
               <button
                 type="button"
-                onClick={() => setShowPenalties((v) => !v)}
-                className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-bold text-slate-400 hover:text-white cursor-pointer"
+                disabled={
+                  isSubmitting ||
+                  isStaffBlockedFromOverwriting ||
+                  Boolean(liveCalculation && liveCalculation.validationErrors.length > 0)
+                }
+                onClick={async () => {
+                  await executeSubmit('publicado');
+                  // Quick step to next track or prompt
+                  setStep('track');
+                }}
+                className="w-full py-4 px-5 rounded-2xl bg-red-600 hover:bg-red-500 active:scale-[0.99] disabled:opacity-40 text-white font-black text-base flex items-center justify-between gap-2 shadow-lg shadow-red-600/30 transition cursor-pointer"
               >
                 <span className="flex items-center gap-2">
-                  <span>Penalización / Observación</span>
-                  {hasActivePenalties && (
-                    <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px]">
-                      Activa
-                    </span>
-                  )}
+                  <Send className="w-5 h-5" />
+                  <span>{isSubmitting ? 'Guardando...' : 'Publicar Tiempo'}</span>
                 </span>
-                {showPenalties ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
+                {liveCalculation && participationStatus === 'completado' && (
+                  <span className="px-3 py-1 rounded-xl bg-black/40 font-mono text-sm font-black text-amber-300">
+                    {formatScore(liveCalculation.contribution)} pts
+                  </span>
                 )}
               </button>
 
-              {showPenalties && (
-                <div className="p-3 pt-2 border-t border-slate-800 space-y-2.5">
-                  <div className="grid grid-cols-2 gap-2">
-                    {selectedTest.enableSecondsPenalty && (
-                      <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold uppercase text-amber-300">
-                            + Segundos
-                          </span>
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            min="0"
-                            value={secondsPenaltyInput}
-                            onChange={(e) => setSecondsPenaltyInput(e.target.value)}
-                            className="w-14 px-1.5 py-0.5 rounded bg-slate-950 border border-slate-700 text-white text-right font-mono text-xs font-bold"
-                          />
-                        </div>
-                        <div className="flex gap-1">
-                          {[0, 2, 5].map((s) => (
-                            <button
-                              key={s}
-                              type="button"
-                              onClick={() =>
-                                setSecondsPenaltyInput(
-                                  s === 0
-                                    ? '0'
-                                    : String(
-                                        (Number(secondsPenaltyInput) || 0) + s
-                                      )
-                                )
-                              }
-                              className="flex-1 py-0.5 rounded bg-slate-800 text-[10px] font-bold text-amber-300 cursor-pointer"
-                            >
-                              {s === 0 ? '0s' : `+${s}s`}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-bold uppercase text-rose-300">
-                          - Puntos
-                        </span>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          value={pointsPenaltyInput}
-                          onChange={(e) => setPointsPenaltyInput(e.target.value)}
-                          className="w-14 px-1.5 py-0.5 rounded bg-slate-950 border border-slate-700 text-white text-right font-mono text-xs font-bold"
-                        />
-                      </div>
-                      <div className="flex gap-1">
-                        {[0, 2, 5].map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            onClick={() =>
-                              setPointsPenaltyInput(
-                                p === 0
-                                  ? '0'
-                                  : String((Number(pointsPenaltyInput) || 0) + p)
-                              )
-                            }
-                            className="flex-1 py-0.5 rounded bg-slate-800 text-[10px] font-bold text-rose-300 cursor-pointer"
-                          >
-                            {p === 0 ? '0p' : `-${p}p`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <input
-                    type="text"
-                    value={observation}
-                    onChange={(e) => setObservation(e.target.value)}
-                    placeholder="Observación opcional..."
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none"
-                  />
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStep('track')}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-300 font-bold text-xs cursor-pointer"
+                >
+                  Volver a Pistas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep('pilot')}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-300 font-bold text-xs cursor-pointer"
+                >
+                  Nuevo Piloto
+                </button>
+              </div>
             </div>
           </div>
         )}
-
-        {/* 5. 1-TAP PUBLISH ACTION BAR */}
-        <div className="flex items-center gap-2 pt-1">
-          <button
-            type="button"
-            onClick={handlePersistLocalDraft}
-            title="Guardar borrador"
-            className="p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-          >
-            <Save className="w-4 h-4 text-sky-400" />
-          </button>
-
-          <button
-            type="button"
-            disabled={
-              isSubmitting ||
-              isStaffBlockedFromOverwriting ||
-              Boolean(liveCalculation && liveCalculation.validationErrors.length > 0)
-            }
-            onClick={() => executeSubmit('publicado')}
-            className="flex-1 py-3.5 px-5 rounded-2xl bg-sky-500 hover:bg-sky-400 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm sm:text-base flex items-center justify-between gap-2 shadow-lg shadow-sky-500/25 transition cursor-pointer"
-          >
-            <span className="flex items-center gap-2">
-              <Send className="w-4 h-4" />
-              <span>{isSubmitting ? 'Publicando...' : 'Publicar Tiempo'}</span>
-            </span>
-
-            {liveCalculation && (
-              <span className="px-2.5 py-1 rounded-xl bg-black/35 font-mono text-xs sm:text-sm font-black flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 text-amber-300" />
-                {participationStatus === 'completado'
-                  ? `${formatScore(liveCalculation.contribution)} pts`
-                  : `${participationStatus.toUpperCase()} (0 pts)`}
-              </span>
-            )}
-          </button>
-        </div>
       </div>
     </div>
   );

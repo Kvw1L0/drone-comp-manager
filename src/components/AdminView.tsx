@@ -774,7 +774,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                 <h2 className="text-lg font-extrabold text-white">
                   Configuración del Evento Activo
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="hidden text-xs text-slate-400">
                   Identidad visual, estado operativo, requisitos de acreditación y reglas de
                   desempate.
                 </p>
@@ -1033,7 +1033,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                 <h2 className="text-lg font-extrabold text-white">
                   Modalidades de Evaluación (Pruebas)
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="hidden text-xs text-slate-400">
                   Configuración inicial editable (Velocidad 33,33 + Habilidades 33,33 + Destreza
                   33,34 = 100,00). Los descuentos se aplican sobre puntos base antes de ponderar.
                 </p>
@@ -1383,7 +1383,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                 <h2 className="text-lg font-extrabold text-white">
                   Lugares Físicos (Pistas Simultáneas)
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="hidden text-xs text-slate-400">
                   Una pista es un lugar físico y una prueba es una modalidad de evaluación. Puede
                   asignar una prueba a una o varias pistas libremente.
                 </p>
@@ -1553,7 +1553,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                   <Upload className="w-5 h-5 text-sky-400" />
                   Importar Nómina de Participantes desde CSV
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="hidden text-xs text-slate-400">
                   Detecta registros duplicados exactos sin rechazar homónimos que compartan nombre
                   pero tengan distinta empresa o número de competidor.
                 </p>
@@ -2003,11 +2003,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
               <div>
                 <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
                   <Award className="w-5 h-5 text-amber-400" />
-                  Ranking General de Competidores ({rankingData.rows.length} pilotos)
+                  Ranking Oficial ({rankingData.rows.length} pilotos)
                 </h2>
-                <p className="text-xs text-slate-400">
-                  Alterne entre la vista <strong>Detallada</strong> (desglose por cada pista) y la vista en <strong>Resumen</strong> (solo posición, nombre y puntos / tiempo total). Este cambio también se aplica en vivo a la Pantalla Pública 16:9.
-                </p>
               </div>
 
               <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-700 shrink-0">
@@ -2466,9 +2463,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
           {/* Persistent Ties Resolution Section */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
             <h2 className="text-lg font-extrabold text-white">
-              Resolución de Empates Persistentes
+              Resolución de Empates
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="hidden text-xs text-slate-400">
               Si dos o más pilotos empatan en puntaje total, Habilidades, Destreza y tiempo efectivo
               en Velocidad, el sistema muestra la misma posición y marca &ldquo;Desempate
               pendiente&rdquo; hasta que el Administrador registre una decisión fundada.
@@ -2897,7 +2894,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
             <h2 className="text-lg font-extrabold text-white">
               Historial de Auditoría y Trazabilidad Completa
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="hidden text-xs text-slate-400">
               Registro inmutable de quién publicó, modificó o anuló cada resultado o regla, con
               fecha, rol, motivo y valores anteriores.
             </p>
