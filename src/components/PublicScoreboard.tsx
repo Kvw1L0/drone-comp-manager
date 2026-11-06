@@ -10,13 +10,10 @@ import {
   ChevronRight,
   Maximize2,
   ArrowLeft,
-  LayoutList,
-  Table2,
   Timer,
 } from 'lucide-react';
 import { useCompetition } from '../context/CompetitionContext';
 import {
-  compareFloats,
   computeEventRanking,
   formatMsToTime,
   formatScore,
@@ -42,11 +39,8 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
     publicResults,
     isOnline,
     lastSyncTimestamp,
-    setEventRankingViewMode,
-    setEventRankingTeamFilter,
   } = useCompetition();
 
-  const [viewFilter, setViewFilter] = useState<'general' | string>('general');
   const [autoPage, setAutoPage] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(0);
 
@@ -73,12 +67,8 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
     return isOnline ? computed : cachedRankingRef.current;
   }, [activeEvent, tests, publicParticipants, publicResults, isOnline]);
 
-  // Helper to get total effective time across completed tests (or for selected test filter)
+  // Helper to get total effective time across completed tests
   const getRowEffectiveTimeSummary = (row: RankingRow): number | null => {
-    if (viewFilter !== 'general') {
-      const cell = row.testCells[viewFilter];
-      return cell && cell.status === 'completado' ? cell.effectiveTimeMs : null;
-    }
     let sumMs = 0;
     let hasAnyTime = false;
     for (const t of tests) {
@@ -91,52 +81,10 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
     return hasAnyTime ? sumMs : null;
   };
 
-  // Sort rows either by General Ranking or by a specific Test
+  // Rows filtered and ranked strictly by Admin configuration
   const displayedRows: RankingRow[] = useMemo(() => {
-    const baseRows = filterAndRankByDivision(liveRanking.rows, teamFilter);
-    if (viewFilter === 'general') {
-      return baseRows;
-    }
-
-    const targetTest = tests.find((t) => t.id === viewFilter);
-    if (!targetTest) return baseRows;
-
-    const eligible = baseRows.filter((r) => !r.isDisqualified);
-    const dq = baseRows.filter((r) => r.isDisqualified);
-
-    const sortedEligible = [...eligible].sort((a, b) => {
-      const cellA = a.testCells[targetTest.id];
-      const cellB = b.testCells[targetTest.id];
-      const completedA = cellA?.status === 'completado';
-      const completedB = cellB?.status === 'completado';
-
-      if (completedA && !completedB) return -1;
-      if (!completedA && completedB) return 1;
-
-      const contribA = cellA?.contribution ?? 0;
-      const contribB = cellB?.contribution ?? 0;
-      const cmp = compareFloats(contribB, contribA);
-      if (cmp !== 0) return cmp;
-
-      if (
-        completedA &&
-        completedB &&
-        cellA.effectiveTimeMs !== null &&
-        cellB.effectiveTimeMs !== null
-      ) {
-        return cellA.effectiveTimeMs - cellB.effectiveTimeMs;
-      }
-      return 0;
-    });
-
-    return [
-      ...sortedEligible.map((r, idx) => ({
-        ...r,
-        position: idx + 1,
-      })),
-      ...dq,
-    ];
-  }, [liveRanking.rows, viewFilter, tests, teamFilter]);
+    return filterAndRankByDivision(liveRanking.rows, teamFilter);
+  }, [liveRanking.rows, teamFilter]);
 
   const totalPages = Math.max(1, Math.ceil(displayedRows.length / rowsPerPage));
 
@@ -215,29 +163,51 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       {/* Top Broadcast Header */}
       <div className="space-y-4">
         <header
-          className="rounded-2xl p-4 sm:p-5 border border-white/15 shadow-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4"
+          className="rounded-2xl p-4 sm:p-5 border border-white/15 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4"
           style={{
             background: `linear-gradient(90deg, #090d16 0%, ${
               activeEvent.primaryColor || '#e60012'
             }44 100%)`,
           }}
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg shrink-0 border border-white/20"
               style={{ backgroundColor: activeEvent.primaryColor || '#e60012' }}
             >
               <BrandLogo className="w-12 h-12" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                {liveRanking.isRankingProvisional ? (
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider">
-                    EN VIVO
+                <span className="px-2.5 py-0.5 rounded-full bg-red-600/30 border border-red-500/50 text-red-300 font-extrabold text-xs tracking-wider">
+                  RANKING OFICIAL
+                </span>
+
+                {/* Broadcast Indicators for Team Division (Configured by Admin) */}
+                {teamFilter === 'distribucion' && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400 text-amber-300 font-black text-xs flex items-center gap-1">
+                    ⚡ DIVISIÓN DISTRIBUCIÓN
+                  </span>
+                )}
+                {teamFilter === 'transmision' && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-black text-xs flex items-center gap-1">
+                    🗼 DIVISIÓN TRANSMISIÓN
+                  </span>
+                )}
+                {teamFilter === 'todos' && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-600 text-slate-300 font-bold text-xs">
+                    🏆 CLASIFICACIÓN GENERAL
+                  </span>
+                )}
+
+                {/* View Mode Indicator (Configured by Admin) */}
+                {rankingViewMode === 'resumen' ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-sky-950 border border-sky-400/40 text-sky-300 font-bold text-xs">
+                    VISTA RESUMEN
                   </span>
                 ) : (
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider">
-                    FINAL
+                  <span className="px-2.5 py-0.5 rounded-full bg-sky-950 border border-sky-400/40 text-sky-300 font-bold text-xs">
+                    VISTA DETALLADA
                   </span>
                 )}
 
@@ -248,107 +218,14 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                   </span>
                 )}
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white truncate">
                 {activeEvent.name}
               </h1>
             </div>
           </div>
 
-          {/* Right Controls: Detailed/Summary Switcher + Filter + Connection Status */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Team Division Filter (Todos / Distribución / Transmisión) */}
-            <div className="flex items-center gap-1 bg-slate-900/95 p-1.5 rounded-xl border border-slate-700">
-              <button
-                type="button"
-                onClick={() => setEventRankingTeamFilter('todos')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                  teamFilter === 'todos'
-                    ? 'bg-red-600 text-white shadow'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                Todos
-              </button>
-              <button
-                type="button"
-                onClick={() => setEventRankingTeamFilter('distribucion')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                  teamFilter === 'distribucion'
-                    ? 'bg-amber-400 text-slate-950 shadow'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                ⚡ Distribución
-              </button>
-              <button
-                type="button"
-                onClick={() => setEventRankingTeamFilter('transmision')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                  teamFilter === 'transmision'
-                    ? 'bg-cyan-400 text-slate-950 shadow'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                🗼 Transmisión
-              </button>
-            </div>
-            {/* Ranking View Mode Toggle (Detallado vs Resumen) */}
-            <div className="flex items-center gap-1 bg-slate-900/95 p-1.5 rounded-xl border border-slate-700">
-              <button
-                type="button"
-                onClick={() => setEventRankingViewMode('detallado')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
-                  rankingViewMode === 'detallado'
-                    ? 'bg-sky-500 text-white shadow'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <Table2 className="w-3.5 h-3.5" />
-                Detallado
-              </button>
-              <button
-                type="button"
-                onClick={() => setEventRankingViewMode('resumen')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
-                  rankingViewMode === 'resumen'
-                    ? 'bg-sky-500 text-white shadow'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <LayoutList className="w-3.5 h-3.5" />
-                Resumen
-              </button>
-            </div>
-
-            {/* View Filter: General or By Test */}
-            <div className="flex flex-wrap items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-xl border border-slate-700">
-              <button
-                type="button"
-                onClick={() => setViewFilter('general')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                  viewFilter === 'general'
-                    ? 'bg-amber-400 text-slate-950'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                General
-              </button>
-              {tests.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setViewFilter(t.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                    viewFilter === t.id
-                      ? 'bg-sky-400 text-slate-950'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  {t.name}
-                </button>
-              ))}
-            </div>
-
+          {/* Right Status Badges & Display Controls (NO Visualization Buttons) */}
+          <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
             {/* Connection & Sync Badge */}
             {isOnline ? (
               <div className="px-3.5 py-2 rounded-xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs font-extrabold flex items-center gap-2">
@@ -376,7 +253,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
               type="button"
               onClick={handleToggleFullscreen}
               title="Pantalla Completa 16:9"
-              className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 cursor-pointer"
+              className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 cursor-pointer transition hover:text-white"
             >
               <Maximize2 className="w-4 h-4" />
             </button>
@@ -385,7 +262,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
               <button
                 type="button"
                 onClick={onExitPublicView}
-                className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1 cursor-pointer transition hover:text-white"
               >
                 <ArrowLeft className="w-3.5 h-3.5" /> Salir
               </button>
@@ -434,9 +311,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
 
                   <div className="text-right shrink-0">
                     <div className="text-2xl sm:text-3xl font-black text-white font-mono leading-none">
-                      {viewFilter === 'general'
-                        ? formatScore(podium.totalContribution)
-                        : formatScore(podium.testCells[viewFilter]?.contribution)}{' '}
+                      {formatScore(podium.totalContribution)}{' '}
                       <span className="text-xs font-extrabold text-amber-300">PTS</span>
                     </div>
                     <div className="text-xs sm:text-sm font-mono font-bold text-sky-300 mt-1 flex items-center justify-end gap-1">
@@ -515,10 +390,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                 <tbody className="divide-y divide-slate-800/80">
                   {paginatedRows.map((row) => {
                     const totalTimeMs = getRowEffectiveTimeSummary(row);
-                    const displayPoints =
-                      viewFilter === 'general'
-                        ? row.totalContribution
-                        : row.testCells[viewFilter]?.contribution ?? 0;
+                    const displayPoints = row.totalContribution;
 
                     return (
                       <tr

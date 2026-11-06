@@ -17,6 +17,8 @@ import {
   RefreshCw,
   Edit3,
   Trash2,
+  ExternalLink,
+
 } from 'lucide-react';
 import { useCompetition } from '../context/CompetitionContext';
 import {
@@ -1997,75 +1999,96 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
       {/* ===================================================================== */}
       {activeTab === 'resultados_empates' && (
         <div className="space-y-6">
-          {/* Live Competitor Ranking Table (Detailed vs Summary Mode) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Controles de Visualización del Ranking (Para Pantalla Pública y Proyección) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
               <div>
                 <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
                   <Award className="w-5 h-5 text-amber-400" />
                   Ranking Oficial ({rankingData.rows.length} pilotos)
                 </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Configura cómo se proyecta el ranking en la pantalla pública. La pantalla pública se actualiza en vivo sin botones visibles.
+                </p>
               </div>
 
-              <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-700 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setEventRankingViewMode('detallado')}
-                  className={`px-3.5 py-2 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                    (activeEvent.rankingViewMode || 'detallado') === 'detallado'
-                      ? 'bg-sky-500 text-white shadow'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  Vista Detallada
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEventRankingViewMode('resumen')}
-                  className={`px-3.5 py-2 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                    activeEvent.rankingViewMode === 'resumen'
-                      ? 'bg-sky-500 text-white shadow'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  Vista en Resumen
-                </button>
-              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Selector de Modo de Visualización */}
+                <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-700">
+                  <span className="text-[11px] font-bold text-slate-400 px-2 uppercase">Modo:</span>
+                  <button
+                    type="button"
+                    onClick={() => setEventRankingViewMode('detallado')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                      (activeEvent.rankingViewMode || 'detallado') === 'detallado'
+                        ? 'bg-sky-500 text-white shadow'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    Vista Detallada
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEventRankingViewMode('resumen')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                      activeEvent.rankingViewMode === 'resumen'
+                        ? 'bg-sky-500 text-white shadow'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    Vista Resumen
+                  </button>
+                </div>
 
-              <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-700 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setEventRankingTeamFilter('todos')}
-                  className={`px-3 py-2 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                    (activeEvent.rankingTeamFilter || 'todos') === 'todos'
-                      ? 'bg-red-600 text-white shadow'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
+                {/* Selector de División de Equipo */}
+                <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-700">
+                  <span className="text-[11px] font-bold text-slate-400 px-2 uppercase">Filtro:</span>
+                  <button
+                    type="button"
+                    onClick={() => setEventRankingTeamFilter('todos')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                      (activeEvent.rankingTeamFilter || 'todos') === 'todos'
+                        ? 'bg-red-600 text-white shadow'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    🏆 Todos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEventRankingTeamFilter('distribucion')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                      activeEvent.rankingTeamFilter === 'distribucion'
+                        ? 'bg-amber-400 text-slate-950 shadow'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    ⚡ Distribución
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEventRankingTeamFilter('transmision')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                      activeEvent.rankingTeamFilter === 'transmision'
+                        ? 'bg-cyan-400 text-slate-950 shadow'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    🗼 Transmisión
+                  </button>
+                </div>
+
+                {/* Acceso Directo a Pantalla Pública */}
+                <a
+                  href="/?pantalla=publica"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow"
+                  title="Abrir la Pantalla Pública en una pestaña nueva"
                 >
-                  🏆 Todos
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEventRankingTeamFilter('distribucion')}
-                  className={`px-3 py-2 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                    activeEvent.rankingTeamFilter === 'distribucion'
-                      ? 'bg-amber-400 text-slate-950 shadow'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  ⚡ Distribución
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEventRankingTeamFilter('transmision')}
-                  className={`px-3 py-2 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                    activeEvent.rankingTeamFilter === 'transmision'
-                      ? 'bg-cyan-400 text-slate-950 shadow'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  🗼 Transmisión
-                </button>
+                  <ExternalLink className="w-4 h-4 text-sky-400" />
+                  Ver Pantalla Pública
+                </a>
               </div>
             </div>
 
