@@ -406,15 +406,37 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
 
+    // Adaptive polling: 3s when screen is visible/focused, 12s when screen is off/hidden
+    let timerId: number | null = null;
+
+    const scheduleNextPull = () => {
+      if (isCancelled) return;
+      const delay = document.hidden ? 12000 : 3000;
+      timerId = window.setTimeout(async () => {
+        await pullRemoteState();
+        scheduleNextPull();
+      }, delay);
+    };
+
+    const handleVisibilityOrFocus = () => {
+      if (!document.hidden && !isCancelled) {
+        if (timerId) window.clearTimeout(timerId);
+        pullRemoteState();
+        scheduleNextPull();
+      }
+    };
+
     pullRemoteState();
-    const interval = window.setInterval(pullRemoteState, 2500);
-    const onFocus = () => pullRemoteState();
-    window.addEventListener('focus', onFocus);
+    scheduleNextPull();
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
 
     return () => {
       isCancelled = true;
-      window.clearInterval(interval);
-      window.removeEventListener('focus', onFocus);
+      if (timerId) window.clearTimeout(timerId);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
     };
   }, [isOnline, isDemoMode]);
 

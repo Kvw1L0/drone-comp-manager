@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search,
   CheckCircle2,
@@ -13,6 +13,11 @@ import {
   ChevronUp,
   ChevronRight,
   Ban,
+  Pin,
+  Play,
+  Square,
+  RotateCcw,
+  Timer as TimerIcon,
 } from 'lucide-react';
 import {
   ConcurrencyConflictError,
@@ -25,6 +30,7 @@ import {
 } from '../types/domain';
 import {
   calculateResultMetrics,
+  formatMsToTime,
   formatScore,
   getBestEffectiveTimeMs,
   normalizeSearchText,
@@ -60,6 +66,144 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     isOnline,
     saveOrPublishResult,
   } = useCompetition();
+
+  // Pinned Track ("Fijar mi Pista") - skips step 2 for dedicated track staff
+  const [pinnedTrackId, setPinnedTrackId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('drone_comp_pinned_track') || null;
+    } catch {
+      return null;
+    }
+  });
+
+  const handleTogglePinTrack = (trackId: string | null) => {
+    setPinnedTrackId(trackId);
+    try {
+      if (trackId) {
+        localStorage.setItem('drone_comp_pinned_track', trackId);
+      } else {
+        localStorage.removeItem('drone_comp_pinned_track');
+      }
+    } catch {}
+  };
+
+  // References for Auto-advance between Min, Seg and Cent
+  const minutesRef = useRef<HTMLInputElement>(null);
+  const secondsRef = useRef<HTMLInputElement>(null);
+  const centisecondsRef = useRef<HTMLInputElement>(null);
+
+  // Integrated Touch Stopwatch
+  const [stopwatchRunning, setStopwatchRunning] = useState<boolean>(false);
+  const [stopwatchElapsedMs, setStopwatchElapsedMs] = useState<number>(0);
+  const stopwatchStartRef = useRef<number>(0);
+  const stopwatchIntervalRef = useRef<number | null>(null);
+
+  const handleStartStopwatch = () => {
+    stopwatchStartRef.current = Date.now() - stopwatchElapsedMs;
+    setStopwatchRunning(true);
+  };
+
+  const handleStopStopwatch = () => {
+    setStopwatchRunning(false);
+    if (stopwatchIntervalRef.current) {
+      window.clearInterval(stopwatchIntervalRef.current);
+      stopwatchIntervalRef.current = null;
+    }
+    const finalElapsed = Date.now() - stopwatchStartRef.current;
+    setStopwatchElapsedMs(finalElapsed);
+    const split = splitMsToTimeInputs(finalElapsed);
+    setMinutesInput(split.minutes);
+    setSecondsInput(split.seconds);
+    setCentisecondsInput(split.centiseconds);
+  };
+
+  const handleResetStopwatch = () => {
+    setStopwatchRunning(false);
+    if (stopwatchIntervalRef.current) {
+      window.clearInterval(stopwatchIntervalRef.current);
+      stopwatchIntervalRef.current = null;
+    }
+    setStopwatchElapsedMs(0);
+  };
+
+  useEffect(() => {
+    if (stopwatchRunning) {
+      stopwatchIntervalRef.current = window.setInterval(() => {
+        setStopwatchElapsedMs(Date.now() - stopwatchStartRef.current);
+      }, 35);
+    } else if (stopwatchIntervalRef.current) {
+      window.clearInterval(stopwatchIntervalRef.current);
+      stopwatchIntervalRef.current = null;
+    }
+    return () => {
+      if (stopwatchIntervalRef.current) {
+        window.clearInterval(stopwatchIntervalRef.current);
+      }
+    };
+  }, [stopwatchRunning]);
+
+  const handleSelectPilot = (pilotId: string) => {
+    setSelectedParticipantId(pilotId);
+    if (pinnedTrackId) {
+      const matchTest = tests.find((t) => t.assignedTrackIds.includes(pinnedTrackId)) || tests[0];
+      if (matchTest) setSelectedTestId(matchTest.id);
+      setSelectedTrackId(pinnedTrackId);
+      setStep('time');
+    } else {
+      setStep('track');
+    }
+  };
+
+  const handleMinutesChange = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 2);
+    setMinutesInput(digits);
+    if (digits.length === 2) {
+      secondsRef.current?.focus();
+      secondsRef.current?.select();
+    }
+  };
+
+  const handleSecondsChange = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 2);
+    setSecondsInput(digits);
+    if (digits.length === 2) {
+      centisecondsRef.current?.focus();
+      centisecondsRef.current?.select();
+    }
+  };
+
+  const handleCentisecondsChange = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 2);
+    setCentisecondsInput(digits);
+  };
+
+  const handleMinutesKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      secondsRef.current?.focus();
+      secondsRef.current?.select();
+    }
+  };
+
+  const handleSecondsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !secondsInput) {
+      e.preventDefault();
+      minutesRef.current?.focus();
+      minutesRef.current?.select();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      centisecondsRef.current?.focus();
+      centisecondsRef.current?.select();
+    }
+  };
+
+  const handleCentisecondsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !centisecondsInput) {
+      e.preventDefault();
+      secondsRef.current?.focus();
+      secondsRef.current?.select();
+    }
+  };
 
   const [step, setStep] = useState<WizardStep>(
     initialParticipantId && initialTestId ? 'time' : 'pilot'
@@ -575,6 +719,45 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
         {/* ================================================================= */}
         {step === 'pilot' && (
           <div className="space-y-3">
+            {/* Fijar Mi Pista Toggle */}
+            <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-950 border border-slate-800">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Pin className={`w-3.5 h-3.5 shrink-0 ${pinnedTrackId ? 'text-amber-400 fill-amber-400' : 'text-slate-500'}`} />
+                <span className="text-[11px] font-bold text-slate-300 truncate">
+                  {pinnedTrackId
+                    ? `Fijada: ${tracks.find((t) => t.id === pinnedTrackId)?.name || 'Pista'}`
+                    : 'Pista libre (Elige en cada vuelo)'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleTogglePinTrack(null)}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                    !pinnedTrackId
+                      ? 'bg-slate-800 text-white'
+                      : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  Todas
+                </button>
+                {tracks.slice(0, 3).map((tr, idx) => (
+                  <button
+                    key={tr.id}
+                    type="button"
+                    onClick={() => handleTogglePinTrack(pinnedTrackId === tr.id ? null : tr.id)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                      pinnedTrackId === tr.id
+                        ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    P{idx + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Quick Search */}
             <div className="relative">
               <Search className="w-4 h-4 text-sky-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -653,10 +836,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() => {
-                        setSelectedParticipantId(p.id);
-                        setStep('track');
-                      }}
+                      onClick={() => handleSelectPilot(p.id)}
                       className={`w-full p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition cursor-pointer active:scale-[0.99] ${
                         isSelected
                           ? 'bg-red-950/40 border-red-500/80 text-white shadow-md'
@@ -883,12 +1063,61 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
             {/* Time / Score Input */}
             {participationStatus === 'completado' ? (
               <div className="space-y-3">
-                {/* Large Digital Clock Inputs */}
+                {/* Touch Stopwatch & Large Digital Inputs */}
+                {/* 1. Touch Stopwatch Widget */}
+                <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                      <TimerIcon className="w-3.5 h-3.5 text-red-500" />
+                      Cronómetro Táctil Integrado
+                    </span>
+                    {stopwatchElapsedMs > 0 && (
+                      <span className="font-mono text-emerald-400 font-bold">
+                        {formatMsToTime(stopwatchElapsedMs)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {!stopwatchRunning ? (
+                      <button
+                        type="button"
+                        onClick={handleStartStopwatch}
+                        className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition cursor-pointer"
+                      >
+                        <Play className="w-4 h-4 fill-white" />
+                        <span>{stopwatchElapsedMs > 0 ? 'Reanudar Vuelo' : 'Iniciar Vuelo'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleStopStopwatch}
+                        className="flex-1 py-3.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-98 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-rose-600/50 animate-pulse transition cursor-pointer"
+                      >
+                        <Square className="w-5 h-5 fill-white" />
+                        <span>Detener Vuelo ({formatMsToTime(stopwatchElapsedMs)})</span>
+                      </button>
+                    )}
+
+                    {stopwatchElapsedMs > 0 && !stopwatchRunning && (
+                      <button
+                        type="button"
+                        onClick={handleResetStopwatch}
+                        title="Reiniciar cronómetro"
+                        className="p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Three High-Visibility Fluor/Neon Digital Inputs (Min, Seg, Cent) */}
                 <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
                     <span className="font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-red-500" />
-                      Tiempo de Vuelo
+                      Tiempo Manual (Auto-avance)
                     </span>
                     <span className="font-mono text-slate-400">
                       Límite {(selectedTest.timeLimitMs / 1000).toFixed(0)}s
@@ -898,14 +1127,17 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <input
-                        type="number"
+                        ref={minutesRef}
+                        type="text"
                         inputMode="numeric"
-                        min="0"
+                        pattern="[0-9]*"
+                        maxLength={2}
                         value={minutesInput}
-                        onChange={(e) => setMinutesInput(e.target.value)}
+                        onChange={(e) => handleMinutesChange(e.target.value)}
+                        onKeyDown={handleMinutesKeyDown}
                         placeholder="00"
                         aria-label="Minutos"
-                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-800 focus:border-red-500 text-white text-center text-3xl font-black font-mono focus:outline-none"
+                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-700 text-white text-center text-3xl font-black font-mono focus:outline-none transition-all duration-200 focus:border-[#00ffcc] focus:ring-4 focus:ring-[#00ffcc]/35 focus:shadow-[0_0_25px_rgba(0,255,204,0.6)] focus:scale-[1.03]"
                       />
                       <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
                         Min
@@ -914,15 +1146,17 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
 
                     <div>
                       <input
-                        type="number"
+                        ref={secondsRef}
+                        type="text"
                         inputMode="numeric"
-                        min="0"
-                        max="59"
+                        pattern="[0-9]*"
+                        maxLength={2}
                         value={secondsInput}
-                        onChange={(e) => setSecondsInput(e.target.value)}
+                        onChange={(e) => handleSecondsChange(e.target.value)}
+                        onKeyDown={handleSecondsKeyDown}
                         placeholder="00"
                         aria-label="Segundos"
-                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-800 focus:border-red-500 text-white text-center text-3xl font-black font-mono focus:outline-none"
+                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-700 text-white text-center text-3xl font-black font-mono focus:outline-none transition-all duration-200 focus:border-[#00ffcc] focus:ring-4 focus:ring-[#00ffcc]/35 focus:shadow-[0_0_25px_rgba(0,255,204,0.6)] focus:scale-[1.03]"
                       />
                       <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
                         Seg
@@ -931,15 +1165,17 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
 
                     <div>
                       <input
-                        type="number"
+                        ref={centisecondsRef}
+                        type="text"
                         inputMode="numeric"
-                        min="0"
-                        max="99"
+                        pattern="[0-9]*"
+                        maxLength={2}
                         value={centisecondsInput}
-                        onChange={(e) => setCentisecondsInput(e.target.value)}
+                        onChange={(e) => handleCentisecondsChange(e.target.value)}
+                        onKeyDown={handleCentisecondsKeyDown}
                         placeholder="00"
                         aria-label="Centésimas"
-                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-800 focus:border-red-500 text-red-400 text-center text-3xl font-black font-mono focus:outline-none"
+                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-700 text-red-400 text-center text-3xl font-black font-mono focus:outline-none transition-all duration-200 focus:border-[#00ffcc] focus:ring-4 focus:ring-[#00ffcc]/35 focus:shadow-[0_0_25px_rgba(0,255,204,0.6)] focus:scale-[1.03]"
                       />
                       <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
                         Cent
@@ -1064,6 +1300,24 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                 <div className="text-[11px] text-rose-300/80">
                   El piloto conserva sus puntos en las demás pistas y continúa en el ranking.
                 </div>
+              </div>
+            )}
+
+            {/* Sanity Check Warning */}
+            {participationStatus === 'completado' && parsedTime.ms !== null && parsedTime.ms > 0 && parsedTime.ms < 10000 && (
+              <div className="p-3 rounded-2xl bg-amber-950/80 border border-amber-500/70 text-amber-200 text-xs font-bold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  Tiempo muy bajo ({formatMsToTime(parsedTime.ms)}). Por favor verifica que los minutos y segundos sean correctos antes de publicar.
+                </span>
+              </div>
+            )}
+            {participationStatus === 'completado' && selectedTest.timeLimitMs && parsedTime.ms !== null && parsedTime.ms > selectedTest.timeLimitMs && (
+              <div className="p-3 rounded-2xl bg-amber-950/80 border border-amber-500/70 text-amber-200 text-xs font-bold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  El tiempo ingresado supera el límite de la pista (Límite: {(selectedTest.timeLimitMs / 1000).toFixed(0)}s).
+                </span>
               </div>
             )}
 
