@@ -957,9 +957,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                           {test.name}
                         </div>
                         <div className="text-[11px] text-slate-400 mt-0.5">
-                          {test.scoringMethod === 'time_calculated'
-                            ? `Límite ${(test.timeLimitMs / 1000).toFixed(0)}s`
-                            : `Puntaje Juez (Máx ${test.maxContribution} pts)`}
+                          `Límite ${Math.round(test.timeLimitMs / 60000)} min (${Math.round(test.timeLimitMs / 1000)}s) • Máx ${formatScore(test.maxContribution)} pts`
                         </div>
                       </div>
                     </div>
@@ -1183,26 +1181,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                     </div>
                   </div>
                 </div>
-
-                {/* Score Juez si aplica */}
-                {selectedTest.scoringMethod === 'manual' && (
-                  <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3">
-                    <span className="text-xs font-extrabold uppercase text-slate-200">
-                      Puntaje Juez (0–{selectedTest.maxBaseScore})
-                    </span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      max={selectedTest.maxBaseScore}
-                      step="0.5"
-                      value={rawScoreInput}
-                      onChange={(e) => setRawScoreInput(e.target.value)}
-                      placeholder="100"
-                      className="w-28 py-2 px-3 rounded-xl bg-slate-900 border-2 border-slate-700 focus:border-red-500 text-white text-center text-xl font-black font-mono focus:outline-none"
-                    />
-                  </div>
-                )}
 
                 {/* Compact Collapsible Penalties */}
                 <div className="rounded-2xl bg-slate-950/80 border border-slate-800/80 overflow-hidden">

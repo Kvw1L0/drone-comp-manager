@@ -230,7 +230,7 @@ export const DEMO_TESTS: EvaluationTest[] = [
     id: 'test_habilidades',
     eventId: INITIAL_EVENT_ID,
     name: 'Habilidades y Obstáculos',
-    scoringMethod: 'manual',
+    scoringMethod: 'time_calculated',
     maxBaseScore: 100,
     maxContribution: 33.33,
     timeLimitMs: 300000, // 300 segundos
@@ -245,7 +245,7 @@ export const DEMO_TESTS: EvaluationTest[] = [
     id: 'test_destreza',
     eventId: INITIAL_EVENT_ID,
     name: 'Destreza',
-    scoringMethod: 'manual',
+    scoringMethod: 'time_calculated',
     maxBaseScore: 100,
     maxContribution: 33.34,
     timeLimitMs: 300000, // 300 segundos
@@ -515,12 +515,17 @@ function buildInitialResults(): CompetitionResult[] {
   const disqualifiedIds = new Set(
     DEMO_PARTICIPANTS.filter((p) => p.isDisqualified).map((p) => p.id)
   );
-  const velTest = DEMO_TESTS.find((t) => t.id === 'test_velocidad')!;
-  const velResults = results.filter((r) => r.testId === 'test_velocidad');
-  const otherResults = results.filter((r) => r.testId !== 'test_velocidad');
-  const { updatedResults } = recalculateAllResultsForTest(velTest, velResults, disqualifiedIds);
+  let allUpdated = results;
+  for (const test of DEMO_TESTS) {
+    if (test.scoringMethod === 'time_calculated') {
+      const testResults = allUpdated.filter((r) => r.testId === test.id);
+      const remainingResults = allUpdated.filter((r) => r.testId !== test.id);
+      const { updatedResults } = recalculateAllResultsForTest(test, testResults, disqualifiedIds);
+      allUpdated = [...remainingResults, ...updatedResults];
+    }
+  }
 
-  return [...updatedResults, ...otherResults];
+  return allUpdated;
 }
 
 export const DEMO_RESULTS: CompetitionResult[] = buildInitialResults();

@@ -82,6 +82,34 @@ function getInitialLocalDb(): LocalDatabaseState {
     if (raw) {
       const parsed = JSON.parse(raw) as LocalDatabaseState;
       if (parsed && Array.isArray(parsed.events) && parsed.events.length > 0) {
+        // Auto-migrate all tests to pure time_calculated if any manual remains
+        let hasManual = false;
+        if (Array.isArray(parsed.tests)) {
+          parsed.tests = parsed.tests.map((t) => {
+            if (t.scoringMethod === 'manual') {
+              hasManual = true;
+              return { ...t, scoringMethod: 'time_calculated' };
+            }
+            return t;
+          });
+        }
+        if (hasManual && Array.isArray(parsed.results)) {
+          const disqualifiedIds = new Set(
+            (parsed.participants || []).filter((p) => p.isDisqualified).map((p) => p.id)
+          );
+          let allUpdated = parsed.results;
+          for (const test of parsed.tests) {
+            const testResults = allUpdated.filter((r) => r.testId === test.id);
+            const remainingResults = allUpdated.filter((r) => r.testId !== test.id);
+            const { updatedResults } = recalculateAllResultsForTest(test, testResults, disqualifiedIds);
+            allUpdated = [...remainingResults, ...updatedResults];
+          }
+          parsed.results = allUpdated;
+          parsed.lastUpdatedAt = Date.now();
+          try {
+            localStorage.setItem(LOCAL_DB_STORAGE_KEY, JSON.stringify(parsed));
+          } catch {}
+        }
         return parsed;
       }
     }
@@ -1454,7 +1482,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
             id: `${newEventId}_test_habilidades`,
             eventId: newEventId,
             name: 'Habilidades y Obstáculos',
-            scoringMethod: 'manual',
+            scoringMethod: 'time_calculated',
             maxBaseScore: 100,
             maxContribution: 33.33,
             timeLimitMs: 300000,
@@ -1469,7 +1497,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
             id: `${newEventId}_test_destreza`,
             eventId: newEventId,
             name: 'Destreza',
-            scoringMethod: 'manual',
+            scoringMethod: 'time_calculated',
             maxBaseScore: 100,
             maxContribution: 33.34,
             timeLimitMs: 300000,

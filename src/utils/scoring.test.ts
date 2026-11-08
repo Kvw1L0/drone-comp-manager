@@ -93,8 +93,9 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
   });
 
   it('4. Puntajes manuales (Método A): descuentos sobre puntos base antes de ponderar y validación de máximo', () => {
+    const manualTest: EvaluationTest = { ...testHabilidades, scoringMethod: 'manual' };
     const res = calculateResultMetrics({
-      test: testHabilidades,
+      test: manualTest,
       participationStatus: 'completado',
       rawScore: 90,
       pointsPenalty: 15,
@@ -106,7 +107,7 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
     expect(res.contribution).toBeCloseTo((75 / 100) * 33.33, 6);
 
     const overMax = calculateResultMetrics({
-      test: testHabilidades,
+      test: manualTest,
       participationStatus: 'completado',
       rawScore: 105,
       pointsPenalty: 0,
@@ -267,20 +268,20 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
 
     const results: CompetitionResult[] = [
       makeRes('P1', 'test_velocidad', 33.33, 60000),
-      makeRes('P1', 'test_habilidades', 30.0),
-      makeRes('P1', 'test_destreza', 20.0),
+      makeRes('P1', 'test_habilidades', 33.33, 60000),
+      makeRes('P1', 'test_destreza', 33.34, 70000),
 
       makeRes('P2', 'test_velocidad', 33.33, 60000),
-      makeRes('P2', 'test_habilidades', 30.0),
-      makeRes('P2', 'test_destreza', 20.0),
+      makeRes('P2', 'test_habilidades', 33.33, 60000),
+      makeRes('P2', 'test_destreza', 33.34, 70000),
 
       makeRes('P3', 'test_velocidad', 33.33, 60000),
-      makeRes('P3', 'test_habilidades', 25.0),
-      makeRes('P3', 'test_destreza', 25.0),
+      makeRes('P3', 'test_habilidades', 25.0, 80000),
+      makeRes('P3', 'test_destreza', 25.0, 90000),
 
       makeRes('P4', 'test_velocidad', 33.33, 50000),
-      makeRes('P4', 'test_habilidades', 33.33),
-      makeRes('P4', 'test_destreza', 33.34),
+      makeRes('P4', 'test_habilidades', 33.33, 50000),
+      makeRes('P4', 'test_destreza', 33.34, 50000),
     ];
 
     const ranking = computeEventRanking({

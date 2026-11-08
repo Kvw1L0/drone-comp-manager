@@ -216,7 +216,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
     try {
       await saveTestConfig({
         test: editingTest,
-        extraordinaryReason: testExtraReason.trim() || undefined,
+        extraordinaryReason: testExtraReason.trim() || 'Ajuste administrativo de tiempo límite y reglas',
       });
       setEditingTest(null);
       setTestExtraReason('');
@@ -1285,22 +1285,74 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                       className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-mono"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">
-                      Tiempo Límite (Segundos)
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={Math.round(editingTest.timeLimitMs / 1000)}
-                      onChange={(e) =>
-                        setEditingTest({
-                          ...editingTest,
-                          timeLimitMs: Math.round(Number(e.target.value) * 1000),
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-mono"
-                    />
+                  <div className="sm:col-span-2 p-3.5 rounded-2xl bg-slate-900 border border-slate-700 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-extrabold text-white">
+                        ⏱️ Tiempo Límite de Vuelo (Minutos y Segundos)
+                      </label>
+                      <span className="text-xs font-mono font-black text-amber-300">
+                        {Math.round(editingTest.timeLimitMs / 60000)} min ({Math.round(editingTest.timeLimitMs / 1000)} seg)
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-700">
+                        <span className="text-xs text-slate-400 font-bold">Minutos:</span>
+                        <input
+                          type="number"
+                          min="0.5"
+                          step="0.5"
+                          value={Number((editingTest.timeLimitMs / 60000).toFixed(1))}
+                          onChange={(e) => {
+                            const mins = Math.max(0.1, Number(e.target.value));
+                            setEditingTest({
+                              ...editingTest,
+                              timeLimitMs: Math.round(mins * 60 * 1000),
+                            });
+                          }}
+                          className="w-16 py-1 px-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-center font-mono font-bold text-sm"
+                        />
+                        <span className="text-xs text-slate-400">min</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-700">
+                        <span className="text-xs text-slate-400 font-bold">Segundos:</span>
+                        <input
+                          type="number"
+                          min="10"
+                          step="10"
+                          value={Math.round(editingTest.timeLimitMs / 1000)}
+                          onChange={(e) => {
+                            const secs = Math.max(5, Number(e.target.value));
+                            setEditingTest({
+                              ...editingTest,
+                              timeLimitMs: secs * 1000,
+                            });
+                          }}
+                          className="w-20 py-1 px-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-center font-mono font-bold text-sm"
+                        />
+                        <span className="text-xs text-slate-400">s</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {[2, 3, 4, 5, 6, 8, 10].map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() =>
+                              setEditingTest({
+                                ...editingTest,
+                                timeLimitMs: m * 60 * 1000,
+                              })
+                            }
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                              Math.round(editingTest.timeLimitMs / 1000) === m * 60
+                                ? 'bg-amber-400 text-slate-950 font-black shadow'
+                                : 'bg-slate-950 text-slate-300 hover:text-white border border-slate-800'
+                            }`}
+                          >
+                            {m} min
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">
