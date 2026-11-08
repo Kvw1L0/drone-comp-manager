@@ -225,7 +225,6 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
     registeredTimeMs,
     secondsPenaltyMs,
     bestEffectiveTimeMsForTest,
-    includeCandidateInBestTime = false,
   } = input;
 
   const validationErrors: string[] = [];
@@ -358,35 +357,26 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
       };
     }
 
-    let referenceBestTimeMs = bestEffectiveTimeMsForTest;
-    if (includeCandidateInBestTime) {
-      if (referenceBestTimeMs === null || effectiveTimeMs < referenceBestTimeMs) {
-        referenceBestTimeMs = effectiveTimeMs;
-      }
+    // Score based on fixed track time limit (e.g. 5 minutes = 300,000 ms):
+    // - 0 ms -> 100% of base score
+    // - timeLimitMs -> exactly 0 points (reaching zero at the regulated limit)
+    // - > timeLimitMs -> 0 points (time limit exceeded)
+    const limitMs = test.timeLimitMs > 0 ? test.timeLimitMs : 300000;
+
+    let calculatedBaseScore = 0;
+    if (effectiveTimeMs < limitMs) {
+      const remainingFraction = (limitMs - effectiveTimeMs) / limitMs;
+      calculatedBaseScore = stabilizeFloat(test.maxBaseScore * remainingFraction);
+    } else {
+      calculatedBaseScore = 0;
     }
 
-    if (referenceBestTimeMs === null || referenceBestTimeMs <= 0) {
-      // No valid reference time yet; avoid division by zero
-      return {
-        effectiveTimeMs,
-        referenceBestTimeMs: null,
-        calculatedBaseScore: null,
-        netScore: null,
-        contribution: null,
-        exceedsTimeLimit,
-        validationErrors,
-      };
-    }
-
-    const calculatedBaseScore = stabilizeFloat(
-      test.maxBaseScore * (referenceBestTimeMs / effectiveTimeMs)
-    );
     const netScore = stabilizeFloat(Math.max(0, calculatedBaseScore - pointsPenalty));
     const contribution = stabilizeFloat((netScore / test.maxBaseScore) * test.maxContribution);
 
     return {
       effectiveTimeMs,
-      referenceBestTimeMs,
+      referenceBestTimeMs: limitMs,
       calculatedBaseScore,
       netScore,
       contribution,
@@ -570,17 +560,23 @@ export function computeEventRanking(params: {
       let baseScore = res.calculatedBaseScore;
       let effectiveTimeMs = res.effectiveTimeMs;
 
-      // Always ensure time-calculated scores reflect the current best effective time
+      // Always ensure time-calculated scores reflect the fixed time limit reference (e.g. 5 min = 300s -> 0 pts)
       if (test.scoringMethod === 'time_calculated') {
-        const bestMs = bestTimeByTestId[test.id];
         const regMs = res.registeredTimeMs;
         const penMs = test.enableSecondsPenalty ? res.secondsPenaltyMs || 0 : 0;
         effectiveTimeMs = regMs !== null && regMs > 0 ? regMs + penMs : null;
 
-        if (bestMs !== null && bestMs > 0 && effectiveTimeMs !== null && effectiveTimeMs > 0) {
-          baseScore = stabilizeFloat(test.maxBaseScore * (bestMs / effectiveTimeMs));
-          netScore = stabilizeFloat(Math.max(0, baseScore - (res.pointsPenalty || 0)));
-          contribution = stabilizeFloat((netScore / test.maxBaseScore) * test.maxContribution);
+        const limitMs = test.timeLimitMs > 0 ? test.timeLimitMs : 300000;
+
+        if (effectiveTimeMs !== null && effectiveTimeMs > 0) {
+          if (effectiveTimeMs < limitMs) {
+            const fraction = (limitMs - effectiveTimeMs) / limitMs;
+            baseScore = stabilizeFloat(test.maxBaseScore * fraction);
+          } else {
+            baseScore = 0;
+          }
+          netScore = stabilizeFloat(Math.max(0, (baseScore || 0) - (res.pointsPenalty || 0)));
+          contribution = stabilizeFloat(((netScore || 0) / test.maxBaseScore) * test.maxContribution);
         } else {
           baseScore = null;
           netScore = null;

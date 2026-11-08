@@ -4,7 +4,6 @@ import {
   computeEventRanking,
   normalizeSearchText,
   parseTimeInputsToMs,
-  recalculateAllResultsForTest,
 } from './scoring';
 import { parseAndValidateParticipantsCsv } from './csv';
 import {
@@ -143,70 +142,59 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
     expect(over300.exceedsTimeLimit).toBe(true);
   });
 
-  it('6. Método B (tiempo) y recálculo automático al aparecer, corregir o anular el mejor tiempo de referencia', () => {
-    const r1: CompetitionResult = {
-      id: 'PIL-001__test_velocidad',
-      eventId: mockEvent.id,
-      participantId: 'PIL-001',
-      testId: 'test_velocidad',
-      trackId: 'track_1',
-      attemptNumber: 1,
+  it('6. Puntuación basada en tiempo límite reglamentado (300s): a los 300s llega a 0 pts, a los 150s otorga 50% y a 4:57 (297s) otorga 1%', () => {
+    // Caso 1: 150 segundos (la mitad del límite de 300s) -> 50 puntos base
+    const halfTime = calculateResultMetrics({
+      test: testVelocidad,
       participationStatus: 'completado',
-      publicationStatus: 'publicado',
       rawScore: null,
-      pointsPenalty: 10, // No altera su tiempo de referencia
-      registeredTimeMs: 95000,
-      secondsPenaltyMs: 5000, // Tiempo efectivo = 100.000 ms
-      effectiveTimeMs: 100000,
-      calculatedBaseScore: 100,
-      netScore: 90,
-      contribution: 29.997,
-      observation: '',
-      adminException: null,
-      previousAttempts: [],
-      version: 1,
-      configVersionUsed: 1,
-      createdBy: 'u1',
-      createdByName: 'Staff',
-      updatedBy: 'u1',
-      updatedByName: 'Staff',
-      publishedAt: 1000,
-      updatedAt: 1000,
-    };
-
-    const r2: CompetitionResult = {
-      ...r1,
-      id: 'PIL-002__test_velocidad',
-      participantId: 'PIL-002',
       pointsPenalty: 0,
-      registeredTimeMs: 200000,
+      registeredTimeMs: 150000, // 2:30 = 150s
       secondsPenaltyMs: 0,
-      effectiveTimeMs: 200000,
-    };
+      bestEffectiveTimeMsForTest: null,
+    });
+    expect(halfTime.calculatedBaseScore).toBe(50);
+    expect(halfTime.contribution).toBeCloseTo((50 / 100) * 33.33, 3);
 
-    const calc1 = recalculateAllResultsForTest(testVelocidad, [r1, r2]);
-    expect(calc1.bestEffectiveTimeMs).toBe(100000);
-    expect(calc1.updatedResults.find((r) => r.participantId === 'PIL-002')!.calculatedBaseScore).toBe(50);
-
-    // Nuevo mejor tiempo: 50.000 ms
-    const r3: CompetitionResult = {
-      ...r1,
-      id: 'PIL-003__test_velocidad',
-      participantId: 'PIL-003',
+    // Caso 2: 4 minutos 57 segundos (297 segundos de 300s límite) -> 1 punto base (1% de puntos)
+    const almostZero = calculateResultMetrics({
+      test: testVelocidad,
+      participationStatus: 'completado',
+      rawScore: null,
       pointsPenalty: 0,
-      registeredTimeMs: 50000,
+      registeredTimeMs: 297000, // 4:57 = 297s -> faltan 3s para el límite
       secondsPenaltyMs: 0,
-    };
-    const calc2 = recalculateAllResultsForTest(testVelocidad, [r1, r2, r3]);
-    expect(calc2.bestEffectiveTimeMs).toBe(50000);
-    expect(calc2.updatedResults.find((r) => r.participantId === 'PIL-001')!.calculatedBaseScore).toBe(50);
-    expect(calc2.updatedResults.find((r) => r.participantId === 'PIL-001')!.netScore).toBe(40);
+      bestEffectiveTimeMsForTest: null,
+    });
+    expect(almostZero.calculatedBaseScore).toBe(1);
+    expect(almostZero.contribution).toBeCloseTo((1 / 100) * 33.33, 3);
 
-    // Anulación de PIL-003 restaura mejor tiempo a 100.000 ms
-    const r3Annulled: CompetitionResult = { ...r3, publicationStatus: 'anulado' };
-    const calc3 = recalculateAllResultsForTest(testVelocidad, [r1, r2, r3Annulled]);
-    expect(calc3.bestEffectiveTimeMs).toBe(100000);
-    expect(calc3.updatedResults.find((r) => r.participantId === 'PIL-002')!.calculatedBaseScore).toBe(50);
+    // Caso 3: Exactamente 5 minutos (300 segundos reglamentados) -> Llega exactamente a Cero (0 pts)
+    const exactLimit = calculateResultMetrics({
+      test: testVelocidad,
+      participationStatus: 'completado',
+      rawScore: null,
+      pointsPenalty: 0,
+      registeredTimeMs: 300000, // 5:00 = 300s límite exacto
+      secondsPenaltyMs: 0,
+      bestEffectiveTimeMsForTest: null,
+    });
+    expect(exactLimit.calculatedBaseScore).toBe(0);
+    expect(exactLimit.contribution).toBe(0);
+
+    // Caso 4: Tiempo superado (> 300 segundos) -> 0 pts
+    const overLimit = calculateResultMetrics({
+      test: testVelocidad,
+      participationStatus: 'completado',
+      rawScore: null,
+      pointsPenalty: 0,
+      registeredTimeMs: 305000, // 5:05 -> fuera de tiempo
+      secondsPenaltyMs: 0,
+      bestEffectiveTimeMsForTest: null,
+    });
+    expect(overLimit.calculatedBaseScore).toBe(0);
+    expect(overLimit.contribution).toBe(0);
+    expect(overLimit.exceedsTimeLimit).toBe(true);
   });
 
   it('7. Desempates por criterios 1->2->3->4, DNF nunca gana frente a tiempo válido, DQ general excluido y empate persistente', () => {
