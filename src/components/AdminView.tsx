@@ -23,8 +23,10 @@ import {
 import { useCompetition } from '../context/CompetitionContext';
 import {
   AccreditationRequirement,
+  DEFAULT_RANKING_COLUMNS,
   EvaluationTest,
   Participant,
+  RankingVisibleColumns,
   TeamDivision,
   TieBreakerRule,
   Track,
@@ -86,6 +88,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
     resetDemoDatabase,
     setEventRankingViewMode,
     setEventRankingTeamFilter,
+    setEventRankingColumns,
     toggleTrackResultDQ,
   } = useCompetition();
 
@@ -2132,7 +2135,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
 
                 {/* Acceso Directo a Pantalla Pública */}
                 <a
-                  href="/?pantalla=publica"
+                  href="/?vista=ranking"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow"
@@ -2143,6 +2146,66 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                 </a>
               </div>
             </div>
+
+            {/* Interruptores Individuales de Columnas en Pantalla Pública */}
+            {(() => {
+              const currentCols: RankingVisibleColumns = {
+                ...DEFAULT_RANKING_COLUMNS,
+                ...(activeEvent.rankingVisibleColumns || {}),
+              };
+              const toggleCol = (key: keyof RankingVisibleColumns) => {
+                setEventRankingColumns({
+                  ...currentCols,
+                  [key]: !currentCols[key],
+                });
+              };
+              const colItems: Array<{
+                key: keyof RankingVisibleColumns;
+                label: string;
+              }> = [
+                { key: 'showCompetitorNumber', label: 'N° Piloto' },
+                { key: 'showFullName', label: 'Nombre' },
+                { key: 'showTeamDivision', label: 'Distribución / Transmisión' },
+                { key: 'showCompany', label: 'Empresa' },
+                { key: 'showTracksBreakdown', label: 'Pistas 1-2-3' },
+                { key: 'showTotalTime', label: 'Tiempo Total' },
+                { key: 'showPoints', label: 'Puntos' },
+              ];
+              return (
+                <div className="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-red-400 shrink-0" />
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-300">
+                      Columnas y Filtros Visibles en TV:
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {colItems.map((item) => {
+                      const active = currentCols[item.key];
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => toggleCol(item.key)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-extrabold border transition flex items-center gap-1.5 cursor-pointer ${
+                            active
+                              ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300 shadow-sm'
+                              : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              active ? 'bg-emerald-400' : 'bg-slate-600'
+                            }`}
+                          />
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Podios 1°, 2° y 3° Lugar por Equipo (Distribución vs Transmisión) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

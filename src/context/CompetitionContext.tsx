@@ -36,6 +36,8 @@ import {
   PublicResult,
   RankingViewMode,
   RankingTeamFilter,
+  RankingVisibleColumns,
+  DEFAULT_RANKING_COLUMNS,
   TieBreakerRule,
   Track,
   TrackStatus,
@@ -285,6 +287,7 @@ interface CompetitionContextValue {
   resetDemoDatabase: () => void;
   setEventRankingViewMode: (mode: RankingViewMode) => Promise<void>;
   setEventRankingTeamFilter: (filter: RankingTeamFilter) => Promise<void>;
+  setEventRankingColumns: (columns: RankingVisibleColumns) => Promise<void>;
   toggleTrackResultDQ: (params: { participantId: string; testId: string; trackId?: string }) => Promise<void>;
 }
 
@@ -2150,9 +2153,15 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
       await runAtomicDbTransaction((dbState) => {
         const idx = dbState.events.findIndex((e) => e.id === activeEvent.id);
         if (idx === -1) return;
+        const currentCols = {
+          ...DEFAULT_RANKING_COLUMNS,
+          ...(dbState.events[idx].rankingVisibleColumns || {}),
+          showTracksBreakdown: mode === 'detallado',
+        };
         dbState.events[idx] = {
           ...dbState.events[idx],
           rankingViewMode: mode,
+          rankingVisibleColumns: currentCols,
           updatedAt: Date.now(),
         };
       });
@@ -2168,6 +2177,22 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
         dbState.events[idx] = {
           ...dbState.events[idx],
           rankingTeamFilter: filter,
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    [runAtomicDbTransaction, activeEvent.id]
+  );
+
+  const setEventRankingColumns = useCallback(
+    async (columns: RankingVisibleColumns) => {
+      await runAtomicDbTransaction((dbState) => {
+        const idx = dbState.events.findIndex((e) => e.id === activeEvent.id);
+        if (idx === -1) return;
+        dbState.events[idx] = {
+          ...dbState.events[idx],
+          rankingVisibleColumns: columns,
+          rankingViewMode: columns.showTracksBreakdown ? 'detallado' : 'resumen',
           updatedAt: Date.now(),
         };
       });
@@ -2369,6 +2394,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
     resetDemoDatabase,
     setEventRankingViewMode,
     setEventRankingTeamFilter,
+    setEventRankingColumns,
     toggleTrackResultDQ,
   };
 

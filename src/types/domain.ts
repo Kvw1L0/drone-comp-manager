@@ -15,6 +15,26 @@ export type RankingViewMode = 'detallado' | 'resumen';
 export type TeamDivision = 'distribucion' | 'transmision';
 export type RankingTeamFilter = 'todos' | 'distribucion' | 'transmision';
 
+export interface RankingVisibleColumns {
+  showCompetitorNumber: boolean;
+  showFullName: boolean;
+  showTeamDivision: boolean;
+  showCompany: boolean;
+  showTracksBreakdown: boolean;
+  showTotalTime: boolean;
+  showPoints: boolean;
+}
+
+export const DEFAULT_RANKING_COLUMNS: RankingVisibleColumns = {
+  showCompetitorNumber: true,
+  showFullName: true,
+  showTeamDivision: true,
+  showCompany: true,
+  showTracksBreakdown: false,
+  showTotalTime: true,
+  showPoints: true,
+};
+
 export interface AccreditationRequirement {
   id: string;
   label: string;
@@ -51,6 +71,7 @@ export interface CompetitionEvent {
   status: EventStatus;
   rankingViewMode?: RankingViewMode;
   rankingTeamFilter?: RankingTeamFilter;
+  rankingVisibleColumns?: RankingVisibleColumns;
   configVersion: number;
   accreditationRequirements: AccreditationRequirement[];
   tieBreakerRules: TieBreakerRule[];
