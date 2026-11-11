@@ -38,10 +38,10 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
     clearAllDraftStorage();
   });
 
-  it('1. Verifica la semilla demostrativa: 35 participantes, 4 pistas y 3 pruebas con aportes 33,33 + 33,33 + 33,34 = 100', () => {
+  it('1. Verifica la semilla demostrativa: 35 participantes, 5 pistas y 5 pruebas con aportes 5 x 20 = 100', () => {
     expect(DEMO_PARTICIPANTS.length).toBe(35);
-    expect(DEMO_TRACKS.length).toBe(4);
-    expect(DEMO_TESTS.length).toBe(3);
+    expect(DEMO_TRACKS.length).toBe(5);
+    expect(DEMO_TESTS.length).toBe(5);
     const sumContributions = DEMO_TESTS.reduce((acc, t) => acc + t.maxContribution, 0);
     expect(sumContributions).toBeCloseTo(100, 5);
   });
@@ -103,7 +103,7 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
       bestEffectiveTimeMsForTest: null,
     });
     expect(res.netScore).toBe(75);
-    expect(res.contribution).toBeCloseTo((75 / 100) * 33.33, 6);
+    expect(res.contribution).toBeCloseTo((75 / 100) * manualTest.maxContribution, 6);
 
     const overMax = calculateResultMetrics({
       test: manualTest,
@@ -154,7 +154,7 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
       bestEffectiveTimeMsForTest: null,
     });
     expect(halfTime.calculatedBaseScore).toBe(50);
-    expect(halfTime.contribution).toBeCloseTo((50 / 100) * 33.33, 3);
+    expect(halfTime.contribution).toBeCloseTo((50 / 100) * testVelocidad.maxContribution, 3);
 
     // Caso 2: 4 minutos 57 segundos (297 segundos de 300s límite) -> 1 punto base (1% de puntos)
     const almostZero = calculateResultMetrics({
@@ -167,7 +167,7 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
       bestEffectiveTimeMsForTest: null,
     });
     expect(almostZero.calculatedBaseScore).toBe(1);
-    expect(almostZero.contribution).toBeCloseTo((1 / 100) * 33.33, 3);
+    expect(almostZero.contribution).toBeCloseTo((1 / 100) * testVelocidad.maxContribution, 3);
 
     // Caso 3: Exactamente 5 minutos (300 segundos reglamentados) -> Llega exactamente a Cero (0 pts)
     const exactLimit = calculateResultMetrics({

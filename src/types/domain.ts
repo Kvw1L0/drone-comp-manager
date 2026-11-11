@@ -295,6 +295,8 @@ export interface TestRankCell {
 
 export interface RankingRow {
   position: number | null; // null if general DQ
+  podiumPlace?: 1 | 2 | 3 | null;
+  divisionPosition?: number | null;
   participantId: string;
   fullName: string;
   companyOrTeam: string;

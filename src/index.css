@@ -67,6 +67,12 @@
   box-shadow: 0 0 24px -4px rgba(230, 0, 18, 0.45);
 }
 
+/* Key Visual Broadcast Narrow Bold Typography */
+.font-broadcast-narrow {
+  font-family: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', Impact, sans-serif;
+  letter-spacing: 0.02em;
+}
+
 .kv-stripes {
   background-image: repeating-linear-gradient(
     -45deg,

@@ -28,89 +28,6 @@ const PAGE_INTERVAL_MS = 8000;
 const ROWS_PER_PAGE = 10;
 
 /**
- * Top White Drone + House/Power-Plug Hexagon Emblem from the "Rally Drone Race" Key Visual
- */
-const RallyDroneHeaderEmblem: React.FC = () => (
-  <div className="flex flex-col items-center select-none">
-    <svg
-      viewBox="0 0 360 88"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="w-60 sm:w-72 md:w-80 h-auto drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]"
-      aria-hidden="true"
-    >
-      {/* Left Propeller & Motor */}
-      <rect x="18" y="25" width="76" height="4.5" rx="2.25" fill="#ffffff" />
-      <rect x="49" y="29" width="14" height="7" rx="1.5" fill="#ffffff" />
-      {/* Left Arm */}
-      <path
-        d="M52 36 L108 36 L142 46 L142 53 L103 44 L52 44 Z"
-        fill="#ffffff"
-      />
-      <path
-        d="M90 44 L104 54 L120 54 L112 44 Z"
-        fill="#e2e8f0"
-      />
-
-      {/* Right Propeller & Motor */}
-      <rect x="266" y="25" width="76" height="4.5" rx="2.25" fill="#ffffff" />
-      <rect x="297" y="29" width="14" height="7" rx="1.5" fill="#ffffff" />
-      {/* Right Arm */}
-      <path
-        d="M308 36 L252 36 L218 46 L218 53 L257 44 L308 44 Z"
-        fill="#ffffff"
-      />
-      <path
-        d="M270 44 L256 54 L240 54 L248 44 Z"
-        fill="#e2e8f0"
-      />
-
-      {/* Center House / Hexagon Power-Plug Emblem */}
-      <path
-        d="M180 6 L214 31 V76 C214 80 211 83 207 83 H153 C149 83 146 80 146 76 V31 L180 6 Z"
-        fill="#090a0f"
-        stroke="#ffffff"
-        strokeWidth="6.5"
-        strokeLinejoin="round"
-      />
-      {/* Roof Peak Inner Detail */}
-      <path
-        d="M161 34 L180 19 L199 34"
-        stroke="#ffffff"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Inner Power Plug & Cord Loop */}
-      <path
-        d="M165 44 V63 C165 70 171 74 178 74 H193"
-        stroke="#ffffff"
-        strokeWidth="5.5"
-        strokeLinecap="round"
-      />
-      {/* Plug Body */}
-      <rect x="173" y="42" width="18" height="14" rx="3" fill="#ffffff" />
-      {/* Plug Prongs */}
-      <line x1="178" y1="35" x2="178" y2="42" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" />
-      <line x1="186" y1="35" x2="186" y2="42" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" />
-    </svg>
-
-    {/* » RALLY DRONE RACE « Subtitle */}
-    <div className="flex items-center gap-2.5 -mt-1">
-      <span className="text-[#ff1e1e] font-black text-xs sm:text-sm tracking-tighter leading-none drop-shadow-[0_0_8px_rgba(255,30,30,0.8)]">
-        »»
-      </span>
-      <span className="text-white font-bold text-[11px] sm:text-xs md:text-sm tracking-[0.34em] uppercase">
-        RALLY DRONE RACE
-      </span>
-      <span className="text-[#ff1e1e] font-black text-xs sm:text-sm tracking-tighter leading-none drop-shadow-[0_0_8px_rgba(255,30,30,0.8)]">
-        ««
-      </span>
-    </div>
-  </div>
-);
-
-/**
  * Red Chilquinta House/Plug Emblem for the bottom footer
  */
 const ChilquintaFooterIcon: React.FC = () => (
@@ -208,7 +125,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
     return hasAnyTime ? sumMs : null;
   };
 
-  // Rows filtered and ranked strictly by Admin configuration
+  // Rows filtered and ranked strictly by Admin configuration (includes podiumPlace: 1x 1°, 2x 2°, 3x 3° per team)
   const displayedRows: RankingRow[] = useMemo(() => {
     return filterAndRankByDivision(liveRanking.rows, teamFilter);
   }, [liveRanking.rows, teamFilter]);
@@ -257,7 +174,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
   return (
     <div
       onDoubleClick={handleToggleFullscreen}
-      className="relative min-h-screen w-full bg-[#08090c] text-white flex flex-col justify-between overflow-hidden select-none font-sans"
+      className="font-broadcast-narrow relative min-h-screen w-full bg-[#08090c] text-white flex flex-col justify-between overflow-hidden select-none"
       style={{
         backgroundImage: `
           radial-gradient(circle at 50% 18%, rgba(220, 0, 18, 0.22) 0%, rgba(10, 11, 16, 0.92) 55%, #060709 100%),
@@ -266,7 +183,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       }}
     >
       {/* ===================================================================== */}
-      {/* DECORATIVE KEY VISUAL HUD FRAME & CORNER BEVELS (1:1 WITH IMAGE)      */}
+      {/* DECORATIVE KEY VISUAL HUD FRAME & CORNER BEVELS                       */}
       {/* ===================================================================== */}
 
       {/* Subtle Large Watermark Hexagon on Right Background */}
@@ -285,14 +202,12 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
 
       {/* Top Metallic Bar & Right Glowing Red Accent */}
       <div className="pointer-events-none absolute top-0 left-0 right-0 h-14 z-0">
-        {/* Top dark brushed steel bar */}
         <div
           className="w-full h-7 bg-gradient-to-b from-[#23252c] via-[#14161b] to-[#090a0d] border-b border-white/10"
           style={{
             clipPath: 'polygon(0 0, 100% 0, 100% 100%, 72% 100%, 69% 45%, 31% 45%, 28% 100%, 0 100%)',
           }}
         />
-        {/* Right-side red neon bar from reference KV */}
         <div
           className="hidden sm:block absolute top-5 right-0 w-[30%] h-7 bg-gradient-to-r from-[#ff0015] via-[#d60012] to-[#5a0006] shadow-[0_0_25px_rgba(255,0,21,0.75)] border-y border-red-400/50"
           style={{
@@ -317,7 +232,6 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
             strokeWidth="1.2"
             strokeOpacity="0.6"
           />
-          {/* Glowing red trapezoid inside top-left shield */}
           <polygon
             points="92,88 135,88 94,142 64,142"
             fill="url(#tlRedGlow)"
@@ -347,7 +261,6 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
             strokeWidth="1.2"
             strokeOpacity="0.6"
           />
-          {/* Glowing red trapezoid inside bottom-right shield */}
           <polygon
             points="118,142 75,142 116,88 146,88"
             fill="url(#brRedGlow)"
@@ -389,41 +302,45 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       </div>
 
       {/* ===================================================================== */}
-      {/* TOP HEADER: DRONE LOGO + RANKING GENERAL + CLASIFICACIÓN              */}
+      {/* TOP HEADER: OFFICIAL UPLOADED LOGO + RANKING GENERAL + CLASIFICACIÓN  */}
       {/* ===================================================================== */}
-      <header className="relative z-10 pt-3 sm:pt-4 px-4 flex flex-col items-center text-center">
-        <RallyDroneHeaderEmblem />
+      <header className="relative z-10 pt-2 sm:pt-3 px-4 flex flex-col items-center text-center">
+        <img
+          src="/rally-drone-logo.png"
+          alt="The First Grid Rally Drone Race of Chile"
+          className="h-20 sm:h-28 md:h-32 w-auto object-contain drop-shadow-[0_4px_20px_rgba(230,0,18,0.65)] select-none"
+        />
 
         <h1
-          className="mt-1 text-2xl sm:text-4xl md:text-5xl font-black italic uppercase tracking-wider text-white"
+          className="mt-0.5 text-3xl sm:text-5xl md:text-6xl font-black italic uppercase tracking-wider text-white leading-none"
           style={{
             textShadow:
-              '0 2px 0 #cbd5e1, 0 4px 14px rgba(0,0,0,0.95), 0 0 28px rgba(230,0,18,0.35)',
-            letterSpacing: '0.06em',
+              '0 2px 0 #cbd5e1, 0 5px 16px rgba(0,0,0,0.95), 0 0 32px rgba(230,0,18,0.45)',
+            letterSpacing: '0.05em',
           }}
         >
           RANKING GENERAL
         </h1>
 
         {/* — CLASIFICACIÓN — with flanking red bars */}
-        <div className="flex items-center justify-center gap-3 sm:gap-5 w-full max-w-2xl mt-0.5">
-          <div className="h-[3px] flex-1 max-w-[160px] bg-gradient-to-r from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_10px_#e60012]" />
-          <span className="text-xs sm:text-sm md:text-base font-bold uppercase tracking-[0.28em] text-slate-200">
+        <div className="flex items-center justify-center gap-3 sm:gap-5 w-full max-w-2xl mt-1">
+          <div className="h-[3.5px] flex-1 max-w-[175px] bg-gradient-to-r from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_12px_#e60012]" />
+          <span className="text-sm sm:text-lg md:text-xl font-black uppercase tracking-[0.26em] text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
             {subtitleLabel}
           </span>
-          <div className="h-[3px] flex-1 max-w-[160px] bg-gradient-to-l from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_10px_#e60012]" />
+          <div className="h-[3.5px] flex-1 max-w-[175px] bg-gradient-to-l from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_12px_#e60012]" />
         </div>
       </header>
 
       {/* ===================================================================== */}
-      {/* MAIN VERTICAL RANKING TABLE (TOP 1-3 HIGHLIGHTED VERTICALLY)          */}
+      {/* MAIN VERTICAL RANKING TABLE (PODIUM 1x 1°, 2x 2°, 3x 3° HIGHLIGHTED)  */}
       {/* ===================================================================== */}
-      <main className="relative z-10 flex-1 flex flex-col justify-center w-full max-w-6xl mx-auto px-3 sm:px-8 md:px-14 my-2">
+      <main className="relative z-10 flex-1 flex flex-col justify-center w-full max-w-6xl mx-auto px-3 sm:px-8 md:px-14 my-1.5">
         <div
-          className="w-full overflow-hidden shadow-[0_12px_50px_rgba(0,0,0,0.95)] border border-red-500/40 bg-[#0b0c10]/95"
+          className="w-full overflow-hidden shadow-[0_14px_55px_rgba(0,0,0,0.96)] border-2 border-red-500/55 bg-[#0b0c10]/95"
           style={{
             clipPath:
-              'polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px)',
+              'polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 16px)',
           }}
         >
           <div className="overflow-x-auto">
@@ -431,19 +348,19 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
               {/* Crimson Beveled Header Bar */}
               <thead>
                 <tr
-                  className="text-white text-[11px] sm:text-xs md:text-sm font-extrabold uppercase tracking-wider border-b-2 border-[#ff3b3b]"
+                  className="text-white text-sm sm:text-base md:text-xl font-black uppercase tracking-wider border-b-2 border-[#ff3b3b]"
                   style={{
                     background:
                       'linear-gradient(90deg, #6e0007 0%, #c8000f 25%, #e60012 50%, #c8000f 75%, #6e0007 100%)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(0,0,0,0.6)',
+                    boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.6)',
                   }}
                 >
-                  <th className="py-2.5 sm:py-3 px-3 sm:px-5 w-20 sm:w-24 text-center border-r border-white/15">
+                  <th className="py-2.5 sm:py-3 px-3 sm:px-5 w-24 sm:w-28 text-center border-r border-white/20">
                     POS.
                   </th>
 
                   {hasCompetitorColumn && (
-                    <th className="py-2.5 sm:py-3 px-4 sm:px-6 border-r border-white/15">
+                    <th className="py-2.5 sm:py-3 px-4 sm:px-6 border-r border-white/20">
                       COMPETIDOR
                     </th>
                   )}
@@ -452,14 +369,14 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                     tests.map((t, idx) => (
                       <th
                         key={t.id}
-                        className="py-2.5 sm:py-3 px-3 text-center border-r border-white/15"
+                        className="py-2.5 sm:py-3 px-2.5 text-center border-r border-white/20"
                       >
-                        P{idx + 1}: {t.name.split(' ')[0]}
+                        P{idx + 1}: {t.name.replace(/^Pista\s*\d+\s*-\s*/i, '').split(' ')[0]}
                       </th>
                     ))}
 
                   {visibleColumns.showTotalTime && (
-                    <th className="py-2.5 sm:py-3 px-3 sm:px-5 text-center border-r border-white/15">
+                    <th className="py-2.5 sm:py-3 px-3 sm:px-5 text-center border-r border-white/20">
                       TIEMPO TOTAL
                     </th>
                   )}
@@ -475,46 +392,75 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
               <tbody>
                 {paginatedRows.map((row) => {
                   const pos = row.position ?? 0;
-                  const isTop1 = !row.isDisqualified && pos === 1;
-                  const isTop2 = !row.isDisqualified && pos === 2;
-                  const isTop3 = !row.isDisqualified && pos === 3;
-                  const isTop3Row = isTop1 || isTop2 || isTop3;
+
+                  // Podium highlighting rule:
+                  // - When filtered by a team ('distribucion' or 'transmision'):
+                  //   1° Place = Position 1 (1 pilot) -> Gold (01)
+                  //   2° Place = Positions 2 & 3 (2 pilots) -> Silver/Gold (02)
+                  //   3° Place = Positions 4, 5 & 6 (3 pilots) -> Bronze/Gold (03)
+                  // - When viewing General ('todos'):
+                  //   Top 1, 2, 3 overall OR each team's podiumPlace (1°, 2°, 3°)
+                  const awardTier: 1 | 2 | 3 | null = !row.isDisqualified
+                    ? teamFilter !== 'todos'
+                      ? (row.podiumPlace ?? null)
+                      : pos === 1
+                      ? 1
+                      : pos === 2
+                      ? 2
+                      : pos === 3
+                      ? 3
+                      : null
+                    : null;
+
+                  const isTier1 = awardTier === 1;
+                  const isTier2 = awardTier === 2;
+                  const isTier3 = awardTier === 3;
+                  const isPodiumRow = isTier1 || isTier2 || isTier3;
 
                   const totalTimeMs = getRowEffectiveTimeSummary(row);
-                  const formattedPos =
-                    pos > 0 ? String(pos).padStart(2, '0') : '—';
 
-                  // Row styling: Top 1 (Gold & Crimson Bevel), Top 2 (Silver Bevel), Top 3 (Bronze/Gold Bevel), 04+ (Carbon & Red Line)
-                  const rowStyle: React.CSSProperties = isTop1
+                  // Display position:
+                  // When filtered by team, podium winners show 01 (1x), 02 (2x), 03 (3x), then 07, 08, 09, 10
+                  const displayPosNumber =
+                    teamFilter !== 'todos' && awardTier !== null
+                      ? awardTier
+                      : pos;
+                  const formattedPos =
+                    displayPosNumber > 0
+                      ? String(displayPosNumber).padStart(2, '0')
+                      : '—';
+
+                  // Row styling: Podium rows (Larger, beveled & golden/metallic) vs regular rows
+                  const rowStyle: React.CSSProperties = isTier1
                     ? {
                         background:
-                          'linear-gradient(90deg, rgba(230,0,18,0.48) 0%, rgba(245,158,11,0.34) 45%, rgba(230,0,18,0.42) 100%)',
+                          'linear-gradient(90deg, rgba(230,0,18,0.52) 0%, rgba(245,158,11,0.40) 45%, rgba(230,0,18,0.45) 100%)',
                         boxShadow:
-                          'inset 0 0 18px rgba(251,191,36,0.38), inset 0 2px 0 rgba(253,224,71,0.65), inset 0 -2px 0 rgba(251,191,36,0.55)',
+                          'inset 0 0 22px rgba(251,191,36,0.45), inset 0 2px 0 rgba(253,224,71,0.75), inset 0 -2px 0 rgba(251,191,36,0.65)',
                       }
-                    : isTop2
+                    : isTier2
                     ? {
                         background:
-                          'linear-gradient(90deg, rgba(148,163,184,0.28) 0%, rgba(226,232,240,0.18) 50%, rgba(30,41,59,0.55) 100%)',
+                          'linear-gradient(90deg, rgba(245,158,11,0.28) 0%, rgba(226,232,240,0.24) 50%, rgba(30,41,59,0.65) 100%)',
                         boxShadow:
-                          'inset 0 0 14px rgba(226,232,240,0.25), inset 0 1.5px 0 rgba(241,245,249,0.55), inset 0 -1.5px 0 rgba(148,163,184,0.45)',
+                          'inset 0 0 16px rgba(251,191,36,0.30), inset 0 2px 0 rgba(253,224,71,0.55), inset 0 -2px 0 rgba(226,232,240,0.45)',
                       }
-                    : isTop3
+                    : isTier3
                     ? {
                         background:
-                          'linear-gradient(90deg, rgba(217,119,6,0.32) 0%, rgba(180,83,9,0.22) 50%, rgba(69,26,3,0.55) 100%)',
+                          'linear-gradient(90deg, rgba(217,119,6,0.36) 0%, rgba(180,83,9,0.25) 50%, rgba(69,26,3,0.60) 100%)',
                         boxShadow:
-                          'inset 0 0 14px rgba(245,158,11,0.25), inset 0 1.5px 0 rgba(251,191,36,0.5), inset 0 -1.5px 0 rgba(217,119,6,0.45)',
+                          'inset 0 0 16px rgba(245,158,11,0.30), inset 0 1.5px 0 rgba(251,191,36,0.55), inset 0 -1.5px 0 rgba(217,119,6,0.50)',
                       }
                     : {
                         background:
                           pos % 2 === 0
-                            ? 'linear-gradient(90deg, rgba(18,20,26,0.95) 0%, rgba(26,28,36,0.9) 50%, rgba(18,20,26,0.95) 100%)'
-                            : 'linear-gradient(90deg, rgba(12,14,18,0.95) 0%, rgba(20,22,29,0.9) 50%, rgba(12,14,18,0.95) 100%)',
+                            ? 'linear-gradient(90deg, rgba(18,20,26,0.96) 0%, rgba(26,28,36,0.92) 50%, rgba(18,20,26,0.96) 100%)'
+                            : 'linear-gradient(90deg, rgba(12,14,18,0.96) 0%, rgba(20,22,29,0.92) 50%, rgba(12,14,18,0.96) 100%)',
                       };
 
-                  const cellPadding = isTop3Row
-                    ? 'py-2.5 sm:py-3.5'
+                  const cellPadding = isPodiumRow
+                    ? 'py-2 sm:py-3'
                     : 'py-1.5 sm:py-2';
 
                   return (
@@ -522,39 +468,39 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                       key={row.participantId}
                       style={rowStyle}
                       className={`border-b transition-colors ${
-                        isTop1
-                          ? 'border-amber-400/80'
-                          : isTop2
-                          ? 'border-slate-300/60'
-                          : isTop3
-                          ? 'border-amber-600/70'
-                          : 'border-[#e60012]/45'
+                        isTier1
+                          ? 'border-amber-400/90'
+                          : isTier2
+                          ? 'border-amber-300/70'
+                          : isTier3
+                          ? 'border-amber-500/75'
+                          : 'border-[#e60012]/50'
                       }`}
                     >
                       {/* POS. COLUMN */}
                       <td
-                        className={`${cellPadding} px-3 sm:px-5 text-center border-r border-white/10 font-mono`}
+                        className={`${cellPadding} px-3 sm:px-5 text-center border-r border-white/15`}
                       >
                         {row.isDisqualified ? (
-                          <span className="inline-block px-2.5 py-0.5 rounded bg-rose-600 text-white font-black text-xs sm:text-sm">
+                          <span className="inline-block px-2.5 py-0.5 rounded bg-rose-600 text-white font-black text-sm sm:text-base">
                             DQ
                           </span>
-                        ) : isTop3Row ? (
-                          <div className="inline-flex items-center justify-center">
+                        ) : isPodiumRow ? (
+                          <div className="inline-flex flex-col items-center justify-center">
                             <span
-                              className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded font-black tracking-tighter ${
-                                isTop1
-                                  ? 'text-xl sm:text-2xl md:text-3xl bg-gradient-to-b from-yellow-300 via-amber-400 to-amber-600 text-slate-950 shadow-[0_0_16px_rgba(251,191,36,0.8)] border border-yellow-200'
-                                  : isTop2
-                                  ? 'text-lg sm:text-xl md:text-2xl bg-gradient-to-b from-white via-slate-200 to-slate-400 text-slate-950 shadow-[0_0_12px_rgba(226,232,240,0.6)] border border-white'
-                                  : 'text-lg sm:text-xl md:text-2xl bg-gradient-to-b from-amber-300 via-amber-500 to-amber-800 text-slate-950 shadow-[0_0_12px_rgba(217,119,6,0.6)] border border-amber-300'
+                              className={`inline-flex items-center justify-center px-3 py-0.5 rounded font-black tracking-tight leading-none ${
+                                isTier1
+                                  ? 'text-2xl sm:text-3xl md:text-4xl bg-gradient-to-b from-yellow-200 via-amber-400 to-amber-600 text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.85)] border-2 border-yellow-100'
+                                  : isTier2
+                                  ? 'text-xl sm:text-2xl md:text-3xl bg-gradient-to-b from-yellow-100 via-amber-300 to-amber-500 text-slate-950 shadow-[0_0_14px_rgba(251,191,36,0.65)] border border-yellow-100'
+                                  : 'text-xl sm:text-2xl md:text-3xl bg-gradient-to-b from-amber-300 via-amber-500 to-amber-700 text-slate-950 shadow-[0_0_14px_rgba(217,119,6,0.65)] border border-amber-200'
                               }`}
                             >
                               {formattedPos}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-base sm:text-lg md:text-xl font-extrabold text-white tracking-tight">
+                          <span className="text-xl sm:text-2xl md:text-[26px] font-black text-white tracking-tight leading-none">
                             {formattedPos}
                           </span>
                         )}
@@ -563,19 +509,19 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                       {/* COMPETIDOR COLUMN (Dynamic Sub-filters from Admin) */}
                       {hasCompetitorColumn && (
                         <td
-                          className={`${cellPadding} px-4 sm:px-6 border-r border-white/10`}
+                          className={`${cellPadding} px-4 sm:px-6 border-r border-white/15`}
                         >
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                             {visibleColumns.showCompetitorNumber && (
                               <span
-                                className={`font-mono font-extrabold px-2 py-0.5 rounded border ${
-                                  isTop1
-                                    ? 'bg-amber-400/20 border-amber-300 text-amber-200 text-xs sm:text-sm'
-                                    : isTop2
-                                    ? 'bg-slate-200/20 border-slate-300 text-slate-100 text-xs sm:text-sm'
-                                    : isTop3
-                                    ? 'bg-amber-600/25 border-amber-400 text-amber-200 text-xs sm:text-sm'
-                                    : 'bg-white/5 border-white/15 text-red-300 text-xs'
+                                className={`font-black px-2 py-0.5 rounded border leading-none ${
+                                  isTier1
+                                    ? 'bg-amber-400/25 border-amber-300 text-amber-200 text-sm sm:text-lg'
+                                    : isTier2
+                                    ? 'bg-amber-400/20 border-amber-300/80 text-amber-100 text-sm sm:text-base'
+                                    : isTier3
+                                    ? 'bg-amber-600/25 border-amber-400 text-amber-200 text-sm sm:text-base'
+                                    : 'bg-white/10 border-white/20 text-red-300 text-sm sm:text-base'
                                 }`}
                               >
                                 {row.competitorNumber || row.participantId}
@@ -584,14 +530,14 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
 
                             {visibleColumns.showFullName && (
                               <span
-                                className={`font-extrabold tracking-tight ${
-                                  isTop1
-                                    ? 'text-lg sm:text-2xl md:text-[26px] text-amber-100 drop-shadow-[0_2px_8px_rgba(251,191,36,0.5)]'
-                                    : isTop2
-                                    ? 'text-base sm:text-xl md:text-2xl text-white drop-shadow-[0_2px_6px_rgba(255,255,255,0.35)]'
-                                    : isTop3
-                                    ? 'text-base sm:text-xl md:text-2xl text-amber-100 drop-shadow-[0_2px_6px_rgba(217,119,6,0.4)]'
-                                    : 'text-sm sm:text-lg md:text-xl text-white'
+                                className={`font-black uppercase tracking-wide leading-tight ${
+                                  isTier1
+                                    ? 'text-xl sm:text-3xl md:text-[32px] text-amber-100 drop-shadow-[0_2px_10px_rgba(251,191,36,0.6)]'
+                                    : isTier2
+                                    ? 'text-lg sm:text-2xl md:text-[28px] text-white drop-shadow-[0_2px_8px_rgba(251,191,36,0.45)]'
+                                    : isTier3
+                                    ? 'text-lg sm:text-2xl md:text-[26px] text-amber-100 drop-shadow-[0_2px_8px_rgba(217,119,6,0.45)]'
+                                    : 'text-lg sm:text-xl md:text-2xl text-white'
                                 }`}
                               >
                                 {row.fullName}
@@ -600,22 +546,27 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
 
                             {visibleColumns.showTeamDivision && (
                               <span
-                                className={`px-2 py-0.5 rounded text-[10px] sm:text-xs font-black uppercase tracking-wider border ${
+                                className={`px-2 py-0.5 rounded text-xs sm:text-sm font-black uppercase tracking-wider border ${
                                   row.teamDivision === 'transmision'
-                                    ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50'
-                                    : 'bg-amber-500/20 text-amber-200 border-amber-400/50'
+                                    ? 'bg-cyan-500/25 text-cyan-200 border-cyan-400/60'
+                                    : 'bg-amber-500/25 text-amber-200 border-amber-400/60'
                                 }`}
                               >
                                 {formatTeamDivisionLabel(row.teamDivision)}
+                                {teamFilter === 'todos' && row.podiumPlace && (
+                                  <span className="ml-1.5 text-yellow-300">
+                                    • {row.podiumPlace}° LUGAR
+                                  </span>
+                                )}
                               </span>
                             )}
 
                             {visibleColumns.showCompany && row.companyOrTeam && (
                               <span
-                                className={`font-semibold ${
-                                  isTop3Row
-                                    ? 'text-xs sm:text-sm text-slate-200'
-                                    : 'text-xs text-slate-400'
+                                className={`font-bold uppercase tracking-wide ${
+                                  isPodiumRow
+                                    ? 'text-sm sm:text-base md:text-lg text-amber-200/90'
+                                    : 'text-xs sm:text-sm md:text-base text-slate-300'
                                 }`}
                               >
                                 • {row.companyOrTeam}
@@ -623,46 +574,46 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                             )}
 
                             {row.hasPendingTie && (
-                              <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-black uppercase flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" /> Empate
+                              <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-xs font-black uppercase flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5" /> Empate
                               </span>
                             )}
                           </div>
                         </td>
                       )}
 
-                      {/* OPTIONAL TRACKS BREAKDOWN COLUMNS (P1, P2, P3) */}
+                      {/* OPTIONAL TRACKS BREAKDOWN COLUMNS (P1 to P5) */}
                       {visibleColumns.showTracksBreakdown &&
                         tests.map((t) => {
                           const cell = row.testCells[t.id];
                           return (
                             <td
                               key={t.id}
-                              className={`${cellPadding} px-2.5 sm:px-3 text-center border-r border-white/10 font-mono`}
+                              className={`${cellPadding} px-2.5 sm:px-3 text-center border-r border-white/15`}
                             >
                               {cell && cell.status === 'completado' ? (
                                 <div className="leading-tight">
                                   <div
                                     className={`font-black ${
-                                      isTop3Row
-                                        ? 'text-xs sm:text-sm text-amber-300'
-                                        : 'text-xs text-white'
+                                      isPodiumRow
+                                        ? 'text-sm sm:text-base md:text-lg text-amber-300'
+                                        : 'text-sm sm:text-base text-white'
                                     }`}
                                   >
                                     {formatScore(cell.contribution)}
                                   </div>
                                   {cell.effectiveTimeMs !== null && (
-                                    <div className="text-[10px] sm:text-[11px] text-slate-300">
+                                    <div className="text-xs sm:text-sm font-bold text-slate-300">
                                       {formatMsToTime(cell.effectiveTimeMs)}
                                     </div>
                                   )}
                                 </div>
                               ) : cell?.status === 'dq' || cell?.status === 'dnf' ? (
-                                <span className="text-[11px] font-black text-rose-400 uppercase">
+                                <span className="text-xs sm:text-sm font-black text-rose-400 uppercase">
                                   {cell.status}
                                 </span>
                               ) : (
-                                <span className="text-[11px] text-slate-500 font-bold">
+                                <span className="text-xs sm:text-sm text-slate-500 font-bold">
                                   —
                                 </span>
                               )}
@@ -673,17 +624,17 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                       {/* TIEMPO TOTAL COLUMN */}
                       {visibleColumns.showTotalTime && (
                         <td
-                          className={`${cellPadding} px-3 sm:px-5 text-center border-r border-white/10 font-mono`}
+                          className={`${cellPadding} px-3 sm:px-5 text-center border-r border-white/15`}
                         >
                           <span
-                            className={`font-bold ${
-                              isTop1
+                            className={`font-black tracking-wide ${
+                              isTier1
+                                ? 'text-lg sm:text-2xl md:text-[26px] text-amber-200'
+                                : isTier2
+                                ? 'text-base sm:text-xl md:text-2xl text-white'
+                                : isTier3
                                 ? 'text-base sm:text-xl md:text-2xl text-amber-200'
-                                : isTop2
-                                ? 'text-sm sm:text-lg md:text-xl text-slate-100'
-                                : isTop3
-                                ? 'text-sm sm:text-lg md:text-xl text-amber-200'
-                                : 'text-xs sm:text-base md:text-lg text-slate-200'
+                                : 'text-base sm:text-lg md:text-xl text-slate-200'
                             }`}
                           >
                             {totalTimeMs !== null ? formatMsToTime(totalTimeMs) : '—'}
@@ -694,17 +645,17 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                       {/* PUNTOS ACUMULADOS COLUMN */}
                       {visibleColumns.showPoints && (
                         <td
-                          className={`${cellPadding} px-4 sm:px-6 text-center font-mono`}
+                          className={`${cellPadding} px-4 sm:px-6 text-center`}
                         >
                           <span
-                            className={`font-black tracking-tight ${
-                              isTop1
-                                ? 'text-xl sm:text-2xl md:text-3xl text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.75)]'
-                                : isTop2
-                                ? 'text-lg sm:text-xl md:text-2xl text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]'
-                                : isTop3
-                                ? 'text-lg sm:text-xl md:text-2xl text-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.55)]'
-                                : 'text-base sm:text-lg md:text-xl text-white'
+                            className={`font-black tracking-wide leading-none ${
+                              isTier1
+                                ? 'text-2xl sm:text-3xl md:text-4xl text-amber-300 drop-shadow-[0_0_14px_rgba(251,191,36,0.85)]'
+                                : isTier2
+                                ? 'text-xl sm:text-2xl md:text-3xl text-white drop-shadow-[0_0_12px_rgba(251,191,36,0.55)]'
+                                : isTier3
+                                ? 'text-xl sm:text-2xl md:text-3xl text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.65)]'
+                                : 'text-xl sm:text-2xl md:text-[26px] text-white'
                             }`}
                           >
                             {formatScore(row.totalContribution)}
@@ -724,7 +675,6 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       {/* BOTTOM FOOTER: LEFT RED BAR + GRUPO EMPRESAS CHILQUINTA               */}
       {/* ===================================================================== */}
       <footer className="relative z-10 pb-3 sm:pb-4 pt-1 px-4 flex flex-col items-center justify-center">
-        {/* Left Glowing Red Bar + Hazard Stripes from Key Visual */}
         <div
           className="pointer-events-none hidden sm:block absolute bottom-3 left-0 w-[30%] h-7 bg-gradient-to-r from-[#5a0006] via-[#e60012] to-[#ff1e1e] shadow-[0_0_25px_rgba(255,0,21,0.75)] border-y border-red-400/50"
           style={{
@@ -732,18 +682,16 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
           }}
         />
 
-        {/* Centered Grupo Empresas CHILQUINTA Branding */}
         <div className="relative z-10 flex items-center justify-center gap-2.5 sm:gap-3 py-1 px-6">
-          <span className="text-sm sm:text-base md:text-lg font-medium text-slate-200 tracking-wide">
+          <span className="text-base sm:text-lg md:text-xl font-bold text-slate-200 tracking-wide">
             Grupo Empresas
           </span>
           <ChilquintaFooterIcon />
-          <span className="text-lg sm:text-xl md:text-2xl font-black uppercase tracking-wider text-white">
+          <span className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-wider text-white">
             CHILQUINTA
           </span>
         </div>
 
-        {/* Subtle Page Indicator Dots (Only shown if > 1 page, zero buttons) */}
         {totalPages > 1 && (
           <div className="flex items-center gap-1.5 mt-0.5">
             {Array.from({ length: totalPages }).map((_, idx) => (

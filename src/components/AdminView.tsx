@@ -1095,7 +1095,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                         </span>
                       </div>
 
-                      <div className="text-xs text-slate-300 space-y-1">
+                      <div className="text-xs text-slate-300 space-y-1.5">
                         <div>
                           Método:{' '}
                           <strong className="text-sky-300">
@@ -1113,13 +1113,42 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                             {formatScore(test.maxContribution)} pts
                           </strong>
                         </div>
-                        <div>
-                          Tiempo Límite:{' '}
-                          <strong>{(test.timeLimitMs / 1000).toFixed(0)} seg</strong>
-                        </div>
-                        <div>
-                          Intentos Oficiales: <strong>{test.officialAttemptsCount}</strong> (
-                          {test.attemptSelectionRule})
+                        <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-700/80 space-y-2 mt-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-extrabold text-amber-300 uppercase">
+                              ⏱️ Tiempo Límite Pista:
+                            </span>
+                            <span className="font-mono font-black text-white text-xs">
+                              {Math.round(test.timeLimitMs / 60000)} min ({(test.timeLimitMs / 1000).toFixed(0)}s)
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1">
+                            {[3, 5, 8, 10, 12, 15].map((mins) => {
+                              const isCurrent = Math.round(test.timeLimitMs / 60000) === mins;
+                              return (
+                                <button
+                                  key={mins}
+                                  type="button"
+                                  onClick={() =>
+                                    saveTestConfig({
+                                      test: {
+                                        ...test,
+                                        timeLimitMs: mins * 60 * 1000,
+                                      },
+                                      extraordinaryReason: `Cambio rápido de tiempo límite a ${mins} min desde Admin`,
+                                    })
+                                  }
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                                    isCurrent
+                                      ? 'bg-amber-400 text-slate-950 shadow'
+                                      : 'bg-slate-950 text-slate-300 hover:text-white border border-slate-800'
+                                  }`}
+                                >
+                                  {mins}m
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                         <div>
                           Pistas asignadas:{' '}
@@ -2167,7 +2196,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                 { key: 'showFullName', label: 'Nombre' },
                 { key: 'showTeamDivision', label: 'Distribución / Transmisión' },
                 { key: 'showCompany', label: 'Empresa' },
-                { key: 'showTracksBreakdown', label: 'Pistas 1-2-3' },
+                { key: 'showTracksBreakdown', label: 'Pistas 1 a 5' },
                 { key: 'showTotalTime', label: 'Tiempo Total' },
                 { key: 'showPoints', label: 'Puntos' },
               ];
@@ -2207,13 +2236,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
               );
             })()}
 
-            {/* Podios 1°, 2° y 3° Lugar por Equipo (Distribución vs Transmisión) */}
+            {/* Podios por Equipo: 1 Primer Lugar, 2 Segundos Lugares y 3 Terceros Lugares (6 premiados por equipo) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {(['distribucion', 'transmision'] as const).map((divKey) => {
                 const divRows = filterAndRankByDivision(rankingData.rows, divKey).filter(
                   (r) => !r.isDisqualified && r.completedTestsCount > 0
                 );
-                const top3 = divRows.slice(0, 3);
+                const top6 = divRows.slice(0, 6);
                 const isTrans = divKey === 'transmision';
                 return (
                   <div
@@ -2231,15 +2260,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                         }`}
                       >
                         {isTrans
-                          ? '🗼 Podio Equipo Transmisión (1°, 2° y 3° Lugar)'
-                          : '⚡ Podio Equipo Distribución (1°, 2° y 3° Lugar)'}
+                          ? '🗼 Premiados Equipo Transmisión (1× 1°, 2× 2°, 3× 3°)'
+                          : '⚡ Premiados Equipo Distribución (1× 1°, 2× 2°, 3× 3°)'}
                       </span>
                       <span className="text-[11px] text-slate-400 font-bold">
                         {divRows.length} clasificados
                       </span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {top3.map((p) => {
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                      {top6.map((p, idx) => {
                         let sumMs = 0;
                         let hasTime = false;
                         for (const t of tests) {
@@ -2249,23 +2278,30 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                             hasTime = true;
                           }
                         }
+                        const placeTier = p.podiumPlace || (idx === 0 ? 1 : idx <= 2 ? 2 : 3);
                         return (
                           <div
                             key={p.participantId}
-                            className="p-2.5 rounded-lg bg-slate-950/90 border border-slate-800 flex flex-col justify-between"
+                            className={`p-2.5 rounded-lg bg-slate-950/90 border flex flex-col justify-between ${
+                              placeTier === 1
+                                ? 'border-amber-400/70 shadow-[0_0_12px_rgba(251,191,36,0.18)]'
+                                : placeTier === 2
+                                ? 'border-slate-300/50'
+                                : 'border-amber-700/60'
+                            }`}
                           >
                             <div>
                               <div className="flex items-center justify-between text-xs font-black">
                                 <span
                                   className={
-                                    p.position === 1
+                                    placeTier === 1
                                       ? 'text-amber-400'
-                                      : p.position === 2
-                                      ? 'text-slate-300'
-                                      : 'text-amber-600'
+                                      : placeTier === 2
+                                      ? 'text-slate-200'
+                                      : 'text-amber-500'
                                   }
                                 >
-                                  #{p.position}° Lugar
+                                  🏆 {placeTier}° Lugar (#{idx + 1})
                                 </span>
                                 <span className="font-mono text-sky-400">
                                   {p.competitorNumber}

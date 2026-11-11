@@ -741,7 +741,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                 >
                   Todas
                 </button>
-                {tracks.slice(0, 3).map((tr, idx) => (
+                {tracks.slice(0, 5).map((tr, idx) => (
                   <button
                     key={tr.id}
                     type="button"

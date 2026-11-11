@@ -202,11 +202,21 @@ export const DEMO_TRACKS: Track[] = [
     id: 'track_4',
     eventId: INITIAL_EVENT_ID,
     name: 'Pista 4 - Arena Central',
-    status: 'en_pausa',
-    assignedTestIds: ['test_velocidad', 'test_habilidades', 'test_destreza'],
+    status: 'operativa',
+    assignedTestIds: ['test_velocidad', 'test_habilidades', 'test_destreza', 'test_pista4'],
     currentParticipantId: null,
-    currentTestId: null,
+    currentTestId: 'test_pista4',
     order: 4,
+  },
+  {
+    id: 'track_5',
+    eventId: INITIAL_EVENT_ID,
+    name: 'Pista 5 - Circuito Extendido',
+    status: 'operativa',
+    assignedTestIds: ['test_pista5'],
+    currentParticipantId: null,
+    currentTestId: 'test_pista5',
+    order: 5,
   },
 ];
 
@@ -217,8 +227,8 @@ export const DEMO_TESTS: EvaluationTest[] = [
     name: 'Velocidad',
     scoringMethod: 'time_calculated',
     maxBaseScore: 100,
-    maxContribution: 33.33,
-    timeLimitMs: 300000, // 300 segundos
+    maxContribution: 20,
+    timeLimitMs: 300000, // 5 minutos (300 segundos)
     enableSecondsPenalty: true,
     officialAttemptsCount: 1,
     attemptSelectionRule: 'best_score',
@@ -232,8 +242,8 @@ export const DEMO_TESTS: EvaluationTest[] = [
     name: 'Habilidades y Obstáculos',
     scoringMethod: 'time_calculated',
     maxBaseScore: 100,
-    maxContribution: 33.33,
-    timeLimitMs: 300000, // 300 segundos
+    maxContribution: 20,
+    timeLimitMs: 300000, // 5 minutos (300 segundos)
     enableSecondsPenalty: true,
     officialAttemptsCount: 1,
     attemptSelectionRule: 'best_score',
@@ -247,14 +257,44 @@ export const DEMO_TESTS: EvaluationTest[] = [
     name: 'Destreza',
     scoringMethod: 'time_calculated',
     maxBaseScore: 100,
-    maxContribution: 33.34,
-    timeLimitMs: 300000, // 300 segundos
+    maxContribution: 20,
+    timeLimitMs: 300000, // 5 minutos (300 segundos)
     enableSecondsPenalty: true,
     officialAttemptsCount: 1,
     attemptSelectionRule: 'best_score',
     assignedTrackIds: ['track_2', 'track_3', 'track_4'],
     status: 'abierta',
     order: 3,
+  },
+  {
+    id: 'test_pista4',
+    eventId: INITIAL_EVENT_ID,
+    name: 'Pista 4',
+    scoringMethod: 'time_calculated',
+    maxBaseScore: 100,
+    maxContribution: 20,
+    timeLimitMs: 600000, // 10 minutos (600 segundos)
+    enableSecondsPenalty: true,
+    officialAttemptsCount: 1,
+    attemptSelectionRule: 'best_score',
+    assignedTrackIds: ['track_4'],
+    status: 'abierta',
+    order: 4,
+  },
+  {
+    id: 'test_pista5',
+    eventId: INITIAL_EVENT_ID,
+    name: 'Pista 5',
+    scoringMethod: 'time_calculated',
+    maxBaseScore: 100,
+    maxContribution: 20,
+    timeLimitMs: 600000, // 10 minutos (600 segundos)
+    enableSecondsPenalty: true,
+    officialAttemptsCount: 1,
+    attemptSelectionRule: 'best_score',
+    assignedTrackIds: ['track_5'],
+    status: 'abierta',
+    order: 5,
   },
 ];
 
@@ -343,7 +383,7 @@ function buildInitialResults(): CompetitionResult[] {
   const results: CompetitionResult[] = [];
   const addRes = (params: {
     participantId: string;
-    testId: 'test_velocidad' | 'test_habilidades' | 'test_destreza';
+    testId: 'test_velocidad' | 'test_habilidades' | 'test_destreza' | 'test_pista4' | 'test_pista5';
     trackId: string;
     status?: 'completado' | 'dnf' | 'dq';
     rawScore?: number | null;
@@ -408,16 +448,22 @@ function buildInitialResults(): CompetitionResult[] {
   addRes({ participantId: 'PIL-001', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 60000, secondsPenaltyMs: 0, pointsPenalty: 0, observation: 'Mejor tiempo oficial de referencia (01:00.00)' });
   addRes({ participantId: 'PIL-001', testId: 'test_habilidades', trackId: 'track_3', rawScore: 96, pointsPenalty: 0, registeredTimeMs: 145000 });
   addRes({ participantId: 'PIL-001', testId: 'test_destreza', trackId: 'track_2', rawScore: 94, pointsPenalty: 2, registeredTimeMs: 160000 });
+  addRes({ participantId: 'PIL-001', testId: 'test_pista4', trackId: 'track_4', registeredTimeMs: 240000 });
+  addRes({ participantId: 'PIL-001', testId: 'test_pista5', trackId: 'track_5', registeredTimeMs: 260000 });
 
   // 2nd place candidate: PIL-002
   addRes({ participantId: 'PIL-002', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 64000, secondsPenaltyMs: 2000, pointsPenalty: 0 });
   addRes({ participantId: 'PIL-002', testId: 'test_habilidades', trackId: 'track_3', rawScore: 92, pointsPenalty: 0, registeredTimeMs: 152000 });
   addRes({ participantId: 'PIL-002', testId: 'test_destreza', trackId: 'track_2', rawScore: 91, pointsPenalty: 0, registeredTimeMs: 170000 });
+  addRes({ participantId: 'PIL-002', testId: 'test_pista4', trackId: 'track_4', registeredTimeMs: 255000 });
+  addRes({ participantId: 'PIL-002', testId: 'test_pista5', trackId: 'track_5', registeredTimeMs: 275000 });
 
   // 3rd place candidate: PIL-003
   addRes({ participantId: 'PIL-003', testId: 'test_velocidad', trackId: 'track_2', registeredTimeMs: 68000, secondsPenaltyMs: 0, pointsPenalty: 0 });
   addRes({ participantId: 'PIL-003', testId: 'test_habilidades', trackId: 'track_1', rawScore: 90, pointsPenalty: 2, registeredTimeMs: 165000 });
   addRes({ participantId: 'PIL-003', testId: 'test_destreza', trackId: 'track_3', rawScore: 89, pointsPenalty: 0, registeredTimeMs: 175000 });
+  addRes({ participantId: 'PIL-003', testId: 'test_pista4', trackId: 'track_4', registeredTimeMs: 270000 });
+  addRes({ participantId: 'PIL-003', testId: 'test_pista5', trackId: 'track_5', registeredTimeMs: 290000 });
 
   // Tie-breaker demo: PIL-004 and PIL-005 have identical velocity time (75000ms -> 80 pts)
   // PIL-004 has Habilidades=85, Destreza=75
@@ -425,19 +471,27 @@ function buildInitialResults(): CompetitionResult[] {
   addRes({ participantId: 'PIL-004', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 75000, secondsPenaltyMs: 0, pointsPenalty: 0 });
   addRes({ participantId: 'PIL-004', testId: 'test_habilidades', trackId: 'track_3', rawScore: 85, pointsPenalty: 0, registeredTimeMs: 180000 });
   addRes({ participantId: 'PIL-004', testId: 'test_destreza', trackId: 'track_2', rawScore: 75, pointsPenalty: 0, registeredTimeMs: 185000 });
+  addRes({ participantId: 'PIL-004', testId: 'test_pista4', trackId: 'track_4', registeredTimeMs: 300000 });
+  addRes({ participantId: 'PIL-004', testId: 'test_pista5', trackId: 'track_5', registeredTimeMs: 310000 });
 
   addRes({ participantId: 'PIL-005', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 75000, secondsPenaltyMs: 0, pointsPenalty: 0 });
   addRes({ participantId: 'PIL-005', testId: 'test_habilidades', trackId: 'track_3', rawScore: 80, pointsPenalty: 0, registeredTimeMs: 182000 });
   addRes({ participantId: 'PIL-005', testId: 'test_destreza', trackId: 'track_2', rawScore: 80, pointsPenalty: 0, registeredTimeMs: 181000 });
+  addRes({ participantId: 'PIL-005', testId: 'test_pista4', trackId: 'track_4', registeredTimeMs: 305000 });
+  addRes({ participantId: 'PIL-005', testId: 'test_pista5', trackId: 'track_5', registeredTimeMs: 315000 });
 
   // PIL-006 & PIL-007
   addRes({ participantId: 'PIL-006', testId: 'test_velocidad', trackId: 'track_2', registeredTimeMs: 78000, secondsPenaltyMs: 2000, pointsPenalty: 0 });
   addRes({ participantId: 'PIL-006', testId: 'test_habilidades', trackId: 'track_1', rawScore: 84, pointsPenalty: 4, registeredTimeMs: 190000 });
   addRes({ participantId: 'PIL-006', testId: 'test_destreza', trackId: 'track_3', rawScore: 82, pointsPenalty: 0, registeredTimeMs: 195000 });
+  addRes({ participantId: 'PIL-006', testId: 'test_pista4', trackId: 'track_4', registeredTimeMs: 320000 });
+  addRes({ participantId: 'PIL-006', testId: 'test_pista5', trackId: 'track_5', registeredTimeMs: 330000 });
 
   addRes({ participantId: 'PIL-007', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 82000, secondsPenaltyMs: 0, pointsPenalty: 0 });
   addRes({ participantId: 'PIL-007', testId: 'test_habilidades', trackId: 'track_3', rawScore: 79, pointsPenalty: 0, registeredTimeMs: 200000 });
   addRes({ participantId: 'PIL-007', testId: 'test_destreza', trackId: 'track_2', rawScore: 81, pointsPenalty: 3, registeredTimeMs: 205000 });
+  addRes({ participantId: 'PIL-007', testId: 'test_pista4', trackId: 'track_4', registeredTimeMs: 340000 });
+  addRes({ participantId: 'PIL-007', testId: 'test_pista5', trackId: 'track_5', registeredTimeMs: 350000 });
 
   // Persistent Tie Demo: PIL-008 and PIL-009 have IDENTICAL scores and IDENTICAL velocity effective time (80,000ms)
   addRes({ participantId: 'PIL-008', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 80000, secondsPenaltyMs: 0, pointsPenalty: 0, observation: 'Empate exacto con PIL-009 en los 4 criterios' });

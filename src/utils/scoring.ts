@@ -769,15 +769,60 @@ export function formatTeamDivisionLabel(division?: 'distribucion' | 'transmision
   return division === 'transmision' ? 'Transmisión' : 'Distribución';
 }
 
+/**
+ * Maps an intra-team ordinal index (0-based) to the official podium award tier:
+ * - Index 0 -> 1° Lugar (1 winner per team)
+ * - Index 1, 2 -> 2° Lugar (2 winners per team)
+ * - Index 3, 4, 5 -> 3° Lugar (3 winners per team)
+ * - Index >= 6 -> null (regular position)
+ */
+export function getPodiumPlaceForTeamRankIndex(
+  zeroBasedTeamIndex: number,
+  isEligibleAndActive: boolean
+): 1 | 2 | 3 | null {
+  if (!isEligibleAndActive) return null;
+  if (zeroBasedTeamIndex === 0) return 1;
+  if (zeroBasedTeamIndex === 1 || zeroBasedTeamIndex === 2) return 2;
+  if (zeroBasedTeamIndex >= 3 && zeroBasedTeamIndex <= 5) return 3;
+  return null;
+}
+
 export function filterAndRankByDivision(
   rows: RankingRow[],
   divisionFilter: 'todos' | 'distribucion' | 'transmision'
 ): RankingRow[] {
+  // First compute intra-division ranks & podiumPlace (1x 1st, 2x 2nd, 3x 3rd per team)
+  const divCounters: Record<'distribucion' | 'transmision', number> = {
+    distribucion: 0,
+    transmision: 0,
+  };
+
+  const rowsWithTeamPodium = rows.map((r) => {
+    if (r.isDisqualified) {
+      return {
+        ...r,
+        divisionPosition: null,
+        podiumPlace: null,
+      };
+    }
+    const divKey = r.teamDivision || 'distribucion';
+    const teamIdx = divCounters[divKey];
+    divCounters[divKey] = teamIdx + 1;
+    const isActive = r.completedTestsCount > 0;
+    const podiumPlace = getPodiumPlaceForTeamRankIndex(teamIdx, isActive);
+
+    return {
+      ...r,
+      divisionPosition: teamIdx + 1,
+      podiumPlace,
+    };
+  });
+
   if (divisionFilter === 'todos') {
-    return rows;
+    return rowsWithTeamPodium;
   }
 
-  const filtered = rows.filter(
+  const filtered = rowsWithTeamPodium.filter(
     (r) => (r.teamDivision || 'distribucion') === divisionFilter
   );
 

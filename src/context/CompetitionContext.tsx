@@ -84,18 +84,59 @@ function getInitialLocalDb(): LocalDatabaseState {
     if (raw) {
       const parsed = JSON.parse(raw) as LocalDatabaseState;
       if (parsed && Array.isArray(parsed.events) && parsed.events.length > 0) {
-        // Auto-migrate all tests to pure time_calculated if any manual remains
-        let hasManual = false;
-        if (Array.isArray(parsed.tests)) {
-          parsed.tests = parsed.tests.map((t) => {
-            if (t.scoringMethod === 'manual') {
-              hasManual = true;
-              return { ...t, scoringMethod: 'time_calculated' };
+        let needsSave = false;
+
+        // Ensure Track 5 & Tests 4 and 5 (10 min = 600,000ms) exist in migrated local DB
+        if (Array.isArray(parsed.tracks)) {
+          const hasTrack5 = parsed.tracks.some((tr) => tr.id === 'track_5');
+          if (!hasTrack5) {
+            const seedTrack5 = DEMO_TRACKS.find((tr) => tr.id === 'track_5');
+            if (seedTrack5) {
+              parsed.tracks.push(seedTrack5);
+              needsSave = true;
             }
-            return t;
+          }
+          // Ensure track_4 has test_pista4 assigned
+          parsed.tracks = parsed.tracks.map((tr) => {
+            if (tr.id === 'track_4' && !tr.assignedTestIds.includes('test_pista4')) {
+              needsSave = true;
+              return {
+                ...tr,
+                status: 'operativa',
+                assignedTestIds: [...tr.assignedTestIds, 'test_pista4'],
+              };
+            }
+            return tr;
           });
         }
-        if (hasManual && Array.isArray(parsed.results)) {
+
+        if (Array.isArray(parsed.tests)) {
+          const hasTest4 = parsed.tests.some((t) => t.id === 'test_pista4');
+          const hasTest5 = parsed.tests.some((t) => t.id === 'test_pista5');
+          if (!hasTest4 || !hasTest5) {
+            const seedTest4 = DEMO_TESTS.find((t) => t.id === 'test_pista4');
+            const seedTest5 = DEMO_TESTS.find((t) => t.id === 'test_pista5');
+            if (!hasTest4 && seedTest4) parsed.tests.push(seedTest4);
+            if (!hasTest5 && seedTest5) parsed.tests.push(seedTest5);
+            // Rebalance contributions to 20 each across the 5 tests
+            parsed.tests = parsed.tests.map((t) => ({
+              ...t,
+              scoringMethod: 'time_calculated',
+              maxContribution: 20,
+            }));
+            needsSave = true;
+          } else {
+            parsed.tests = parsed.tests.map((t) => {
+              if (t.scoringMethod === 'manual') {
+                needsSave = true;
+                return { ...t, scoringMethod: 'time_calculated' };
+              }
+              return t;
+            });
+          }
+        }
+
+        if (needsSave && Array.isArray(parsed.results)) {
           const disqualifiedIds = new Set(
             (parsed.participants || []).filter((p) => p.isDisqualified).map((p) => p.id)
           );
