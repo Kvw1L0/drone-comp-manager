@@ -369,7 +369,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
   return (
     <div
       onDoubleClick={handleToggleFullscreen}
-      className="font-broadcast-narrow relative min-h-screen w-full bg-[#08090c] text-white flex flex-col justify-between overflow-hidden select-none"
+      className="font-broadcast-narrow relative h-screen h-[100dvh] max-h-screen w-full bg-[#08090c] text-white flex flex-col justify-between overflow-hidden select-none"
       style={{
         backgroundImage: `
           radial-gradient(circle at 50% 18%, rgba(220, 0, 18, 0.22) 0%, rgba(10, 11, 16, 0.92) 55%, #060709 100%),
@@ -499,31 +499,32 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       {/* ===================================================================== */}
       {/* TOP HEADER: OFFICIAL UPLOADED LOGO + RANKING GENERAL / PODIO EQUIPOS  */}
       {/* ===================================================================== */}
-      <header className="relative z-10 pt-2 sm:pt-3 px-4 flex flex-col items-center text-center">
+      <header className="relative z-10 pt-1.5 sm:pt-2 px-4 flex flex-col items-center text-center shrink-0">
         <img
           src="/rally-drone-logo.png"
           alt="The First Grid Rally Drone Race of Chile"
-          className="h-20 sm:h-28 md:h-32 w-auto object-contain drop-shadow-[0_4px_20px_rgba(230,0,18,0.65)] select-none"
+          className="h-12 sm:h-16 md:h-20 max-h-[82px] w-auto object-contain drop-shadow-[0_4px_16px_rgba(230,0,18,0.65)] select-none"
         />
 
         <h1
-          className="mt-0.5 text-3xl sm:text-5xl md:text-6xl font-black italic uppercase tracking-wider text-white leading-none"
+          className="mt-0.5 text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black italic uppercase tracking-wider text-white leading-none drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
           style={{
-            textShadow:
-              '0 2px 0 #cbd5e1, 0 5px 16px rgba(0,0,0,0.95), 0 0 32px rgba(230,0,18,0.45)',
-            letterSpacing: '0.05em',
+            letterSpacing: '0.04em',
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+            textRendering: 'geometricPrecision',
           }}
         >
           {showSplitTeamPodium ? 'PODIO POR EQUIPOS' : 'RANKING GENERAL'}
         </h1>
 
         {/* — CLASIFICACIÓN — with flanking red bars */}
-        <div className="flex items-center justify-center gap-3 sm:gap-5 w-full max-w-3xl mt-1">
-          <div className="h-[3.5px] flex-1 max-w-[175px] bg-gradient-to-r from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_12px_#e60012]" />
-          <span className="text-sm sm:text-lg md:text-xl font-black uppercase tracking-[0.26em] text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+        <div className="flex items-center justify-center gap-2 sm:gap-4 w-full max-w-3xl mt-0.5">
+          <div className="h-[2.5px] flex-1 max-w-[150px] bg-gradient-to-r from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_10px_#e60012]" />
+          <span className="text-xs sm:text-base md:text-lg font-black uppercase tracking-[0.24em] text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
             {subtitleLabel}
           </span>
-          <div className="h-[3.5px] flex-1 max-w-[175px] bg-gradient-to-l from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_12px_#e60012]" />
+          <div className="h-[2.5px] flex-1 max-w-[150px] bg-gradient-to-l from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_10px_#e60012]" />
         </div>
       </header>
 
@@ -531,14 +532,14 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       {/* MAIN BODY: EITHER SPLIT-SCREEN TEAM PODIUM OR GENERAL RANKING TABLE   */}
       {/* ===================================================================== */}
       {showSplitTeamPodium ? (
-        <main className="relative z-10 flex-1 flex flex-col justify-center w-full max-w-7xl mx-auto px-3 sm:px-6 md:px-10 my-1.5">
+        <main className="relative z-10 flex-1 min-h-0 flex flex-col justify-center w-full max-w-7xl mx-auto px-3 sm:px-6 md:px-10 my-1 overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-stretch">
             {renderTeamPodiumColumn('distribucion', distribucionWinners)}
             {renderTeamPodiumColumn('transmision', transmisionWinners)}
           </div>
         </main>
       ) : (
-        <main className="relative z-10 flex-1 flex flex-col justify-center w-full max-w-6xl mx-auto px-3 sm:px-8 md:px-14 my-1.5">
+        <main className="relative z-10 flex-1 min-h-0 flex flex-col justify-center w-full max-w-6xl mx-auto px-2 sm:px-6 md:px-10 my-1 overflow-hidden">
           <div
             className="w-full overflow-hidden shadow-[0_14px_55px_rgba(0,0,0,0.96)] border-2 border-red-500/55 bg-[#0b0c10]/95"
             style={{
@@ -638,8 +639,8 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                         };
 
                     const cellPadding = isTop3GeneralRow
-                      ? 'py-2 sm:py-3'
-                      : 'py-1.5 sm:py-2';
+                      ? 'py-1.5 sm:py-2 md:py-2.5'
+                      : 'py-1 sm:py-1.5 md:py-2';
 
                     return (
                       <tr
@@ -848,7 +849,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       {/* ===================================================================== */}
       {/* BOTTOM FOOTER: LEFT RED BAR + GRUPO EMPRESAS CHILQUINTA               */}
       {/* ===================================================================== */}
-      <footer className="relative z-10 pb-3 sm:pb-4 pt-1 px-4 flex flex-col items-center justify-center">
+      <footer className="relative z-10 pb-2 sm:pb-2.5 pt-0.5 px-4 flex flex-col items-center justify-center shrink-0">
         <div
           className="pointer-events-none hidden sm:block absolute bottom-3 left-0 w-[30%] h-7 bg-gradient-to-r from-[#5a0006] via-[#e60012] to-[#ff1e1e] shadow-[0_0_25px_rgba(255,0,21,0.75)] border-y border-red-400/50"
           style={{

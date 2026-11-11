@@ -33,9 +33,10 @@
     padding: 0;
     background-color: #08080a;
     color: #f8fafc;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-      Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: 'Barlow Condensed', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   body {
@@ -67,10 +68,13 @@
   box-shadow: 0 0 24px -4px rgba(230, 0, 18, 0.45);
 }
 
-/* Key Visual Broadcast Narrow Bold Typography */
+/* Key Visual Broadcast Narrow Bold Typography (Razor-Sharp Anti-Aliasing) */
 .font-broadcast-narrow {
-  font-family: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', Impact, sans-serif;
-  letter-spacing: 0.02em;
+  font-family: 'Barlow Condensed', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: 0.025em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
 }
 
 .kv-stripes {
