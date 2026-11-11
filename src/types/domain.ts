@@ -72,6 +72,7 @@ export interface CompetitionEvent {
   rankingViewMode?: RankingViewMode;
   rankingTeamFilter?: RankingTeamFilter;
   rankingVisibleColumns?: RankingVisibleColumns;
+  showTeamPodiumOverlay?: boolean;
   configVersion: number;
   accreditationRequirements: AccreditationRequirement[];
   tieBreakerRules: TieBreakerRule[];

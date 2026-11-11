@@ -50,14 +50,17 @@ const MainShell: React.FC = () => {
     undefined
   );
 
-  // Check URL query parameter ?vista=ranking for direct giant screen projection
+  // Check URL query parameter ?vista=ranking or ?vista=podio for direct giant screen projection
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (
       params.get('vista') === 'ranking' ||
+      params.get('vista') === 'podio' ||
       params.get('pantalla') === 'publica' ||
+      params.get('pantalla') === 'podio' ||
       params.get('screen') === 'public' ||
-      params.get('ranking') !== null
+      params.get('ranking') !== null ||
+      params.get('podio') !== null
     ) {
       setIsPublicScreenMode(true);
     }

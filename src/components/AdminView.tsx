@@ -89,10 +89,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
     setEventRankingViewMode,
     setEventRankingTeamFilter,
     setEventRankingColumns,
+    setEventShowTeamPodiumOverlay,
     toggleTrackResultDQ,
   } = useCompetition();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('eventos');
+  const [showAdminPodiumPopup, setShowAdminPodiumPopup] = useState<boolean>(false);
   const [bannerMsg, setBannerMsg] = useState<{
     type: 'success' | 'error';
     text: string;
@@ -2162,16 +2164,58 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                   </button>
                 </div>
 
+                {/* Botón para proyectar Podio Pantalla Dividida en la TV Pública */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEventShowTeamPodiumOverlay(!activeEvent.showTeamPodiumOverlay)
+                  }
+                  className={`px-3.5 py-2 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer shadow ${
+                    activeEvent.showTeamPodiumOverlay
+                      ? 'bg-amber-400 border-amber-300 text-slate-950 shadow-[0_0_16px_rgba(251,191,36,0.6)]'
+                      : 'bg-slate-800 hover:bg-slate-700 border-amber-500/50 text-amber-300 hover:text-white'
+                  }`}
+                  title="Proyectar u ocultar el Podio en Pantalla Dividida (Distribución vs Transmisión) en la TV Pública"
+                >
+                  <Award className="w-4 h-4" />
+                  {activeEvent.showTeamPodiumOverlay
+                    ? 'Ocultar Podio en TV'
+                    : 'Proyectar Podio en TV'}
+                </button>
+
+                {/* Botón Pop-up de Podio Pantalla Dividida en el Admin */}
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPodiumPopup(true)}
+                  className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 border border-red-400 text-white text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer shadow"
+                  title="Abrir Pop-up en Pantalla Dividida de Premiados Distribución y Transmisión"
+                >
+                  <Award className="w-4 h-4" />
+                  Pop-up Podio Equipos
+                </button>
+
                 {/* Acceso Directo a Pantalla Pública */}
                 <a
                   href="/?vista=ranking"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow"
-                  title="Abrir la Pantalla Pública en una pestaña nueva"
+                  title="Abrir la Pantalla Pública de Ranking General en una pestaña nueva"
                 >
                   <ExternalLink className="w-4 h-4 text-sky-400" />
-                  Ver Pantalla Pública
+                  TV Ranking
+                </a>
+
+                {/* Acceso Directo a Pantalla de Podio Dividido */}
+                <a
+                  href="/?vista=podio"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-500/50 text-amber-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow"
+                  title="Abrir Pantalla Exclusiva de Podio Dividido (Distribución vs Transmisión) en otra pestaña"
+                >
+                  <ExternalLink className="w-4 h-4 text-amber-400" />
+                  TV Podio Dividido
                 </a>
               </div>
             </div>
@@ -2236,100 +2280,188 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
               );
             })()}
 
-            {/* Podios por Equipo: 1 Primer Lugar, 2 Segundos Lugares y 3 Terceros Lugares (6 premiados por equipo) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {(['distribucion', 'transmision'] as const).map((divKey) => {
-                const divRows = filterAndRankByDivision(rankingData.rows, divKey).filter(
-                  (r) => !r.isDisqualified && r.completedTestsCount > 0
-                );
-                const top6 = divRows.slice(0, 6);
-                const isTrans = divKey === 'transmision';
-                return (
-                  <div
-                    key={divKey}
-                    className={`p-4 rounded-xl border ${
-                      isTrans
-                        ? 'bg-cyan-950/20 border-cyan-500/40'
-                        : 'bg-amber-950/20 border-amber-500/40'
-                    } space-y-2.5`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-xs font-black uppercase tracking-wider ${
-                          isTrans ? 'text-cyan-300' : 'text-amber-300'
+            {/* Modal Pop-up de Podio en Pantalla Dividida (Distribución vs Transmisión) */}
+            {showAdminPodiumPopup && (
+              <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+                <div className="font-broadcast-narrow relative w-full max-w-6xl rounded-2xl bg-[#08090c] border-2 border-red-500/70 shadow-[0_20px_70px_rgba(0,0,0,0.95)] p-4 sm:p-6 space-y-5">
+                  {/* Modal Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-500/40 pb-4">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src="/rally-drone-logo.png"
+                        alt="Rally Drone Race"
+                        className="h-12 sm:h-14 w-auto object-contain"
+                      />
+                      <div>
+                        <h3 className="text-2xl sm:text-3xl font-black italic uppercase tracking-wider text-white leading-none">
+                          PODIO OFICIAL POR EQUIPOS
+                        </h3>
+                        <p className="text-xs sm:text-sm font-bold uppercase tracking-widest text-amber-300 mt-0.5">
+                          1 Primer Lugar • 2 Segundos Lugares • 3 Terceros Lugares por División
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEventShowTeamPodiumOverlay(!activeEvent.showTeamPodiumOverlay)
+                        }
+                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition cursor-pointer ${
+                          activeEvent.showTeamPodiumOverlay
+                            ? 'bg-amber-400 text-slate-950 shadow-[0_0_16px_rgba(251,191,36,0.6)]'
+                            : 'bg-slate-800 hover:bg-slate-700 border border-amber-400/50 text-amber-300'
                         }`}
                       >
-                        {isTrans
-                          ? '🗼 Premiados Equipo Transmisión (1× 1°, 2× 2°, 3× 3°)'
-                          : '⚡ Premiados Equipo Distribución (1× 1°, 2× 2°, 3× 3°)'}
-                      </span>
-                      <span className="text-[11px] text-slate-400 font-bold">
-                        {divRows.length} clasificados
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                      {top6.map((p, idx) => {
-                        let sumMs = 0;
-                        let hasTime = false;
-                        for (const t of tests) {
-                          const c = p.testCells[t.id];
-                          if (c && c.status === 'completado' && c.effectiveTimeMs !== null) {
-                            sumMs += c.effectiveTimeMs;
-                            hasTime = true;
-                          }
-                        }
-                        const placeTier = p.podiumPlace || (idx === 0 ? 1 : idx <= 2 ? 2 : 3);
-                        return (
-                          <div
-                            key={p.participantId}
-                            className={`p-2.5 rounded-lg bg-slate-950/90 border flex flex-col justify-between ${
-                              placeTier === 1
-                                ? 'border-amber-400/70 shadow-[0_0_12px_rgba(251,191,36,0.18)]'
-                                : placeTier === 2
-                                ? 'border-slate-300/50'
-                                : 'border-amber-700/60'
-                            }`}
-                          >
-                            <div>
-                              <div className="flex items-center justify-between text-xs font-black">
-                                <span
-                                  className={
-                                    placeTier === 1
-                                      ? 'text-amber-400'
-                                      : placeTier === 2
-                                      ? 'text-slate-200'
-                                      : 'text-amber-500'
-                                  }
-                                >
-                                  🏆 {placeTier}° Lugar (#{idx + 1})
-                                </span>
-                                <span className="font-mono text-sky-400">
-                                  {p.competitorNumber}
-                                </span>
-                              </div>
-                              <div className="text-xs font-extrabold text-white truncate mt-0.5">
-                                {p.fullName}
-                              </div>
-                              <div className="text-[10px] text-slate-400 truncate">
-                                {p.companyOrTeam}
-                              </div>
-                            </div>
-                            <div className="mt-2 pt-1.5 border-t border-slate-800 flex items-center justify-between font-mono text-[11px]">
-                              <span className="font-black text-amber-300">
-                                {formatScore(p.totalContribution)} pts
-                              </span>
-                              <span className="text-sky-300 font-bold">
-                                {hasTime ? formatMsToTime(sumMs) : '—'}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                        {activeEvent.showTeamPodiumOverlay
+                          ? '📡 Proyectándose en TV (Clic para volver a Tabla)'
+                          : '📺 Proyectar este Podio en la TV'}
+                      </button>
+                      <a
+                        href="/?vista=podio"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-xs sm:text-sm font-black uppercase tracking-wider flex items-center gap-1.5"
+                      >
+                        <ExternalLink className="w-4 h-4 text-amber-400" />
+                        Abrir en Otra Pantalla
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminPodiumPopup(false)}
+                        className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm font-black uppercase tracking-wider cursor-pointer"
+                      >
+                        Cerrar ✕
+                      </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+
+                  {/* Split Screen Grid: Distribución (Left) & Transmisión (Right) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    {(['distribucion', 'transmision'] as const).map((divKey) => {
+                      const divRows = filterAndRankByDivision(rankingData.rows, divKey).filter(
+                        (r) => !r.isDisqualified && r.completedTestsCount > 0
+                      );
+                      const top6 = divRows.slice(0, 6);
+                      const isTrans = divKey === 'transmision';
+                      return (
+                        <div
+                          key={divKey}
+                          className={`rounded-xl overflow-hidden border-2 ${
+                            isTrans ? 'border-cyan-400/60' : 'border-amber-400/60'
+                          } bg-[#0c0d12]`}
+                        >
+                          <div
+                            className="py-2.5 px-4 flex items-center justify-between border-b border-white/20"
+                            style={{
+                              background: isTrans
+                                ? 'linear-gradient(90deg, #064e63 0%, #0891b2 50%, #064e63 100%)'
+                                : 'linear-gradient(90deg, #78350f 0%, #d97706 50%, #78350f 100%)',
+                            }}
+                          >
+                            <span className="text-lg sm:text-xl font-black uppercase tracking-wider text-white">
+                              {isTrans ? '🗼 EQUIPO TRANSMISIÓN' : '⚡ EQUIPO DISTRIBUCIÓN'}
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded bg-black/45 border border-white/20 text-xs font-black uppercase text-amber-200">
+                              6 Premiados
+                            </span>
+                          </div>
+
+                          <div className="divide-y divide-white/10">
+                            {[0, 1, 2, 3, 4, 5].map((slotIdx) => {
+                              const p = top6[slotIdx];
+                              const placeTier: 1 | 2 | 3 =
+                                slotIdx === 0 ? 1 : slotIdx <= 2 ? 2 : 3;
+                              let sumMs = 0;
+                              let hasTime = false;
+                              if (p) {
+                                for (const t of tests) {
+                                  const c = p.testCells[t.id];
+                                  if (
+                                    c &&
+                                    c.status === 'completado' &&
+                                    c.effectiveTimeMs !== null
+                                  ) {
+                                    sumMs += c.effectiveTimeMs;
+                                    hasTime = true;
+                                  }
+                                }
+                              }
+
+                              return (
+                                <div
+                                  key={p ? p.participantId : `empty-${slotIdx}`}
+                                  className={`p-3 flex items-center justify-between gap-3 ${
+                                    placeTier === 1
+                                      ? 'bg-gradient-to-r from-red-950/70 via-amber-500/25 to-red-950/50'
+                                      : placeTier === 2
+                                      ? 'bg-gradient-to-r from-slate-800/60 via-slate-700/30 to-slate-900/60'
+                                      : 'bg-gradient-to-r from-amber-950/50 via-amber-800/20 to-slate-950/70'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className="flex flex-col items-center shrink-0 w-20">
+                                      <span
+                                        className={`w-full text-center py-0.5 rounded font-black uppercase text-sm sm:text-base leading-tight ${
+                                          placeTier === 1
+                                            ? 'bg-amber-400 text-slate-950 shadow-[0_0_12px_rgba(251,191,36,0.7)]'
+                                            : placeTier === 2
+                                            ? 'bg-slate-200 text-slate-950'
+                                            : 'bg-amber-600 text-white'
+                                        }`}
+                                      >
+                                        {placeTier}° LUGAR
+                                      </span>
+                                      {p?.position && (
+                                        <span className="text-[11px] font-bold text-amber-200/80 mt-0.5">
+                                          #{String(p.position).padStart(2, '0')} General
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {p ? (
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="px-1.5 py-0.2 rounded bg-black/50 border border-white/20 text-amber-300 font-black text-xs">
+                                            {p.competitorNumber}
+                                          </span>
+                                          <span className="text-base sm:text-xl font-black uppercase text-white truncate">
+                                            {p.fullName}
+                                          </span>
+                                        </div>
+                                        <div className="text-xs font-bold uppercase text-slate-400 truncate">
+                                          {p.companyOrTeam}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <span className="text-sm font-bold text-slate-500 uppercase">
+                                        Vacante disponible
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {p && (
+                                    <div className="text-right shrink-0">
+                                      <div className="text-lg sm:text-2xl font-black text-amber-300 leading-none">
+                                        {formatScore(p.totalContribution)} PTS
+                                      </div>
+                                      <div className="text-xs font-bold text-slate-300 mt-0.5">
+                                        {hasTime ? formatMsToTime(sumMs) : '—'}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="overflow-x-auto max-h-[520px] rounded-xl border border-slate-800">
               {activeEvent.rankingViewMode === 'resumen' ? (

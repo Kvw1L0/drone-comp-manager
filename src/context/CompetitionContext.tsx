@@ -329,6 +329,7 @@ interface CompetitionContextValue {
   setEventRankingViewMode: (mode: RankingViewMode) => Promise<void>;
   setEventRankingTeamFilter: (filter: RankingTeamFilter) => Promise<void>;
   setEventRankingColumns: (columns: RankingVisibleColumns) => Promise<void>;
+  setEventShowTeamPodiumOverlay: (show: boolean) => Promise<void>;
   toggleTrackResultDQ: (params: { participantId: string; testId: string; trackId?: string }) => Promise<void>;
 }
 
@@ -2241,6 +2242,21 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
     [runAtomicDbTransaction, activeEvent.id]
   );
 
+  const setEventShowTeamPodiumOverlay = useCallback(
+    async (show: boolean) => {
+      await runAtomicDbTransaction((dbState) => {
+        const idx = dbState.events.findIndex((e) => e.id === activeEvent.id);
+        if (idx === -1) return;
+        dbState.events[idx] = {
+          ...dbState.events[idx],
+          showTeamPodiumOverlay: show,
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    [runAtomicDbTransaction, activeEvent.id]
+  );
+
   const toggleTrackResultDQ = useCallback(
     async (params: { participantId: string; testId: string; trackId?: string }) => {
       const actor = requireStaffOrAdmin();
@@ -2436,6 +2452,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
     setEventRankingViewMode,
     setEventRankingTeamFilter,
     setEventRankingColumns,
+    setEventShowTeamPodiumOverlay,
     toggleTrackResultDQ,
   };
 

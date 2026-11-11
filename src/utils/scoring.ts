@@ -822,35 +822,9 @@ export function filterAndRankByDivision(
     return rowsWithTeamPodium;
   }
 
-  const filtered = rowsWithTeamPodium.filter(
+  // Keep each pilot's general tournament position intact in `position`,
+  // while `divisionPosition` and `podiumPlace` hold their intra-group standing.
+  return rowsWithTeamPodium.filter(
     (r) => (r.teamDivision || 'distribucion') === divisionFilter
   );
-
-  const eligible = filtered.filter((r) => !r.isDisqualified);
-  const dq = filtered.filter((r) => r.isDisqualified);
-
-  let lastGeneralPos: number | null = null;
-  let lastAssignedDivisionPos = 1;
-
-  const reRankedEligible = eligible.map((r, idx) => {
-    let divPos = idx + 1;
-    if (
-      idx > 0 &&
-      r.position !== null &&
-      lastGeneralPos !== null &&
-      r.position === lastGeneralPos
-    ) {
-      divPos = lastAssignedDivisionPos;
-    } else {
-      lastAssignedDivisionPos = divPos;
-    }
-    lastGeneralPos = r.position;
-
-    return {
-      ...r,
-      position: divPos,
-    };
-  });
-
-  return [...reRankedEligible, ...dq];
 }
