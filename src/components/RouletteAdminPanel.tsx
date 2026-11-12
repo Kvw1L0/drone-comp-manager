@@ -25,6 +25,7 @@ import {
   saveRouletteState,
   subscribeRouletteState,
   broadcastSpinCommand,
+  resetTombolaTo194,
   parseExcelParticipants,
   downloadSampleExcelTemplate,
   exportWinnersToExcel,
@@ -138,8 +139,9 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
   // 3. Trigger Spin Activation
   const handleTriggerSpin = () => {
     if (state.participants.length === 0) {
-      showFeedback('error', 'No hay participantes en la ruleta. Se sincronizaron los participantes oficiales del torneo.');
-      handleLoadFromTournament();
+      showFeedback('error', 'No hay números en la tómbola. Se restablecieron los números del 1 al 194.');
+      const fresh = resetTombolaTo194();
+      setState(fresh);
       return;
     }
 
@@ -251,11 +253,11 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
             </div>
 
             <h2 className="text-2xl sm:text-4xl font-black italic uppercase tracking-wider text-white drop-shadow-md">
-              PANEL DE CONTROL DE RULETA
+              PANEL DE CONTROL DE TÓMBOLA
             </h2>
 
             <p className="text-sm text-slate-300 max-w-xl">
-              Cargue nóminas desde Excel, configure premios y active giros en tiempo real sincronizados con la pantalla gigante de transmisión.
+              Tómbola cargada con los números del 1 al 194. Active giros en tiempo real sincronizados con la pantalla gigante de transmisión.
             </p>
           </div>
 
@@ -394,14 +396,29 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
 
             {/* Quick Actions Row */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={handleLoadFromTournament}
-                className="py-2 px-3.5 rounded-xl bg-red-950/60 hover:bg-red-900/80 border border-red-500/40 text-red-200 text-xs font-black uppercase tracking-wider flex items-center gap-2 transition cursor-pointer"
-              >
-                <Users className="w-4 h-4 text-red-400" />
-                <span>Cargar Pilotos del Torneo</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const fresh = resetTombolaTo194();
+                    setState(fresh);
+                    showFeedback('success', '🎰 Tómbola restablecida con los números del 1 al 194 (194 en pozo).');
+                  }}
+                  className="py-2 px-3.5 rounded-xl bg-gradient-to-r from-amber-500/25 via-red-500/20 to-amber-500/25 hover:from-amber-500/40 hover:to-red-500/40 border border-amber-500/60 text-amber-300 text-xs font-black uppercase tracking-wider flex items-center gap-2 transition cursor-pointer shadow-md"
+                >
+                  <RotateCcw className="w-4 h-4 text-amber-400" />
+                  <span>Cargar Números 1 al 194</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleLoadFromTournament}
+                  className="py-2 px-3 rounded-xl bg-red-950/60 hover:bg-red-900/80 border border-red-500/40 text-red-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Users className="w-4 h-4 text-red-400" />
+                  <span>Pilotos Torneo</span>
+                </button>
+              </div>
 
               <div className="flex items-center gap-2">
                 <button

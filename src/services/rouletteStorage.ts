@@ -1,5 +1,4 @@
 import * as XLSX from 'xlsx';
-import { DEMO_PARTICIPANTS } from '../data/seedData';
 import { formatShortName } from '../utils/scoring';
 
 export interface RouletteParticipant {
@@ -41,25 +40,37 @@ export interface RouletteState {
   spinTimestamp: number;
 }
 
-const STORAGE_KEY = 'drone_comp_roulette_state_v4';
-const CHANNEL_NAME = 'drone_roulette_channel_v4';
+const STORAGE_KEY = 'drone_comp_tombola_194_v1';
+const CHANNEL_NAME = 'drone_tombola_194_channel_v1';
+
+/**
+ * Generates numbered participants from 1 to `count` (default 194)
+ */
+export function generateNumberedParticipants(count = 194): RouletteParticipant[] {
+  const list: RouletteParticipant[] = [];
+  for (let i = 1; i <= count; i++) {
+    const formattedNum = String(i).padStart(3, '0');
+    list.push({
+      id: `num-${i}`,
+      name: `Número ${i}`,
+      shortName: `N° ${i}`,
+      number: `#${formattedNum}`,
+      company: 'Tómbola Oficial',
+      division: undefined,
+    });
+  }
+  return list;
+}
 
 export function getDefaultRouletteParticipants(): RouletteParticipant[] {
-  return DEMO_PARTICIPANTS.map((p) => ({
-    id: p.id,
-    name: p.fullName,
-    shortName: formatShortName(p.fullName),
-    number: p.competitorNumber,
-    company: p.companyOrTeam,
-    division: p.teamDivision === 'transmision' ? 'Tx' : 'Dx',
-  }));
+  return generateNumberedParticipants(194);
 }
 
 export function getDefaultRouletteState(): RouletteState {
   return {
-    participants: getDefaultRouletteParticipants(),
+    participants: generateNumberedParticipants(194),
     winners: [],
-    prizeTitle: 'SORTEO OFICIAL DE COMPETENCIA',
+    prizeTitle: 'TÓMBOLA OFICIAL • NÚMEROS 1 AL 194',
     spinDurationSeconds: 8,
     removeWinnerFromPool: true,
     soundEnabled: true,
@@ -78,7 +89,7 @@ export function loadRouletteState(): RouletteState {
     if (!raw) return getDefaultRouletteState();
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed.participants) || parsed.participants.length === 0) {
-      parsed.participants = getDefaultRouletteParticipants();
+      parsed.participants = generateNumberedParticipants(194);
     }
     return {
       ...getDefaultRouletteState(),
@@ -212,6 +223,15 @@ export function subscribeRouletteState(callback: (state: RouletteState) => void)
 }
 
 /**
+ * Resets the tombola completely to clean numbers 1 to 194 with 0 winners
+ */
+export function resetTombolaTo194(): RouletteState {
+  const fresh = getDefaultRouletteState();
+  saveRouletteState(fresh, true);
+  return fresh;
+}
+
+/**
  * Parses an uploaded Excel (.xlsx, .xls) or CSV file and extracts participant entries.
  * Tolerates columns named "Nombre", "Piloto", "Participante", "Name", "Numero", "Nro", "Empresa", "Area", etc.
  */
@@ -261,7 +281,7 @@ export async function parseExcelParticipants(file: File): Promise<RoulettePartic
     }
 
     if (nameVal) {
-      const cleanNum = numVal ? (numVal.startsWith('#') ? numVal : `#${numVal}`) : `#${String(idx + 1).padStart(2, '0')}`;
+      const cleanNum = numVal ? (numVal.startsWith('#') ? numVal : `#${numVal}`) : `#${String(idx + 1).padStart(3, '0')}`;
       parsed.push({
         id: `p-${idx + 1}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         name: nameVal,
@@ -277,26 +297,23 @@ export async function parseExcelParticipants(file: File): Promise<RoulettePartic
 }
 
 /**
- * Generates and downloads a sample Excel template for participants
+ * Generates and downloads a sample Excel template with 194 numbered participants
  */
 export function downloadSampleExcelTemplate(): void {
-  const sampleData = [
-    { 'N°': '01', 'Nombre y Apellido': 'Daniel Tapia', 'Empresa / Área': 'Litoral', 'División': 'Dx' },
-    { 'N°': '02', 'Nombre y Apellido': 'Sabino Cruz', 'Empresa / Área': 'Chilquinta Dx', 'División': 'Dx' },
-    { 'N°': '03', 'Nombre y Apellido': 'José Vivanco', 'Empresa / Área': 'Luz Parral', 'División': 'Dx' },
-    { 'N°': '04', 'Nombre y Apellido': 'Bryan Álvarez', 'Empresa / Área': 'Chilquinta Dx', 'División': 'Dx' },
-    { 'N°': '05', 'Nombre y Apellido': 'Emiliano Pastén', 'Empresa / Área': 'Chilquinta Dx', 'División': 'Dx' },
-    { 'N°': '06', 'Nombre y Apellido': 'Erick Tapia', 'Empresa / Área': 'Chilquinta Dx', 'División': 'Dx' },
-    { 'N°': '07', 'Nombre y Apellido': 'Matías Contreras', 'Empresa / Área': 'Luz Parral', 'División': 'Dx' },
-    { 'N°': '08', 'Nombre y Apellido': 'Alejandro Moraga', 'Empresa / Área': 'Luz Linares', 'División': 'Dx' },
-    { 'N°': '09', 'Nombre y Apellido': 'David Chávez', 'Empresa / Área': 'Tecmored', 'División': 'Tx' },
-    { 'N°': '10', 'Nombre y Apellido': 'Rodrigo Pizarro', 'Empresa / Área': 'Tecmored', 'División': 'Tx' },
-  ];
+  const sampleData: Array<Record<string, string>> = [];
+  for (let i = 1; i <= 194; i++) {
+    sampleData.push({
+      'N°': String(i).padStart(3, '0'),
+      'Nombre y Apellido': `Número ${i}`,
+      'Empresa / Área': 'Tómbola Oficial',
+      'División': '',
+    });
+  }
 
   const ws = XLSX.utils.json_to_sheet(sampleData);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Participantes');
-  XLSX.writeFile(wb, 'Plantilla_Ruleta_Participantes.xlsx');
+  XLSX.utils.book_append_sheet(wb, ws, 'Numeros_1_al_194');
+  XLSX.writeFile(wb, 'Plantilla_Tombola_1_al_194.xlsx');
 }
 
 /**
@@ -316,5 +333,5 @@ export function exportWinnersToExcel(winners: RouletteWinner[]): void {
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Ganadores Sorteo');
-  XLSX.writeFile(wb, `Ganadores_Ruleta_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  XLSX.writeFile(wb, `Ganadores_Tombola_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }

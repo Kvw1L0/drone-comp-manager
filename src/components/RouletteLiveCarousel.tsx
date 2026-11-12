@@ -28,7 +28,7 @@ interface RouletteLiveCarouselProps {
   showSpinButton?: boolean;
 }
 
-const REPETITIONS = 20;
+const REPETITIONS = 12;
 
 export const RouletteLiveCarousel = forwardRef<
   RouletteCarouselHandle,
