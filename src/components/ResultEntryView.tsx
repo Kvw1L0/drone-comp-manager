@@ -145,7 +145,18 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
   const handleSelectPilot = (pilotId: string) => {
     setSelectedParticipantId(pilotId);
     if (pinnedTrackId) {
-      const matchTest = tests.find((t) => t.assignedTrackIds.includes(pinnedTrackId)) || tests[0];
+      const primaryTestMap: Record<string, string> = {
+        track_1: 'test_velocidad',
+        track_2: 'test_habilidades',
+        track_3: 'test_destreza',
+        track_4: 'test_pista4',
+        track_5: 'test_pista5',
+      };
+      const directTestId = primaryTestMap[pinnedTrackId];
+      const matchTest =
+        tests.find((t) => t.id === directTestId) ||
+        tests.find((t) => t.assignedTrackIds.includes(pinnedTrackId)) ||
+        tests[0];
       if (matchTest) setSelectedTestId(matchTest.id);
       setSelectedTrackId(pinnedTrackId);
       setStep('time');
@@ -279,7 +290,16 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
       compatible.length > 0 &&
       !compatible.some((tr) => tr.id === selectedTrackId)
     ) {
-      setSelectedTrackId(compatible[0].id);
+      const primaryTrackMap: Record<string, string> = {
+        test_velocidad: 'track_1',
+        test_habilidades: 'track_2',
+        test_destreza: 'track_3',
+        test_pista4: 'track_4',
+        test_pista5: 'track_5',
+      };
+      const directTrackId = primaryTrackMap[selectedTest.id];
+      const directMatch = directTrackId ? compatible.find((tr) => tr.id === directTrackId) : null;
+      setSelectedTrackId(directMatch ? directMatch.id : compatible[0].id);
     } else if (compatible.length === 0 && tracks.length > 0 && !selectedTrackId) {
       setSelectedTrackId(tracks[0].id);
     }
@@ -962,7 +982,9 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                     r.testId === test.id &&
                     r.publicationStatus === 'publicado'
                 );
+                const directTrackId = `track_${idx + 1}`;
                 const trackForTest =
+                  tracks.find((tr) => tr.id === directTrackId && test.assignedTrackIds.includes(tr.id)) ||
                   tracks.find((tr) => test.assignedTrackIds.includes(tr.id)) ||
                   tracks[idx] ||
                   tracks[0];
