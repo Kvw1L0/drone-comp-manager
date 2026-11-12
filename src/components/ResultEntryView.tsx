@@ -502,7 +502,13 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
           setStatusMessage({ type: 'error', text: 'El puntaje no puede ser negativo.' });
           return;
         }
-        if (parsedRawScore > selectedTest.maxBaseScore) {
+        const isUncapped =
+          selectedTest.id === 'test_pista4' ||
+          selectedTest.id === 'test_pista5' ||
+          selectedTest.id.includes('pista4') ||
+          selectedTest.id.includes('pista5');
+
+        if (!isUncapped && parsedRawScore > selectedTest.maxBaseScore) {
           setStatusMessage({
             type: 'error',
             text: `El puntaje (${parsedRawScore}) no puede superar el máximo configurado (${selectedTest.maxBaseScore} pts).`,
@@ -1101,7 +1107,9 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                           : 'Puntaje Asignado por Jueces (Puntos Directos)'}
                       </span>
                       <span className="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold text-[11px] border border-amber-500/30">
-                        Máx {selectedTest.maxBaseScore} pts
+                        {selectedTest.id.includes('pista4') || selectedTest.id.includes('pista5')
+                          ? 'Puntos Libres Directos (Sin Tope)'
+                          : `Máx ${selectedTest.maxBaseScore} pts`}
                       </span>
                     </div>
 

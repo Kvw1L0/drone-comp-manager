@@ -282,9 +282,17 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
     } else if (rawScore < 0) {
       validationErrors.push('El puntaje bruto no puede ser negativo.');
     } else if (rawScore > test.maxBaseScore) {
-      validationErrors.push(
-        `El puntaje bruto (${rawScore}) no puede superar el puntaje base máximo configurado (${test.maxBaseScore}).`
-      );
+      const isUncapped =
+        test.id === 'test_pista4' ||
+        test.id === 'test_pista5' ||
+        test.id.includes('pista4') ||
+        test.id.includes('pista5');
+
+      if (!isUncapped) {
+        validationErrors.push(
+          `El puntaje bruto (${rawScore}) no puede superar el puntaje base máximo configurado (${test.maxBaseScore}).`
+        );
+      }
     }
 
     if (registeredTimeMs !== null && registeredTimeMs <= 0) {
