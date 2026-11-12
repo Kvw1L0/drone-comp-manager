@@ -595,6 +595,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
               <Download className="w-4 h-4" />
               Exportar Ranking CSV
             </button>
+            <a
+              href="/Planilla_Control_Tiempos_Competencia_Drones.xlsx"
+              download="Planilla_Control_Tiempos_Competencia_Drones.xlsx"
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-extrabold text-xs flex items-center gap-2 cursor-pointer transition-colors"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+              Planilla Excel de Campo (.xlsx)
+            </a>
             <button
               type="button"
               onClick={() => {

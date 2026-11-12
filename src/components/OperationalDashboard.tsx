@@ -9,6 +9,8 @@ import {
   Award,
   Users,
   Zap,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useCompetition } from '../context/CompetitionContext';
 import { computeEventRanking, formatMsToTime, formatScore } from '../utils/scoring';
@@ -66,7 +68,35 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
+        <div className="max-w-4xl mx-auto space-y-4">
+      {/* Field Backup Excel Banner */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-950 border border-emerald-500/30 shadow-lg">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+            <FileSpreadsheet className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+              Planilla Oficial de Control a Mano
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                .XLSX
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-400">
+              31 pilotos cargados • Pistas 1 a 5 • Fórmulas de tiempos, faltas y firmas de jueces
+            </div>
+          </div>
+        </div>
+        <a
+          href="/Planilla_Control_Tiempos_Competencia_Drones.xlsx"
+          download="Planilla_Control_Tiempos_Competencia_Drones.xlsx"
+          className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.35)] cursor-pointer shrink-0"
+        >
+          <Download className="w-4 h-4" />
+          Descargar Planilla Excel
+        </a>
+      </div>
+
       {/* Compact 3-KPI Strip */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <div className="kv-hud-card p-3 rounded-2xl flex items-center gap-2.5">
