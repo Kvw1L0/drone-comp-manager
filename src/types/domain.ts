@@ -73,6 +73,8 @@ export interface CompetitionEvent {
   rankingTeamFilter?: RankingTeamFilter;
   rankingVisibleColumns?: RankingVisibleColumns;
   showTeamPodiumOverlay?: boolean;
+  showTop10Overlay?: boolean;
+  publicTvViewMode?: 'general' | 'top10' | 'podio';
   configVersion: number;
   accreditationRequirements: AccreditationRequirement[];
   tieBreakerRules: TieBreakerRule[];

@@ -19,6 +19,7 @@ import {
   Trash2,
   ExternalLink,
   Sparkles,
+  Tv,
 } from 'lucide-react';
 import { RouletteAdminPanel } from './RouletteAdminPanel';
 import { useCompetition } from '../context/CompetitionContext';
@@ -93,11 +94,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
     setEventRankingTeamFilter,
     setEventRankingColumns,
     setEventShowTeamPodiumOverlay,
+    setEventPublicTvViewMode,
     toggleTrackResultDQ,
   } = useCompetition();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('eventos');
   const [showAdminPodiumPopup, setShowAdminPodiumPopup] = useState<boolean>(false);
+  const [showAdminTop10Popup, setShowAdminTop10Popup] = useState<boolean>(false);
   const [bannerMsg, setBannerMsg] = useState<{
     type: 'success' | 'error';
     text: string;
@@ -2180,23 +2183,59 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                   </button>
                 </div>
 
-                {/* Botón para proyectar Podio Pantalla Dividida en la TV Pública */}
+                {/* Control Centralizado de Transmisión en TV en Vivo (Pantalla Gigante) */}
+                <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-red-500/50 shadow-lg">
+                  <span className="text-[11px] font-black text-red-300 px-2 uppercase flex items-center gap-1.5">
+                    <Tv className="w-3.5 h-3.5 text-red-400" />
+                    <span>TV en Vivo:</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEventPublicTvViewMode('general')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                      !activeEvent.showTop10Overlay && !activeEvent.showTeamPodiumOverlay && (activeEvent.publicTvViewMode || 'general') === 'general'
+                        ? 'bg-red-600 text-white shadow-[0_0_12px_rgba(230,0,18,0.8)]'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                    title="Proyectar Ranking General paginado en la TV"
+                  >
+                    📊 General
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEventPublicTvViewMode('top10')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1 ${
+                      activeEvent.showTop10Overlay || activeEvent.publicTvViewMode === 'top10'
+                        ? 'bg-gradient-to-r from-amber-500 to-cyan-500 text-slate-950 font-black shadow-[0_0_14px_rgba(245,158,11,0.8)]'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                    title="Proyectar Top 10 por Equipo (Distribución y Transmisión) en la TV"
+                  >
+                    <span>⚡ Top 10 Equipos</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEventPublicTvViewMode('podio')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1 ${
+                      activeEvent.showTeamPodiumOverlay || activeEvent.publicTvViewMode === 'podio'
+                        ? 'bg-amber-400 text-slate-950 font-black shadow-[0_0_14px_rgba(251,191,36,0.8)]'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                    title="Proyectar Podio de Premiación por Equipo en la TV"
+                  >
+                    <span>🏆 Podio</span>
+                  </button>
+                </div>
+
+                {/* Botón Pop-up Top 10 Equipos en el Admin */}
                 <button
                   type="button"
-                  onClick={() =>
-                    setEventShowTeamPodiumOverlay(!activeEvent.showTeamPodiumOverlay)
-                  }
-                  className={`px-3.5 py-2 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer shadow ${
-                    activeEvent.showTeamPodiumOverlay
-                      ? 'bg-amber-400 border-amber-300 text-slate-950 shadow-[0_0_16px_rgba(251,191,36,0.6)]'
-                      : 'bg-slate-800 hover:bg-slate-700 border-amber-500/50 text-amber-300 hover:text-white'
-                  }`}
-                  title="Proyectar u ocultar el Podio en Pantalla Dividida (Distribución vs Transmisión) en la TV Pública"
+                  onClick={() => setShowAdminTop10Popup(true)}
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 via-slate-800 to-cyan-700 hover:brightness-110 border border-white/20 text-white text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer shadow"
+                  title="Abrir Pop-up con el Top 10 de Distribución y Transmisión y opción de proyectar a TV"
                 >
-                  <Award className="w-4 h-4" />
-                  {activeEvent.showTeamPodiumOverlay
-                    ? 'Ocultar Podio en TV'
-                    : 'Proyectar Podio en TV'}
+                  <Award className="w-4 h-4 text-amber-300" />
+                  Pop-up Top 10 Equipos
                 </button>
 
                 {/* Botón Pop-up de Podio Pantalla Dividida en el Admin */}
@@ -2210,16 +2249,16 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                   Pop-up Podio Equipos
                 </button>
 
-                {/* Acceso Directo a Pantalla Pública */}
+                {/* Acceso Directo a Pantalla Pública Top 10 */}
                 <a
-                  href="/?vista=ranking"
+                  href="/?vista=top10"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow"
-                  title="Abrir la Pantalla Pública de Ranking General en una pestaña nueva"
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-500/50 text-amber-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow"
+                  title="Abrir Pantalla Exclusiva de Top 10 por Equipo (Distribución vs Transmisión) en otra pestaña"
                 >
-                  <ExternalLink className="w-4 h-4 text-sky-400" />
-                  TV Ranking
+                  <ExternalLink className="w-4 h-4 text-amber-400" />
+                  TV Top 10
                 </a>
 
                 {/* Acceso Directo a Pantalla de Podio Dividido */}
@@ -2227,11 +2266,23 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                   href="/?vista=podio"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-500/50 text-amber-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow"
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-500/50 text-amber-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow"
                   title="Abrir Pantalla Exclusiva de Podio Dividido (Distribución vs Transmisión) en otra pestaña"
                 >
                   <ExternalLink className="w-4 h-4 text-amber-400" />
-                  TV Podio Dividido
+                  TV Podio
+                </a>
+
+                {/* Acceso Directo a Pantalla Pública Ranking */}
+                <a
+                  href="/?vista=ranking"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow"
+                  title="Abrir la Pantalla Pública de Ranking General en una pestaña nueva"
+                >
+                  <ExternalLink className="w-4 h-4 text-sky-400" />
+                  TV Ranking
                 </a>
               </div>
             </div>
@@ -2295,6 +2346,181 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                 </div>
               );
             })()}
+
+            {/* Modal Pop-up de TOP 10 POR EQUIPO (Distribución vs Transmisión) */}
+            {showAdminTop10Popup && (
+              <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+                <div className="font-broadcast-narrow relative w-full max-w-6xl rounded-2xl bg-[#08090c] border-2 border-red-500/70 shadow-[0_20px_70px_rgba(0,0,0,0.95)] p-4 sm:p-6 space-y-5">
+                  {/* Modal Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-500/40 pb-4">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src="/rally-drone-logo.png"
+                        alt="Rally Drone Race"
+                        className="h-12 sm:h-14 w-auto object-contain"
+                      />
+                      <div>
+                        <h3 className="text-2xl sm:text-3xl font-black italic uppercase tracking-wider text-white leading-none">
+                          TOP 10 POR EQUIPOS
+                        </h3>
+                        <p className="text-xs sm:text-sm font-bold uppercase tracking-widest text-amber-300 mt-0.5">
+                          Distribución (DX) & Transmisión (TX) • Vista Oficial
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (activeEvent.showTop10Overlay || activeEvent.publicTvViewMode === 'top10') {
+                            setEventPublicTvViewMode('general');
+                          } else {
+                            setEventPublicTvViewMode('top10');
+                          }
+                        }}
+                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${
+                          activeEvent.showTop10Overlay || activeEvent.publicTvViewMode === 'top10'
+                            ? 'bg-gradient-to-r from-amber-400 to-cyan-400 text-slate-950 shadow-[0_0_16px_rgba(245,158,11,0.7)] font-black'
+                            : 'bg-slate-800 hover:bg-slate-700 border border-amber-400/50 text-amber-300'
+                        }`}
+                      >
+                        <Tv className="w-4 h-4" />
+                        {activeEvent.showTop10Overlay || activeEvent.publicTvViewMode === 'top10'
+                          ? '📡 Proyectándose en TV (Clic para volver a General)'
+                          : '📺 Proyectar este Top 10 en la TV'}
+                      </button>
+                      <a
+                        href="/?vista=top10"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-xs sm:text-sm font-black uppercase tracking-wider flex items-center gap-1.5"
+                      >
+                        <ExternalLink className="w-4 h-4 text-amber-400" />
+                        Abrir Pantalla 16:9
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminTop10Popup(false)}
+                        className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm font-black uppercase tracking-wider cursor-pointer"
+                      >
+                        Cerrar ✕
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Dual Columns Grid: Distribución (Left) & Transmisión (Right) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    {(['distribucion', 'transmision'] as const).map((divKey) => {
+                      const divRows = filterAndRankByDivision(rankingData.rows, divKey).filter(
+                        (r) => !r.isDisqualified && r.completedTestsCount > 0
+                      );
+                      const top10 = divRows.slice(0, 10);
+                      const isTrans = divKey === 'transmision';
+                      return (
+                        <div
+                          key={divKey}
+                          className={`rounded-xl overflow-hidden border-2 ${
+                            isTrans ? 'border-cyan-400/60' : 'border-amber-400/60'
+                          } bg-[#0c0d12]`}
+                        >
+                          <div
+                            className="py-2.5 px-4 flex items-center justify-between border-b border-white/20"
+                            style={{
+                              background: isTrans
+                                ? 'linear-gradient(90deg, #064e63 0%, #0891b2 50%, #064e63 100%)'
+                                : 'linear-gradient(90deg, #78350f 0%, #d97706 50%, #78350f 100%)',
+                            }}
+                          >
+                            <span className="text-lg sm:text-xl font-black uppercase tracking-wider text-white">
+                              {isTrans ? '⚡ TRANSMISIÓN (TX)' : '🏅 DISTRIBUCIÓN (DX)'}
+                            </span>
+                            <span className="text-xs font-mono font-black uppercase px-2 py-0.5 rounded bg-black/40 border border-white/20 text-white">
+                              TOP 10
+                            </span>
+                          </div>
+
+                          <div className="divide-y divide-white/10 max-h-[500px] overflow-y-auto">
+                            {top10.map((p, idx) => {
+                              const pos = idx + 1;
+                              let sumMs = 0;
+                              let hasTime = false;
+                              for (const t of tests) {
+                                const c = p.testCells[t.id];
+                                if (c && c.status === 'completado' && c.effectiveTimeMs !== null) {
+                                  sumMs += c.effectiveTimeMs;
+                                  hasTime = true;
+                                }
+                              }
+
+                              const isTop1 = pos === 1;
+                              const isTop2 = pos === 2;
+                              const isTop3 = pos === 3;
+
+                              return (
+                                <div
+                                  key={p.participantId}
+                                  className={`py-2 px-3 sm:px-4 flex items-center justify-between gap-3 transition-colors ${
+                                    isTop1
+                                      ? 'bg-amber-500/20'
+                                      : isTop2
+                                      ? 'bg-slate-300/15'
+                                      : isTop3
+                                      ? 'bg-amber-700/20'
+                                      : 'hover:bg-white/5'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <span
+                                      className={`w-6 h-6 rounded flex items-center justify-center font-black text-xs leading-none shrink-0 ${
+                                        isTop1
+                                          ? 'bg-amber-400 text-slate-950 font-black shadow-[0_0_8px_rgba(251,191,36,0.8)]'
+                                          : isTop2
+                                          ? 'bg-slate-200 text-slate-950 font-black'
+                                          : isTop3
+                                          ? 'bg-amber-600 text-white font-black'
+                                          : 'bg-white/10 text-slate-300 font-mono'
+                                      }`}
+                                    >
+                                      {String(pos).padStart(2, '0')}
+                                    </span>
+
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                        <span className="px-1.5 py-0.2 rounded bg-black/50 border border-white/20 text-amber-300 font-black text-xs font-mono shrink-0">
+                                          {p.competitorNumber}
+                                        </span>
+                                        <span className="text-sm sm:text-base font-black uppercase text-white truncate">
+                                          {formatShortName(p.fullName)}
+                                        </span>
+                                      </div>
+                                      {p.companyOrTeam && (
+                                        <div className="text-[11px] font-bold uppercase text-slate-400 truncate">
+                                          {p.companyOrTeam}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="text-right shrink-0">
+                                    <div className="text-base sm:text-lg font-black text-amber-300 font-mono leading-none">
+                                      {formatScore(p.totalContribution)} PTS
+                                    </div>
+                                    <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                                      {hasTime ? formatMsToTime(sumMs) : '—'}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Modal Pop-up de Podio en Pantalla Dividida (Distribución vs Transmisión) */}
             {showAdminPodiumPopup && (

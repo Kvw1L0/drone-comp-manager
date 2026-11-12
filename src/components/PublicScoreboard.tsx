@@ -182,8 +182,17 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
   };
 
   // Subtitle below main header
-  const isPodioActive = activeBoardView === 'podio' || showSplitTeamPodium;
-  const isTop10Active = activeBoardView === 'top10';
+  const isPodioActive =
+    activeBoardView === 'podio' ||
+    Boolean(activeEvent.showTeamPodiumOverlay) ||
+    activeEvent.publicTvViewMode === 'podio' ||
+    isUrlPodiumForced;
+
+  const isTop10Active =
+    !isPodioActive &&
+    (activeBoardView === 'top10' ||
+      Boolean(activeEvent.showTop10Overlay) ||
+      activeEvent.publicTvViewMode === 'top10');
 
   const subtitleLabel = isPodioActive
     ? 'PODIO OFICIAL POR EQUIPOS • DISTRIBUCIÓN & TRANSMISIÓN'

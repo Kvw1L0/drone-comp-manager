@@ -340,6 +340,8 @@ interface CompetitionContextValue {
   setEventRankingTeamFilter: (filter: RankingTeamFilter) => Promise<void>;
   setEventRankingColumns: (columns: RankingVisibleColumns) => Promise<void>;
   setEventShowTeamPodiumOverlay: (show: boolean) => Promise<void>;
+  setEventShowTop10Overlay: (show: boolean) => Promise<void>;
+  setEventPublicTvViewMode: (mode: 'general' | 'top10' | 'podio') => Promise<void>;
   toggleTrackResultDQ: (params: { participantId: string; testId: string; trackId?: string }) => Promise<void>;
 }
 
@@ -2260,6 +2262,42 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
         dbState.events[idx] = {
           ...dbState.events[idx],
           showTeamPodiumOverlay: show,
+          showTop10Overlay: show ? false : dbState.events[idx].showTop10Overlay,
+          publicTvViewMode: show ? 'podio' : 'general',
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    [runAtomicDbTransaction, activeEvent.id]
+  );
+
+  const setEventShowTop10Overlay = useCallback(
+    async (show: boolean) => {
+      await runAtomicDbTransaction((dbState) => {
+        const idx = dbState.events.findIndex((e) => e.id === activeEvent.id);
+        if (idx === -1) return;
+        dbState.events[idx] = {
+          ...dbState.events[idx],
+          showTop10Overlay: show,
+          showTeamPodiumOverlay: show ? false : dbState.events[idx].showTeamPodiumOverlay,
+          publicTvViewMode: show ? 'top10' : 'general',
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    [runAtomicDbTransaction, activeEvent.id]
+  );
+
+  const setEventPublicTvViewMode = useCallback(
+    async (mode: 'general' | 'top10' | 'podio') => {
+      await runAtomicDbTransaction((dbState) => {
+        const idx = dbState.events.findIndex((e) => e.id === activeEvent.id);
+        if (idx === -1) return;
+        dbState.events[idx] = {
+          ...dbState.events[idx],
+          publicTvViewMode: mode,
+          showTop10Overlay: mode === 'top10',
+          showTeamPodiumOverlay: mode === 'podio',
           updatedAt: Date.now(),
         };
       });
@@ -2464,6 +2502,8 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
     setEventRankingTeamFilter,
     setEventRankingColumns,
     setEventShowTeamPodiumOverlay,
+    setEventShowTop10Overlay,
+    setEventPublicTvViewMode,
     toggleTrackResultDQ,
   };
 
