@@ -27,43 +27,6 @@ interface PublicScoreboardProps {
 const PAGE_INTERVAL_MS = 8000;
 const ROWS_PER_PAGE = 10;
 
-/**
- * Red Chilquinta House/Plug Emblem for the bottom footer
- */
-const ChilquintaFooterIcon: React.FC = () => (
-  <svg
-    viewBox="0 0 64 64"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="w-7 h-7 sm:w-8 sm:h-8 shrink-0 drop-shadow-[0_0_10px_rgba(230,0,18,0.6)]"
-    aria-hidden="true"
-  >
-    <path
-      d="M32 6 L56 24 V54 C56 57 54 59 51 59 H13 C10 59 8 57 8 54 V24 L32 6 Z"
-      stroke="#e60012"
-      strokeWidth="5.5"
-      strokeLinejoin="round"
-      fill="#090a0f"
-    />
-    <path
-      d="M20 27 L32 17 L44 27"
-      stroke="#e60012"
-      strokeWidth="4.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <rect x="25" y="31" width="14" height="11" rx="2.5" fill="#e60012" />
-    <line x1="29" y1="25" x2="29" y2="31" stroke="#e60012" strokeWidth="3.5" strokeLinecap="round" />
-    <line x1="35" y1="25" x2="35" y2="31" stroke="#e60012" strokeWidth="3.5" strokeLinecap="round" />
-    <path
-      d="M21 34 V46 C21 50 24 52 29 52 H42"
-      stroke="#e60012"
-      strokeWidth="4.5"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
 export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
   onExitPublicView,
 }) => {
@@ -847,24 +810,15 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       )}
 
       {/* ===================================================================== */}
-      {/* BOTTOM FOOTER: LEFT RED BAR + GRUPO EMPRESAS CHILQUINTA               */}
+      {/* BOTTOM FOOTER: OFFICIAL UPLOADED LOGO GRUPO EMPRESAS CHILQUINTA        */}
       {/* ===================================================================== */}
       <footer className="relative z-10 pb-2 sm:pb-2.5 pt-0.5 px-4 flex flex-col items-center justify-center shrink-0">
-        <div
-          className="pointer-events-none hidden sm:block absolute bottom-3 left-0 w-[30%] h-7 bg-gradient-to-r from-[#5a0006] via-[#e60012] to-[#ff1e1e] shadow-[0_0_25px_rgba(255,0,21,0.75)] border-y border-red-400/50"
-          style={{
-            clipPath: 'polygon(0 0, 88% 0, 100% 100%, 0% 100%)',
-          }}
-        />
-
-        <div className="relative z-10 flex items-center justify-center gap-2.5 sm:gap-3 py-1 px-6">
-          <span className="text-base sm:text-lg md:text-xl font-bold text-slate-200 tracking-wide">
-            Grupo Empresas
-          </span>
-          <ChilquintaFooterIcon />
-          <span className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-wider text-white">
-            CHILQUINTA
-          </span>
+        <div className="relative z-10 flex items-center justify-center py-1 px-6">
+          <img
+            src="/logo-grupo-empresas-chilquinta-horizontal-white.png"
+            alt="Grupo Empresas Chilquinta"
+            className="h-8 sm:h-9 md:h-11 max-h-[44px] w-auto object-contain drop-shadow-[0_2px_12px_rgba(230,0,18,0.4)] select-none"
+          />
         </div>
 
         {!showSplitTeamPodium && totalPages > 1 && (
