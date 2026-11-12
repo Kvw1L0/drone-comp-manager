@@ -9,7 +9,7 @@ import {
   Track,
   UserProfile,
 } from '../types/domain';
-import { normalizeSearchText, recalculateAllResultsForTest } from '../utils/scoring';
+import { normalizeSearchText } from '../utils/scoring';
 
 export const DEMO_USERS: UserProfile[] = [
   {
@@ -174,8 +174,8 @@ export const DEMO_TRACKS: Track[] = [
     name: 'Pista 1 - Sector Norte',
     status: 'operativa',
     assignedTestIds: ['test_velocidad', 'test_habilidades'],
-    currentParticipantId: 'PIL-015',
-    currentTestId: 'test_velocidad',
+    currentParticipantId: null,
+    currentTestId: null,
     order: 1,
   },
   {
@@ -184,8 +184,8 @@ export const DEMO_TRACKS: Track[] = [
     name: 'Pista 2 - Sector Sur',
     status: 'operativa',
     assignedTestIds: ['test_velocidad', 'test_destreza'],
-    currentParticipantId: 'PIL-016',
-    currentTestId: 'test_destreza',
+    currentParticipantId: null,
+    currentTestId: null,
     order: 2,
   },
   {
@@ -194,8 +194,8 @@ export const DEMO_TRACKS: Track[] = [
     name: 'Pista 3 - Hangar Técnico',
     status: 'operativa',
     assignedTestIds: ['test_habilidades', 'test_destreza'],
-    currentParticipantId: 'PIL-017',
-    currentTestId: 'test_habilidades',
+    currentParticipantId: null,
+    currentTestId: null,
     order: 3,
   },
   {
@@ -303,66 +303,55 @@ const RAW_PILOTS: Array<{
   name: string;
   company: string;
   number: string;
+  division: 'distribucion' | 'transmision';
   accredited: boolean;
   notes: string;
-  isDQ?: boolean;
-  dqReason?: string;
 }> = [
-  { id: 'PIL-001', name: 'Matías Rojas Valdés', company: 'AeroTech Chile', number: '#101', accredited: true, notes: 'Verificado canal VTX R1. Homónimo de PIL-029.' },
-  { id: 'PIL-002', name: 'Camila Soto Morales', company: 'DroneWorks Sur', number: '#102', accredited: true, notes: 'Equipo principal 5 pulgadas inspeccionado.' },
-  { id: 'PIL-003', name: 'Sebastián Muñoz Herrera', company: 'SkyVortex Racing', number: '#103', accredited: true, notes: 'Seguro RC al día.' },
-  { id: 'PIL-004', name: 'Valentina Contreras Díaz', company: 'Andes FPV Team', number: '#104', accredited: true, notes: 'Desempate técnico demostrable con PIL-005.' },
-  { id: 'PIL-005', name: 'Nicolás Fuentes Bravo', company: 'Patagonia Drones', number: '#105', accredited: true, notes: 'Empata puntaje total con PIL-004, define Habilidades.' },
-  { id: 'PIL-006', name: 'Francisca Lagos Pizarro', company: 'AeroVision Industrial', number: '#106', accredited: true, notes: 'Inspección aprobada sin observaciones.' },
-  { id: 'PIL-007', name: 'Diego Alarcón Tapia', company: 'CobreAir Ingeniería', number: '#107', accredited: true, notes: 'Dron de respaldo registrado.' },
-  { id: 'PIL-008', name: 'Ignacio Vera Santander', company: 'Vuelo Austral', number: '#108', accredited: true, notes: 'Empate persistente total con PIL-009.' },
-  { id: 'PIL-009', name: 'Tomás Castillo Núñez', company: 'Horizonte RPAS', number: '#109', accredited: true, notes: 'Empate persistente total con PIL-008.' },
-  { id: 'PIL-010', name: 'Daniela Espinoza Riquelme', company: 'Cumbre Robotics', number: '#110', accredited: true, notes: 'Operadora certificada DGAC.' },
-  { id: 'PIL-011', name: 'Felipe Garrido Poblete', company: 'AeroTech Chile', number: '#111', accredited: true, notes: 'Sin observaciones internas.' },
-  { id: 'PIL-012', name: 'Catalina Reyes Bustos', company: 'Altitud Cero', number: '#112', accredited: true, notes: 'Registró tiempo exacto en límite 300,00s en Habilidades.' },
-  { id: 'PIL-013', name: 'Cristóbal Parra Vergara', company: 'DroneWorks Sur', number: '#113', accredited: true, notes: 'Batería LiPo 6S verificada.' },
-  { id: 'PIL-014', name: 'Fernanda Molina Cortés', company: 'SkyVortex Racing', number: '#114', accredited: true, notes: 'Tuvo DNF en prueba de Velocidad por pérdida de hélice.' },
-  { id: 'PIL-015', name: 'Benjamín Navarro Toledo', company: 'Andes FPV Team', number: '#115', accredited: true, notes: 'En pista actualmente.' },
-  { id: 'PIL-016', name: 'Antonia Cáceres Godoy', company: 'Condor Robotics', number: '#116', accredited: true, notes: 'En pista 2 actualmente.' },
-  { id: 'PIL-017', name: 'Gabriel Sepúlveda Leiva', company: 'Patagonia Drones', number: '#117', accredited: true, notes: 'En pista 3 actualmente.' },
-  { id: 'PIL-018', name: 'Martina Salazar Flores', company: 'AeroVision Industrial', number: '#118', accredited: true, notes: 'Falta completar Destreza.' },
-  { id: 'PIL-019', name: 'Lucas Valenzuela Carrasco', company: 'CobreAir Ingeniería', number: '#119', accredited: true, notes: 'Completadas 2 de 3 pruebas.' },
-  { id: 'PIL-020', name: 'Isidora Palma Araneda', company: 'Vuelo Austral', number: '#120', accredited: true, notes: 'Completadas 2 de 3 pruebas.' },
-  { id: 'PIL-021', name: 'Maximiliano Ortiz Medina', company: 'Horizonte RPAS', number: '#121', accredited: true, notes: 'Completada 1 de 3 pruebas.' },
-  { id: 'PIL-022', name: 'Sofía Figueroa Farías', company: 'Cumbre Robotics', number: '#122', accredited: true, notes: 'Completada 1 de 3 pruebas.' },
-  { id: 'PIL-023', name: 'Joaquín Aguilera Sanhueza', company: 'Altitud Cero', number: '#123', accredited: true, notes: 'Completada 1 de 3 pruebas.' },
-  { id: 'PIL-024', name: 'Florencia Miranda Quiroz', company: 'AeroTech Chile', number: '#124', accredited: true, notes: 'Completada 1 de 3 pruebas.' },
-  {
-    id: 'PIL-025',
-    name: 'Esteban Bustamante León',
-    company: 'NitroFPV Racing',
-    number: '#125',
-    accredited: true,
-    notes: 'Descalificado general por exceder potencia de transmisión permitida.',
-    isDQ: true,
-    dqReason: 'Exceso de potencia VTX > 600mW durante revisión técnica posterior en manga oficial',
-  },
-  { id: 'PIL-026', name: 'Constanza Gallardo Peña', company: 'DroneWorks Sur', number: '#126', accredited: true, notes: 'Habilitada, esperando llamado a pista.' },
-  { id: 'PIL-027', name: 'Vicente Saavedra Román', company: 'SkyVortex Racing', number: '#127', accredited: true, notes: 'Habilitado, esperando llamado a pista.' },
-  { id: 'PIL-028', name: 'agustín yáñez núñez', company: 'Andes FPV Team', number: '#128', accredited: true, notes: 'Nombre con tildes para verificar búsqueda insensible a acentos/mayúsculas.' },
-  { id: 'PIL-029', name: 'Matías Rojas Valdés', company: 'Condor Robotics', number: '#129', accredited: true, notes: 'Homónimo de PIL-001 (distinta empresa Condor Robotics y número #129).' },
-  { id: 'PIL-030', name: 'Paula Henríquez Díaz', company: 'Patagonia Drones', number: '#130', accredited: false, notes: 'Pendiente firma de asistencia al briefing de seguridad.' },
-  { id: 'PIL-031', name: 'Roberto Araya Cisternas', company: 'AeroVision Industrial', number: '#131', accredited: false, notes: 'Pendiente inspección técnica de failsafe.' },
-  { id: 'PIL-032', name: 'Lorena Carvajal Tapia', company: 'CobreAir Ingeniería', number: '#132', accredited: false, notes: 'Pendiente presentar credencial institucional.' },
-  { id: 'PIL-033', name: 'Mauricio Olivares Jorquera', company: 'Vuelo Austral', number: '#133', accredited: false, notes: 'Por acreditar en mesa de entrada.' },
-  { id: 'PIL-034', name: 'Macarena Donoso Vera', company: 'Horizonte RPAS', number: '#134', accredited: false, notes: 'Por acreditar en mesa de entrada.' },
-  { id: 'PIL-035', name: 'Héctor Zambrano Cuevas', company: 'Cumbre Robotics', number: '#135', accredited: false, notes: 'Por acreditar en mesa de entrada.' },
+  // DISTRIBUCION (17 Pilotos)
+  { id: 'PIL-DIST-01', name: 'Bryam Eladio Alvarez Stevenson', company: 'Chilquinta DX', number: '#D-01', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-02', name: 'Emiliano Heriberto Pasten Navarrete', company: 'Chilquinta DX', number: '#D-02', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-03', name: 'Erick Patricio Tapia Romo', company: 'Chilquinta DX', number: '#D-03', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-04', name: 'Felipe Giovanni Gutierrez Peñaloza', company: 'Chilquinta DX', number: '#D-04', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-05', name: 'Gerardo Antonio Salgado Montecinos', company: 'Chilquinta DX', number: '#D-05', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-06', name: 'Gilberto Jelvez Sanchez', company: 'Chilquinta DX', number: '#D-06', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-07', name: 'Miguel Solis Perez', company: 'Chilquinta DX', number: '#D-07', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-08', name: 'Oscar Andres Guerrero Ojeda', company: 'Chilquinta DX', number: '#D-08', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-09', name: 'Rafael Edgardo Allendes Rojas', company: 'Chilquinta DX', number: '#D-09', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-10', name: 'Sabino Cruz Labra', company: 'Chilquinta DX', number: '#D-10', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-11', name: 'Adolfo Andres Flores Quezada', company: 'Luz Linares', number: '#D-11', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-12', name: 'Alejandro Ernesto Moraga Leiva', company: 'Luz Linares', number: '#D-12', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-13', name: 'José Anibal Vivanco Sayes', company: 'Luz Parral', number: '#D-13', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-14', name: 'Matias Nicolas Contreras Araya', company: 'Luz Parral', number: '#D-14', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-15', name: 'Daniel Alejandro Tapia Tapia', company: 'Litoral', number: '#D-15', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-16', name: 'Roberto Eduardo Gonzalez Albornoz', company: 'Litoral', number: '#D-16', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+  { id: 'PIL-DIST-17', name: 'Claudio Antonio Fuentes Figueroa', company: 'Litoral', number: '#D-17', division: 'distribucion', accredited: true, notes: 'Piloto oficial Distribución' },
+
+  // TRANSMISION (14 Pilotos)
+  { id: 'PIL-TX-01', name: 'Carlos Cristian Rigotti Basoalto', company: 'Tecnored', number: '#T-01', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-02', name: 'Claudio Andres Henriquez Campo', company: 'Tecnored', number: '#T-02', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-03', name: 'David Sergio Chávez Olmos', company: 'Tecnored', number: '#T-03', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-04', name: 'Diego Vera Pizarro', company: 'Chilquinta Tx', number: '#T-04', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-05', name: 'Crischnna Belén Navarro Valdivia', company: 'Chilquinta Tx', number: '#T-05', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-06', name: 'Guillermo Ernesto Robledo Olivares', company: 'Chilquinta Tx', number: '#T-06', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-07', name: 'Aarón Nuñez Gilberto', company: 'Chilquinta Tx', number: '#T-07', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-08', name: 'Cristian Murillo Flores', company: 'Chilquinta Tx', number: '#T-08', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-09', name: 'Germán Serrano Astudillo', company: 'Chilquinta Tx', number: '#T-09', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-10', name: 'Nicolas Arenas Yañez', company: 'Chilquinta Tx', number: '#T-10', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-11', name: 'Gabriel Marcelo Gallardo Miranda', company: 'Tecnored', number: '#T-11', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-12', name: 'Hugo Ignacio Soto Angulo', company: 'Tecnored', number: '#T-12', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-13', name: 'Rodrigo Alejandro Pizarro Ibarra', company: 'Tecnored', number: '#T-13', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
+  { id: 'PIL-TX-14', name: 'Saulo Alejandro Carray Medina', company: 'Tecnored', number: '#T-14', division: 'transmision', accredited: true, notes: 'Piloto oficial Transmisión' },
 ];
 
-export const DEMO_PARTICIPANTS: Participant[] = RAW_PILOTS.map((raw, idx) => ({
+export const DEMO_PARTICIPANTS: Participant[] = RAW_PILOTS.map((raw) => ({
   id: raw.id,
   eventId: INITIAL_EVENT_ID,
-  fullName: raw.name === 'agustín yáñez núñez' ? 'Agustín Yáñez Núñez' : raw.name,
+  fullName: raw.name,
   normalizedName: normalizeSearchText(raw.name),
   companyOrTeam: raw.company,
-  teamDivision: idx % 2 === 0 ? 'distribucion' : 'transmision',
+  teamDivision: raw.division,
   competitorNumber: raw.number,
-  accreditationStatus: 'habilitado',
+  accreditationStatus: raw.accredited ? 'habilitado' : 'pendiente',
   requirementsChecks: {
     licencia_vigente: raw.accredited,
     pertenencia_institucional: raw.accredited,
@@ -370,219 +359,16 @@ export const DEMO_PARTICIPANTS: Participant[] = RAW_PILOTS.map((raw, idx) => ({
     inspeccion_tecnica: raw.accredited,
   },
   internalNotes: raw.notes,
-  isDisqualified: Boolean(raw.isDQ),
-  disqualificationReason: raw.dqReason,
-  disqualifiedBy: raw.isDQ ? 'demo-admin-1' : undefined,
-  disqualifiedByName: raw.isDQ ? 'Carlos Mendoza (Admin)' : undefined,
-  disqualifiedAt: raw.isDQ ? 1730003600000 : undefined,
+  isDisqualified: false,
+  disqualificationReason: undefined,
+  disqualifiedBy: undefined,
+  disqualifiedByName: undefined,
+  disqualifiedAt: undefined,
   createdAt: 1730000000000,
   updatedAt: 1730000000000,
 }));
 
-function buildInitialResults(): CompetitionResult[] {
-  const results: CompetitionResult[] = [];
-  const addRes = (params: {
-    participantId: string;
-    testId: 'test_velocidad' | 'test_habilidades' | 'test_destreza' | 'test_pista4' | 'test_pista5';
-    trackId: string;
-    status?: 'completado' | 'dnf' | 'dq';
-    rawScore?: number | null;
-    pointsPenalty?: number;
-    registeredTimeMs?: number | null;
-    secondsPenaltyMs?: number;
-    observation?: string;
-  }) => {
-    const test = DEMO_TESTS.find((t) => t.id === params.testId)!;
-    const status = params.status || 'completado';
-    const rawScore = params.rawScore ?? (test.scoringMethod === 'manual' ? 85 : null);
-    const pointsPenalty = params.pointsPenalty ?? 0;
-    const registeredTimeMs = test.scoringMethod === 'manual' ? (params.registeredTimeMs ?? null) : (params.registeredTimeMs ?? 90000);
-    const secondsPenaltyMs = params.secondsPenaltyMs ?? 0;
-    const effectiveTimeMs =
-      status === 'completado' && registeredTimeMs !== null
-        ? registeredTimeMs + secondsPenaltyMs
-        : null;
-
-    let calculatedBaseScore: number | null = 0;
-    let netScore: number | null = 0;
-    let contribution: number | null = 0;
-
-    if (status === 'completado' && test.scoringMethod === 'manual' && rawScore !== null) {
-      calculatedBaseScore = rawScore;
-      netScore = Math.max(0, rawScore - pointsPenalty);
-      contribution = Number(((netScore / test.maxBaseScore) * test.maxContribution).toFixed(10));
-    }
-
-    results.push({
-      id: `${params.participantId}__${params.testId}`,
-      eventId: INITIAL_EVENT_ID,
-      participantId: params.participantId,
-      testId: params.testId,
-      trackId: params.trackId,
-      attemptNumber: 1,
-      participationStatus: status,
-      publicationStatus: 'publicado',
-      rawScore: test.scoringMethod === 'manual' ? rawScore : null,
-      pointsPenalty,
-      registeredTimeMs,
-      secondsPenaltyMs,
-      effectiveTimeMs,
-      calculatedBaseScore,
-      netScore,
-      contribution,
-      observation: params.observation || '',
-      adminException: null,
-      previousAttempts: [],
-      version: 1,
-      configVersionUsed: 1,
-      createdBy: 'demo-staff-1',
-      createdByName: 'Andrea Silva (Staff)',
-      updatedBy: 'demo-staff-1',
-      updatedByName: 'Andrea Silva (Staff)',
-      publishedAt: 1730002000000 + results.length * 60000,
-      updatedAt: 1730002000000 + results.length * 60000,
-    });
-  };
-
-  // 1st place candidate: PIL-001 (Best velocity time: 60.00s = 60000ms)
-  addRes({ participantId: 'PIL-001', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 60000, secondsPenaltyMs: 0, pointsPenalty: 0, observation: 'Mejor tiempo oficial de referencia (01:00.00)' });
-  addRes({ participantId: 'PIL-001', testId: 'test_habilidades', trackId: 'track_3', rawScore: 96, pointsPenalty: 0, registeredTimeMs: 145000 });
-  addRes({ participantId: 'PIL-001', testId: 'test_destreza', trackId: 'track_2', rawScore: 94, pointsPenalty: 2, registeredTimeMs: 160000 });
-  addRes({ participantId: 'PIL-001', testId: 'test_pista4', trackId: 'track_4', rawScore: 94, pointsPenalty: 0, registeredTimeMs: null });
-  addRes({ participantId: 'PIL-001', testId: 'test_pista5', trackId: 'track_5', rawScore: 92, pointsPenalty: 0, registeredTimeMs: null });
-
-  // 2nd place candidate: PIL-002
-  addRes({ participantId: 'PIL-002', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 64000, secondsPenaltyMs: 2000, pointsPenalty: 0 });
-  addRes({ participantId: 'PIL-002', testId: 'test_habilidades', trackId: 'track_3', rawScore: 92, pointsPenalty: 0, registeredTimeMs: 152000 });
-  addRes({ participantId: 'PIL-002', testId: 'test_destreza', trackId: 'track_2', rawScore: 91, pointsPenalty: 0, registeredTimeMs: 170000 });
-  addRes({ participantId: 'PIL-002', testId: 'test_pista4', trackId: 'track_4', rawScore: 90, pointsPenalty: 2, registeredTimeMs: null });
-  addRes({ participantId: 'PIL-002', testId: 'test_pista5', trackId: 'track_5', rawScore: 89, pointsPenalty: 0, registeredTimeMs: null });
-
-  // 3rd place candidate: PIL-003
-  addRes({ participantId: 'PIL-003', testId: 'test_velocidad', trackId: 'track_2', registeredTimeMs: 68000, secondsPenaltyMs: 0, pointsPenalty: 0 });
-  addRes({ participantId: 'PIL-003', testId: 'test_habilidades', trackId: 'track_1', rawScore: 90, pointsPenalty: 2, registeredTimeMs: 165000 });
-  addRes({ participantId: 'PIL-003', testId: 'test_destreza', trackId: 'track_3', rawScore: 89, pointsPenalty: 0, registeredTimeMs: 175000 });
-  addRes({ participantId: 'PIL-003', testId: 'test_pista4', trackId: 'track_4', rawScore: 87, pointsPenalty: 0, registeredTimeMs: null });
-  addRes({ participantId: 'PIL-003', testId: 'test_pista5', trackId: 'track_5', rawScore: 86, pointsPenalty: 3, registeredTimeMs: null });
-
-  // Tie-breaker demo: PIL-004 and PIL-005 have identical velocity time (75000ms -> 80 pts)
-  // PIL-004 has Habilidades=85, Destreza=75
-  // PIL-005 has Habilidades=80, Destreza=80 -> PIL-004 wins tie-breaker #2 (Habilidades) when totals match!
-  addRes({ participantId: 'PIL-004', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 75000, secondsPenaltyMs: 0, pointsPenalty: 0 });
-  addRes({ participantId: 'PIL-004', testId: 'test_habilidades', trackId: 'track_3', rawScore: 85, pointsPenalty: 0, registeredTimeMs: 180000 });
-  addRes({ participantId: 'PIL-004', testId: 'test_destreza', trackId: 'track_2', rawScore: 75, pointsPenalty: 0, registeredTimeMs: 185000 });
-  addRes({ participantId: 'PIL-004', testId: 'test_pista4', trackId: 'track_4', rawScore: 84, pointsPenalty: 0, registeredTimeMs: null });
-  addRes({ participantId: 'PIL-004', testId: 'test_pista5', trackId: 'track_5', rawScore: 82, pointsPenalty: 0, registeredTimeMs: null });
-
-  addRes({ participantId: 'PIL-005', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 75000, secondsPenaltyMs: 0, pointsPenalty: 0 });
-  addRes({ participantId: 'PIL-005', testId: 'test_habilidades', trackId: 'track_3', rawScore: 80, pointsPenalty: 0, registeredTimeMs: 182000 });
-  addRes({ participantId: 'PIL-005', testId: 'test_destreza', trackId: 'track_2', rawScore: 80, pointsPenalty: 0, registeredTimeMs: 181000 });
-  addRes({ participantId: 'PIL-005', testId: 'test_pista4', trackId: 'track_4', rawScore: 81, pointsPenalty: 0, registeredTimeMs: null });
-  addRes({ participantId: 'PIL-005', testId: 'test_pista5', trackId: 'track_5', rawScore: 80, pointsPenalty: 0, registeredTimeMs: null });
-
-  // PIL-006 & PIL-007
-  addRes({ participantId: 'PIL-006', testId: 'test_velocidad', trackId: 'track_2', registeredTimeMs: 78000, secondsPenaltyMs: 2000, pointsPenalty: 0 });
-  addRes({ participantId: 'PIL-006', testId: 'test_habilidades', trackId: 'track_1', rawScore: 84, pointsPenalty: 4, registeredTimeMs: 190000 });
-  addRes({ participantId: 'PIL-006', testId: 'test_destreza', trackId: 'track_3', rawScore: 82, pointsPenalty: 0, registeredTimeMs: 195000 });
-  addRes({ participantId: 'PIL-006', testId: 'test_pista4', trackId: 'track_4', rawScore: 79, pointsPenalty: 0, registeredTimeMs: null });
-  addRes({ participantId: 'PIL-006', testId: 'test_pista5', trackId: 'track_5', rawScore: 78, pointsPenalty: 2, registeredTimeMs: null });
-
-  addRes({ participantId: 'PIL-007', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 82000, secondsPenaltyMs: 0, pointsPenalty: 0 });
-  addRes({ participantId: 'PIL-007', testId: 'test_habilidades', trackId: 'track_3', rawScore: 79, pointsPenalty: 0, registeredTimeMs: 200000 });
-  addRes({ participantId: 'PIL-007', testId: 'test_destreza', trackId: 'track_2', rawScore: 81, pointsPenalty: 3, registeredTimeMs: 205000 });
-  addRes({ participantId: 'PIL-007', testId: 'test_pista4', trackId: 'track_4', rawScore: 77, pointsPenalty: 2, registeredTimeMs: null });
-  addRes({ participantId: 'PIL-007', testId: 'test_pista5', trackId: 'track_5', rawScore: 76, pointsPenalty: 0, registeredTimeMs: null });
-
-  // Persistent Tie Demo: PIL-008 and PIL-009 have IDENTICAL scores and IDENTICAL velocity effective time (80,000ms)
-  addRes({ participantId: 'PIL-008', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 80000, secondsPenaltyMs: 0, pointsPenalty: 0, observation: 'Empate exacto con PIL-009 en los 4 criterios' });
-  addRes({ participantId: 'PIL-008', testId: 'test_habilidades', trackId: 'track_3', rawScore: 78, pointsPenalty: 0, registeredTimeMs: 190000 });
-  addRes({ participantId: 'PIL-008', testId: 'test_destreza', trackId: 'track_2', rawScore: 76, pointsPenalty: 0, registeredTimeMs: 195000 });
-
-  addRes({ participantId: 'PIL-009', testId: 'test_velocidad', trackId: 'track_2', registeredTimeMs: 80000, secondsPenaltyMs: 0, pointsPenalty: 0, observation: 'Empate exacto con PIL-008 en los 4 criterios' });
-  addRes({ participantId: 'PIL-009', testId: 'test_habilidades', trackId: 'track_1', rawScore: 78, pointsPenalty: 0, registeredTimeMs: 192000 });
-  addRes({ participantId: 'PIL-009', testId: 'test_destreza', trackId: 'track_3', rawScore: 76, pointsPenalty: 0, registeredTimeMs: 198000 });
-
-  // PIL-010, PIL-011
-  addRes({ participantId: 'PIL-010', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 85000, secondsPenaltyMs: 5000, pointsPenalty: 5 });
-  addRes({ participantId: 'PIL-010', testId: 'test_habilidades', trackId: 'track_3', rawScore: 77, pointsPenalty: 2, registeredTimeMs: 210000 });
-  addRes({ participantId: 'PIL-010', testId: 'test_destreza', trackId: 'track_2', rawScore: 74, pointsPenalty: 0, registeredTimeMs: 215000 });
-
-  addRes({ participantId: 'PIL-011', testId: 'test_velocidad', trackId: 'track_2', registeredTimeMs: 92000, secondsPenaltyMs: 0, pointsPenalty: 0 });
-  addRes({ participantId: 'PIL-011', testId: 'test_habilidades', trackId: 'track_1', rawScore: 75, pointsPenalty: 5, registeredTimeMs: 220000 });
-  addRes({ participantId: 'PIL-011', testId: 'test_destreza', trackId: 'track_3', rawScore: 72, pointsPenalty: 0, registeredTimeMs: 225000 });
-
-  // PIL-012: Exact 300.00s (300000ms) time limit case!
-  addRes({ participantId: 'PIL-012', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 96000, secondsPenaltyMs: 0, pointsPenalty: 0 });
-  addRes({ participantId: 'PIL-012', testId: 'test_habilidades', trackId: 'track_3', rawScore: 74, pointsPenalty: 0, registeredTimeMs: 300000, observation: 'Tiempo exacto en el límite de 300,00s (05:00.00) válido como completado' });
-  addRes({ participantId: 'PIL-012', testId: 'test_destreza', trackId: 'track_2', rawScore: 70, pointsPenalty: 0, registeredTimeMs: 230000 });
-
-  // PIL-013
-  addRes({ participantId: 'PIL-013', testId: 'test_velocidad', trackId: 'track_2', registeredTimeMs: 100000, secondsPenaltyMs: 0, pointsPenalty: 0 });
-  addRes({ participantId: 'PIL-013', testId: 'test_habilidades', trackId: 'track_1', rawScore: 70, pointsPenalty: 0, registeredTimeMs: 240000 });
-  addRes({ participantId: 'PIL-013', testId: 'test_destreza', trackId: 'track_3', rawScore: 68, pointsPenalty: 0, registeredTimeMs: 245000 });
-
-  // PIL-014: Has a DNF in Velocidad, completed Habilidades and Destreza
-  addRes({ participantId: 'PIL-014', testId: 'test_velocidad', trackId: 'track_1', status: 'dnf', registeredTimeMs: null, observation: 'DNF por caída en puerta 4; aporta 0 puntos y nunca se trata como tiempo 0s' });
-  addRes({ participantId: 'PIL-014', testId: 'test_habilidades', trackId: 'track_3', rawScore: 82, pointsPenalty: 0, registeredTimeMs: 185000 });
-  addRes({ participantId: 'PIL-014', testId: 'test_destreza', trackId: 'track_2', rawScore: 79, pointsPenalty: 0, registeredTimeMs: 195000 });
-
-  // PIL-015 to PIL-020: Partial completion (2 of 3 tests completed, 1 Pending!)
-  for (let idx = 15; idx <= 20; idx++) {
-    const pid = `PIL-0${idx}`;
-    addRes({
-      participantId: pid,
-      testId: 'test_velocidad',
-      trackId: 'track_1',
-      registeredTimeMs: 88000 + (idx - 15) * 4500,
-      secondsPenaltyMs: idx % 2 === 0 ? 3000 : 0,
-      pointsPenalty: 0,
-    });
-    addRes({
-      participantId: pid,
-      testId: 'test_habilidades',
-      trackId: 'track_3',
-      rawScore: 81 - (idx - 15) * 2,
-      pointsPenalty: idx % 3 === 0 ? 3 : 0,
-      registeredTimeMs: 195000,
-    });
-    // Destreza remains Pendiente!
-  }
-
-  // PIL-021 to PIL-024: Partial completion (1 of 3 tests completed, 2 Pending!)
-  for (let idx = 21; idx <= 24; idx++) {
-    const pid = `PIL-0${idx}`;
-    addRes({
-      participantId: pid,
-      testId: 'test_velocidad',
-      trackId: 'track_2',
-      registeredTimeMs: 105000 + (idx - 21) * 6000,
-      secondsPenaltyMs: 0,
-      pointsPenalty: 0,
-    });
-  }
-
-  // PIL-025: General DQ participant whose historical results are preserved
-  addRes({ participantId: 'PIL-025', testId: 'test_velocidad', trackId: 'track_1', registeredTimeMs: 58000, secondsPenaltyMs: 0, pointsPenalty: 0, observation: 'Tiempo excluido de referencia por DQ general' });
-  addRes({ participantId: 'PIL-025', testId: 'test_habilidades', trackId: 'track_3', rawScore: 88, pointsPenalty: 0, registeredTimeMs: 160000 });
-
-  // Recalculate velocity results cleanly
-  const disqualifiedIds = new Set(
-    DEMO_PARTICIPANTS.filter((p) => p.isDisqualified).map((p) => p.id)
-  );
-  let allUpdated = results;
-  for (const test of DEMO_TESTS) {
-    if (test.scoringMethod === 'time_calculated') {
-      const testResults = allUpdated.filter((r) => r.testId === test.id);
-      const remainingResults = allUpdated.filter((r) => r.testId !== test.id);
-      const { updatedResults } = recalculateAllResultsForTest(test, testResults, disqualifiedIds);
-      allUpdated = [...remainingResults, ...updatedResults];
-    }
-  }
-
-  return allUpdated;
-}
-
-export const DEMO_RESULTS: CompetitionResult[] = buildInitialResults();
+export const DEMO_RESULTS: CompetitionResult[] = [];
 
 export function toPublicParticipant(p: Participant): PublicParticipant {
   return {

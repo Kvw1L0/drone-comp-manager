@@ -38,8 +38,11 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
     clearAllDraftStorage();
   });
 
-  it('1. Verifica la semilla demostrativa: 35 participantes, 5 pistas y 5 pruebas con aportes 5 x 20 = 100', () => {
-    expect(DEMO_PARTICIPANTS.length).toBe(35);
+  it('1. Verifica la nómina oficial: 31 participantes (17 Distribución, 14 Transmisión), 5 pistas, 5 pruebas y 0 puntajes iniciales', () => {
+    expect(DEMO_PARTICIPANTS.length).toBe(31);
+    expect(DEMO_PARTICIPANTS.filter((p) => p.teamDivision === 'distribucion').length).toBe(17);
+    expect(DEMO_PARTICIPANTS.filter((p) => p.teamDivision === 'transmision').length).toBe(14);
+    expect(DEMO_RESULTS.length).toBe(0);
     expect(DEMO_TRACKS.length).toBe(5);
     expect(DEMO_TESTS.length).toBe(5);
     const sumContributions = DEMO_TESTS.reduce((acc, t) => acc + t.maxContribution, 0);
@@ -47,16 +50,14 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
   });
 
   it('2. Importación CSV y búsqueda insensible a mayúsculas y tildes, distinguiendo homónimos de duplicados', () => {
-    // Search accent & case insensitivity
-    const query = normalizeSearchText('MATIAS ROJAS');
-    const matches = DEMO_PARTICIPANTS.filter((p) => p.normalizedName.includes(query));
-    // PIL-001 (AeroTech Chile #101) and PIL-029 (Condor Robotics #129) share the name Matías Rojas Valdés
-    expect(matches.length).toBe(2);
-    expect(matches[0].companyOrTeam).not.toBe(matches[1].companyOrTeam);
+    // Search accent & case insensitivity with real pilots
+    const matchesDx = DEMO_PARTICIPANTS.filter((p) => p.companyOrTeam.toLowerCase().includes('chilquinta dx'));
+    expect(matchesDx.length).toBe(10);
 
-    const queryTilde = normalizeSearchText('agustin yanez nunez');
+    const queryTilde = normalizeSearchText('aaron nunez');
     const matchTilde = DEMO_PARTICIPANTS.find((p) => p.normalizedName.includes(queryTilde));
-    expect(matchTilde?.id).toBe('PIL-028');
+    expect(matchTilde?.id).toBe('PIL-TX-07');
+    expect(matchTilde?.fullName).toBe('Aarón Nuñez Gilberto');
 
     // CSV validation
     const csv = [

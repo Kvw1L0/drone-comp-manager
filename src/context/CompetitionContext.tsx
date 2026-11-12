@@ -64,7 +64,7 @@ import {
 } from '../utils/scoring';
 import { getFirebaseInstances, FirebaseEnvironmentStatus } from '../services/firebase';
 
-const LOCAL_DB_STORAGE_KEY = 'drone_comp_manager_local_db_v5';
+const LOCAL_DB_STORAGE_KEY = 'drone_comp_manager_local_db_v7';
 const BROADCAST_CHANNEL_NAME = 'drone_comp_realtime_sync_v1';
 
 interface LocalDatabaseState {
@@ -81,8 +81,13 @@ interface LocalDatabaseState {
 function getInitialLocalDb(): LocalDatabaseState {
   try {
     const raw = localStorage.getItem(LOCAL_DB_STORAGE_KEY);
-    if (raw) {
+        if (raw) {
       const parsed = JSON.parse(raw) as LocalDatabaseState;
+      // If loaded state still has old mock pilots or old results, reset to fresh initial seed
+      const hasOldPilot = parsed.participants?.some(p => p.companyOrTeam === 'AeroTech Chile' || p.id === 'PIL-001');
+      if (hasOldPilot) {
+        throw new Error('Migrating to official 31-pilot roster');
+      }
       if (parsed && Array.isArray(parsed.events) && parsed.events.length > 0) {
         let needsSave = false;
 
