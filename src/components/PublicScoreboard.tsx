@@ -172,35 +172,35 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
     const headerGrad = isTrans
       ? 'linear-gradient(90deg, #064e63 0%, #0891b2 50%, #064e63 100%)'
       : 'linear-gradient(90deg, #78350f 0%, #d97706 50%, #78350f 100%)';
-    const borderAccent = isTrans ? 'border-cyan-400/60' : 'border-amber-400/60';
+    const borderAccent = isTrans ? 'border-cyan-400/70' : 'border-amber-400/70';
 
     return (
       <div
-        className={`flex flex-col overflow-hidden shadow-[0_14px_50px_rgba(0,0,0,0.95)] border-2 ${borderAccent} bg-[#0b0c10]/95`}
+        className={`flex flex-col overflow-hidden shadow-[0_16px_55px_rgba(0,0,0,0.96)] border-2 ${borderAccent} bg-[#0b0c10]/95`}
         style={{
           clipPath:
-            'polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px)',
+            'polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 16px)',
         }}
       >
         {/* Team Header Bar */}
         <div
-          className="py-2.5 sm:py-3 px-4 text-center border-b-2 border-white/25 flex items-center justify-between"
+          className="py-3 sm:py-3.5 md:py-4 px-5 sm:px-6 text-center border-b-2 border-white/25 flex items-center justify-between"
           style={{
             background: headerGrad,
-            boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.6)',
+            boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.4), 0 4px 14px rgba(0,0,0,0.6)',
           }}
         >
-          <span className="text-lg sm:text-2xl md:text-[26px] font-black uppercase tracking-wider text-white drop-shadow">
-            {isTrans ? '🗼 ' : '⚡ '}
+          <span className="text-xl sm:text-2xl md:text-3xl lg:text-[32px] font-black uppercase tracking-wider text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+            {isTrans ? '⚡ ' : '🏅 '}
             {title}
           </span>
-          <span className="px-2.5 py-0.5 rounded bg-black/45 border border-white/25 text-xs sm:text-sm font-black uppercase tracking-wider text-amber-200">
-            1× 1° • 2× 2° • 3× 3°
+          <span className="px-3 py-1 rounded bg-black/55 border border-white/30 text-xs sm:text-sm md:text-base font-black uppercase tracking-wider text-amber-200 shadow-inner">
+            1° • 2° • 3° LUGAR
           </span>
         </div>
 
         {/* Subheader */}
-        <div className="grid grid-cols-12 bg-[#14161d] border-b border-red-500/40 text-xs sm:text-sm font-black uppercase tracking-wider text-slate-300 py-1.5 px-3">
+        <div className="grid grid-cols-12 bg-[#14161d] border-b border-red-500/40 text-xs sm:text-sm md:text-base font-black uppercase tracking-wider text-slate-300 py-2 px-4 sm:px-6">
           <div className="col-span-3 text-center">PREMIO</div>
           <div className="col-span-6">PILOTO PREMIADO</div>
           <div className="col-span-3 text-right pr-2">PTS / TIEMPO</div>
@@ -217,22 +217,22 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
             const rowStyle: React.CSSProperties = isTier1
               ? {
                   background:
-                    'linear-gradient(90deg, rgba(230,0,18,0.55) 0%, rgba(245,158,11,0.42) 50%, rgba(230,0,18,0.45) 100%)',
+                    'linear-gradient(90deg, rgba(230,0,18,0.58) 0%, rgba(245,158,11,0.45) 50%, rgba(230,0,18,0.48) 100%)',
                   boxShadow:
-                    'inset 0 0 22px rgba(251,191,36,0.48), inset 0 2px 0 rgba(253,224,71,0.8), inset 0 -2px 0 rgba(251,191,36,0.65)',
+                    'inset 0 0 24px rgba(251,191,36,0.5), inset 0 2px 0 rgba(253,224,71,0.85), inset 0 -2px 0 rgba(251,191,36,0.7)',
                 }
               : isTier2
               ? {
                   background:
-                    'linear-gradient(90deg, rgba(148,163,184,0.32) 0%, rgba(226,232,240,0.22) 50%, rgba(30,41,59,0.65) 100%)',
+                    'linear-gradient(90deg, rgba(148,163,184,0.35) 0%, rgba(226,232,240,0.25) 50%, rgba(30,41,59,0.7) 100%)',
                   boxShadow:
-                    'inset 0 0 16px rgba(226,232,240,0.3), inset 0 1.5px 0 rgba(241,245,249,0.6)',
+                    'inset 0 0 18px rgba(226,232,240,0.32), inset 0 1.5px 0 rgba(241,245,249,0.65)',
                 }
               : {
                   background:
-                    'linear-gradient(90deg, rgba(217,119,6,0.36) 0%, rgba(180,83,9,0.24) 50%, rgba(69,26,3,0.65) 100%)',
+                    'linear-gradient(90deg, rgba(217,119,6,0.38) 0%, rgba(180,83,9,0.26) 50%, rgba(69,26,3,0.7) 100%)',
                   boxShadow:
-                    'inset 0 0 14px rgba(245,158,11,0.28), inset 0 1.5px 0 rgba(251,191,36,0.5)',
+                    'inset 0 0 16px rgba(245,158,11,0.3), inset 0 1.5px 0 rgba(251,191,36,0.55)',
                 };
 
             const totalTimeMs = row ? getRowEffectiveTimeSummary(row) : null;
@@ -241,84 +241,84 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
               <div
                 key={row ? row.participantId : `empty-${slotIdx}`}
                 style={rowStyle}
-                className={`grid grid-cols-12 items-center px-3 ${
-                  isTier1 ? 'py-3 sm:py-3.5' : 'py-2 sm:py-2.5'
+                className={`grid grid-cols-12 items-center px-4 sm:px-6 transition-colors ${
+                  isTier1 ? 'py-3.5 sm:py-4 md:py-4.5' : 'py-2.5 sm:py-3.5 md:py-3.5'
                 }`}
               >
                 {/* PREMIO BADGE (1° LUGAR, 2° LUGAR, 3° LUGAR) */}
-                <div className="col-span-3 flex flex-col items-center justify-center pr-2 border-r border-white/15">
+                <div className="col-span-3 flex flex-col items-center justify-center pr-3 border-r border-white/15">
                   <span
-                    className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded font-black uppercase tracking-tight leading-none ${
+                    className={`inline-flex items-center justify-center px-3 sm:px-4 py-1 rounded font-black uppercase tracking-tight leading-none ${
                       isTier1
-                        ? 'text-lg sm:text-xl md:text-2xl bg-gradient-to-b from-yellow-200 via-amber-400 to-amber-600 text-slate-950 shadow-[0_0_16px_rgba(251,191,36,0.85)] border-2 border-yellow-100'
+                        ? 'text-lg sm:text-2xl md:text-3xl lg:text-[28px] bg-gradient-to-b from-yellow-200 via-amber-400 to-amber-600 text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.9)] border-2 border-yellow-100'
                         : isTier2
-                        ? 'text-base sm:text-lg md:text-xl bg-gradient-to-b from-white via-slate-200 to-slate-400 text-slate-950 shadow-[0_0_12px_rgba(226,232,240,0.6)] border border-white'
-                        : 'text-base sm:text-lg md:text-xl bg-gradient-to-b from-amber-300 via-amber-500 to-amber-700 text-slate-950 shadow-[0_0_12px_rgba(217,119,6,0.6)] border border-amber-200'
+                        ? 'text-base sm:text-xl md:text-2xl lg:text-[24px] bg-gradient-to-b from-white via-slate-200 to-slate-400 text-slate-950 shadow-[0_0_14px_rgba(226,232,240,0.65)] border border-white'
+                        : 'text-base sm:text-xl md:text-2xl lg:text-[24px] bg-gradient-to-b from-amber-300 via-amber-500 to-amber-700 text-slate-950 shadow-[0_0_14px_rgba(217,119,6,0.65)] border border-amber-200'
                     }`}
                   >
                     {awardTier}° LUGAR
                   </span>
                   {row?.position && (
-                    <span className="text-[11px] sm:text-xs font-bold text-amber-200/90 mt-0.5">
+                    <span className="text-xs sm:text-sm md:text-base font-bold text-amber-200 mt-1">
                       #{String(row.position).padStart(2, '0')} General
                     </span>
                   )}
                 </div>
 
                 {/* PILOT INFO */}
-                <div className="col-span-6 pl-3 pr-2 min-w-0">
+                <div className="col-span-6 pl-4 sm:pl-5 pr-2 min-w-0">
                   {row ? (
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="px-1.5 py-0.2 rounded bg-black/45 border border-white/25 text-amber-200 font-black text-xs sm:text-sm shrink-0">
+                    <div className="flex flex-col min-w-0 justify-center">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="px-2 py-0.5 rounded bg-black/60 border border-white/30 text-amber-200 font-black text-xs sm:text-base md:text-lg shrink-0">
                           {row.competitorNumber}
                         </span>
                         <span
                           className={`font-black uppercase truncate leading-tight ${
                             isTier1
-                              ? 'text-xl sm:text-2xl md:text-[26px] text-amber-100 drop-shadow-[0_2px_8px_rgba(251,191,36,0.6)]'
+                              ? 'text-xl sm:text-2xl md:text-3xl lg:text-[32px] text-amber-100 drop-shadow-[0_2px_10px_rgba(251,191,36,0.7)]'
                               : isTier2
-                              ? 'text-lg sm:text-xl md:text-2xl text-white'
-                              : 'text-base sm:text-xl md:text-[22px] text-amber-100'
+                              ? 'text-lg sm:text-xl md:text-2xl lg:text-[28px] text-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.4)]'
+                              : 'text-base sm:text-xl md:text-2xl lg:text-[26px] text-amber-100'
                           }`}
                         >
                           {row.fullName}
                         </span>
                       </div>
                       {row.companyOrTeam && (
-                        <span className="text-xs sm:text-sm font-bold uppercase text-slate-300 truncate">
+                        <span className="text-xs sm:text-sm md:text-base font-bold uppercase text-slate-300 truncate mt-0.5 pl-0.5">
                           {row.companyOrTeam}
                         </span>
                       )}
                     </div>
                   ) : (
-                    <span className="text-sm sm:text-base font-bold text-slate-400 uppercase">
+                    <span className="text-sm sm:text-base md:text-lg font-bold text-slate-400 uppercase tracking-wide">
                       Vacante por definir
                     </span>
                   )}
                 </div>
 
                 {/* SCORE & TIME */}
-                <div className="col-span-3 text-right pr-1">
+                <div className="col-span-3 text-right pr-2">
                   {row ? (
-                    <div className="leading-tight">
+                    <div className="leading-tight flex flex-col items-end">
                       <div
                         className={`font-black leading-none ${
                           isTier1
-                            ? 'text-xl sm:text-2xl md:text-3xl text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.8)]'
+                            ? 'text-2xl sm:text-3xl md:text-4xl lg:text-[40px] text-amber-300 drop-shadow-[0_0_14px_rgba(251,191,36,0.85)]'
                             : isTier2
-                            ? 'text-lg sm:text-xl md:text-2xl text-white'
-                            : 'text-lg sm:text-xl md:text-2xl text-amber-300'
+                            ? 'text-xl sm:text-2xl md:text-3xl lg:text-[34px] text-white'
+                            : 'text-xl sm:text-2xl md:text-3xl lg:text-[34px] text-amber-300'
                         }`}
                       >
                         {formatScore(row.totalContribution)}
                       </div>
-                      <div className="text-xs sm:text-sm font-bold text-slate-200 mt-0.5">
+                      <div className="text-xs sm:text-sm md:text-base font-bold text-slate-200 mt-1 font-mono">
                         {totalTimeMs !== null ? formatMsToTime(totalTimeMs) : '—'}
                       </div>
                     </div>
                   ) : (
-                    <span className="text-sm font-bold text-slate-500">—</span>
+                    <span className="text-base sm:text-lg font-bold text-slate-500">—</span>
                   )}
                 </div>
               </div>
@@ -495,8 +495,8 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       {/* MAIN BODY: EITHER SPLIT-SCREEN TEAM PODIUM OR GENERAL RANKING TABLE   */}
       {/* ===================================================================== */}
       {showSplitTeamPodium ? (
-        <main className="relative z-10 flex-1 min-h-0 flex flex-col justify-center w-full max-w-7xl mx-auto px-3 sm:px-6 md:px-10 my-1 overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-stretch">
+        <main className="relative z-10 flex-1 min-h-0 flex flex-col justify-center w-full max-w-[98vw] 2xl:max-w-[99vw] mx-auto px-2 sm:px-4 md:px-6 my-1 overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-7 items-stretch w-full">
             {renderTeamPodiumColumn('distribucion', distribucionWinners)}
             {renderTeamPodiumColumn('transmision', transmisionWinners)}
           </div>
