@@ -173,65 +173,6 @@ function getInitialLocalDb(): LocalDatabaseState {
           });
         }
 
-        // Reconcile Pista 2 results: if results exist on track_2 under test_destreza, migrate them to test_habilidades
-        if (Array.isArray(parsed.results)) {
-          const hasMismatchedPista2 = parsed.results.some(
-            (r) => r.trackId === 'track_2' && r.testId === 'test_destreza'
-          );
-          if (hasMismatchedPista2) {
-            const existingHabilidadesMap = new Map<string, CompetitionResult>();
-            parsed.results
-              .filter((r) => r.testId === 'test_habilidades')
-              .forEach((r) => existingHabilidadesMap.set(r.participantId, r));
-
-            const nextResults: CompetitionResult[] = [];
-            for (const r of parsed.results) {
-              if (r.trackId === 'track_2' && r.testId === 'test_destreza') {
-                if (existingHabilidadesMap.has(r.participantId)) {
-                  continue;
-                }
-                const timeMs = r.registeredTimeMs;
-                const penSecMs = r.secondsPenaltyMs || 0;
-                const effMs = timeMs ? timeMs + penSecMs : null;
-                let base: number | null = 0;
-                let net: number | null = 0;
-                let cont: number | null = 0;
-                if (r.participationStatus === 'completado' && effMs && effMs > 0 && effMs < 300000) {
-                  const frac = (300000 - effMs) / 300000;
-                  base = Number((100 * frac).toFixed(4));
-                  net = Math.max(0, base - (r.pointsPenalty || 0));
-                  cont = Number(((net / 100) * 20).toFixed(4));
-                } else if (r.participationStatus === 'completado' && !effMs) {
-                  base = r.calculatedBaseScore || 0;
-                  net = r.netScore || 0;
-                  cont = r.contribution || 0;
-                } else {
-                  base = 0;
-                  net = 0;
-                  cont = 0;
-                }
-
-                nextResults.push({
-                  ...r,
-                  id: `${r.participantId}__test_habilidades`,
-                  testId: 'test_habilidades',
-                  trackId: 'track_2',
-                  effectiveTimeMs: effMs,
-                  calculatedBaseScore: base,
-                  netScore: net,
-                  contribution: cont,
-                  version: (r.version || 1) + 1,
-                  updatedAt: Date.now(),
-                });
-              } else {
-                nextResults.push(r);
-              }
-            }
-            parsed.results = nextResults;
-            needsSave = true;
-          }
-        }
-
         if (needsSave && Array.isArray(parsed.results)) {
           const disqualifiedIds = new Set(
             (parsed.participants || []).filter((p) => p.isDisqualified).map((p) => p.id)
