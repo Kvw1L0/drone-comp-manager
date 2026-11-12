@@ -184,7 +184,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       >
         {/* Team Header Bar */}
         <div
-          className="py-3 sm:py-3.5 md:py-4 px-5 sm:px-6 text-center border-b-2 border-white/25 flex items-center justify-center"
+          className="py-2 sm:py-2.5 md:py-3 px-4 sm:px-6 text-center border-b-2 border-white/25 flex items-center justify-center"
           style={{
             background: headerGrad,
             boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.4), 0 4px 14px rgba(0,0,0,0.6)',
@@ -239,7 +239,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                 key={row ? row.participantId : `empty-${slotIdx}`}
                 style={rowStyle}
                 className={`grid grid-cols-12 items-center px-4 sm:px-6 transition-colors ${
-                  isTier1 ? 'py-3.5 sm:py-4 md:py-4.5' : 'py-2.5 sm:py-3.5 md:py-3.5'
+                  isTier1 ? 'py-2 sm:py-2.5 md:py-3' : 'py-1.5 sm:py-2 md:py-2.5'
                 }`}
               >
                 {/* PREMIO BADGE (1° LUGAR, 2° LUGAR, 3° LUGAR) */}
@@ -327,7 +327,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
   return (
     <div
       onDoubleClick={handleToggleFullscreen}
-      className="font-broadcast-narrow relative h-screen h-[100dvh] max-h-screen w-full bg-[#08090c] text-white flex flex-col justify-between overflow-hidden select-none"
+      id="public-broadcast-root" className="font-broadcast-narrow relative h-screen h-[100dvh] max-h-screen w-full bg-[#08090c] text-white flex flex-col justify-between overflow-hidden select-none"
       style={{
         backgroundImage: `
           radial-gradient(circle at 50% 18%, rgba(220, 0, 18, 0.22) 0%, rgba(10, 11, 16, 0.92) 55%, #060709 100%),
@@ -461,11 +461,11 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
         <img
           src="/rally-drone-logo.png"
           alt="The First Grid Rally Drone Race of Chile"
-          className="h-12 sm:h-16 md:h-20 max-h-[82px] w-auto object-contain drop-shadow-[0_4px_16px_rgba(230,0,18,0.65)] select-none"
+          className="h-9 sm:h-12 md:h-14 lg:h-16 max-h-[66px] w-auto object-contain drop-shadow-[0_4px_16px_rgba(230,0,18,0.65)] select-none"
         />
 
         <h1
-          className="mt-0.5 text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black italic uppercase tracking-wider text-white leading-none drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
+          className="mt-0.5 text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black italic uppercase tracking-wider text-white leading-none drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
           style={{
             letterSpacing: '0.04em',
             WebkitFontSmoothing: 'antialiased',
@@ -497,7 +497,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
           </div>
         </main>
       ) : (
-        <main className="relative z-10 flex-1 min-h-0 flex flex-col justify-center w-full max-w-6xl mx-auto px-2 sm:px-6 md:px-10 my-1 overflow-hidden">
+        <main className="relative z-10 flex-1 min-h-0 flex flex-col justify-center w-full max-w-[98vw] 2xl:max-w-[99vw] mx-auto px-2 sm:px-4 md:px-6 my-0.5 sm:my-1 overflow-hidden">
           <div
             className="w-full overflow-hidden shadow-[0_14px_55px_rgba(0,0,0,0.96)] border-2 border-red-500/55 bg-[#0b0c10]/95"
             style={{
@@ -505,8 +505,8 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                 'polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 16px)',
             }}
           >
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left">
+            <div className="w-full overflow-hidden">
+              <table className="w-full border-collapse text-left table-auto">
                 {/* Crimson Beveled Header Bar */}
                 <thead>
                   <tr
@@ -518,12 +518,12 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                         'inset 0 1.5px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.6)',
                     }}
                   >
-                    <th className="py-2.5 sm:py-3 px-3 sm:px-5 w-24 sm:w-28 text-center border-r border-white/20">
+                    <th className="py-1.5 sm:py-2 px-2.5 sm:px-4 w-20 sm:w-24 text-center border-r border-white/20">
                       POS.
                     </th>
 
                     {hasCompetitorColumn && (
-                      <th className="py-2.5 sm:py-3 px-4 sm:px-6 border-r border-white/20">
+                      <th className="py-1.5 sm:py-2 px-3 sm:px-4 border-r border-white/20">
                         COMPETIDOR
                       </th>
                     )}
@@ -532,7 +532,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                       tests.map((t, idx) => (
                         <th
                           key={t.id}
-                          className="py-2.5 sm:py-3 px-2.5 text-center border-r border-white/20"
+                          className="py-1.5 sm:py-2 px-2 text-center border-r border-white/20"
                         >
                           P{idx + 1}:{' '}
                           {t.name.replace(/^Pista\s*\d+\s*-\s*/i, '').split(' ')[0]}
@@ -540,13 +540,13 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                       ))}
 
                     {visibleColumns.showTotalTime && (
-                      <th className="py-2.5 sm:py-3 px-3 sm:px-5 text-center border-r border-white/20">
+                      <th className="py-1.5 sm:py-2 px-2.5 sm:px-4 text-center border-r border-white/20">
                         TIEMPO TOTAL
                       </th>
                     )}
 
                     {visibleColumns.showPoints && (
-                      <th className="py-2.5 sm:py-3 px-4 sm:px-6 text-center w-44 sm:w-56">
+                      <th className="py-1.5 sm:py-2 px-3 sm:px-4 text-center w-36 sm:w-48">
                         PUNTOS ACUMULADOS
                       </th>
                     )}
@@ -597,8 +597,8 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                         };
 
                     const cellPadding = isTop3GeneralRow
-                      ? 'py-1.5 sm:py-2 md:py-2.5'
-                      : 'py-1 sm:py-1.5 md:py-2';
+                      ? 'py-1 sm:py-1.5'
+                      : 'py-0.5 sm:py-1';
 
                     return (
                       <tr
@@ -812,7 +812,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
           <img
             src="/logo-grupo-empresas-chilquinta-horizontal-white.png"
             alt="Grupo Empresas Chilquinta"
-            className="h-8 sm:h-9 md:h-11 max-h-[44px] w-auto object-contain drop-shadow-[0_2px_12px_rgba(230,0,18,0.4)] select-none"
+            className="h-6 sm:h-7 md:h-9 max-h-[36px] w-auto object-contain drop-shadow-[0_2px_12px_rgba(230,0,18,0.4)] select-none"
           />
         </div>
 

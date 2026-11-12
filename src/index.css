@@ -86,3 +86,28 @@
     transparent 12px
   );
 }
+
+
+/* Ensure public broadcast screen never shows scrollbars in any browser, projector, or TV */
+body:has(#public-broadcast-root),
+html:has(#public-broadcast-root),
+#public-broadcast-root {
+  overflow: hidden !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100vh !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+}
+
+#public-broadcast-root,
+#public-broadcast-root * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+#public-broadcast-root *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
