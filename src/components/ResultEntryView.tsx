@@ -230,6 +230,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
   const [centisecondsInput, setCentisecondsInput] = useState<string>('');
   const [secondsPenaltyInput, setSecondsPenaltyInput] = useState<string>('0');
   const [observation, setObservation] = useState<string>('');
+  const [pilotSigned, setPilotSigned] = useState<boolean>(true);
 
   const [adminExceptionReason, setAdminExceptionReason] = useState<string>('');
   const [adminCorrectionReason, setAdminCorrectionReason] = useState<string>('');
@@ -1377,15 +1378,82 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                 )}
 
                 {/* Observación para jueces / staff */}
-                <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
-                  <span className="text-[11px] font-bold text-slate-400">Observación o motivo de faltas (opcional)</span>
+                {/* CAMPO 5: DETALLE / MOTIVO DESCRIPTIVO DE FALTA */}
+                <div className="p-3.5 rounded-2xl bg-slate-950 border border-amber-500/30 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      Campo 5: Detalle / Motivo de Falta
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      (Para respaldo de auditoría física)
+                    </span>
+                  </div>
+                  
+                  {/* Quick Fault Tags */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: 'Toque de puerta (-5 pts)', penalty: '5', note: 'Toque de puerta' },
+                      { label: 'Salida de trazado (-10 pts)', penalty: '10', note: 'Salida de trazado' },
+                      { label: 'Aterrizaje fuera (-10 pts)', penalty: '10', note: 'Aterrizaje fuera de helipad' },
+                      { label: 'Despegue anticipado (+5s)', sec: '5', note: 'Despegue antes de señal' },
+                      { label: '✓ Sin faltas (Limpia)', penalty: '0', sec: '0', note: 'Manga limpia sin observaciones' },
+                    ].map((chip) => (
+                      <button
+                        key={chip.label}
+                        type="button"
+                        onClick={() => {
+                          if (chip.penalty !== undefined && selectedTest.scoringMethod === 'manual') {
+                            setPointsPenaltyInput(chip.penalty);
+                          }
+                          if (chip.sec !== undefined && selectedTest.scoringMethod === 'time_calculated') {
+                            setSecondsPenaltyInput(chip.sec);
+                          }
+                          setObservation((prev) => prev ? prev + ', ' + chip.note : chip.note);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] font-bold text-slate-300 hover:text-amber-300 border border-slate-800 transition cursor-pointer"
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+
                   <input
                     type="text"
                     value={observation}
                     onChange={(e) => setObservation(e.target.value)}
-                    placeholder="Detalles sobre penalizaciones o vuelo..."
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-slate-600"
+                    placeholder="Describe aquí las faltas u observaciones de la manga..."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-500 font-mono"
                   />
+                </div>
+
+                {/* FIRMA DE CONFORMIDAD DEL PILOTO EN PISTA */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-950 to-slate-950 border border-emerald-500/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-400 text-xs flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      Firma de Conformidad del Piloto en Pista
+                    </span>
+                    <span className={'px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ' + (
+                      pilotSigned
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    )}>
+                      {pilotSigned ? 'Firma Conforme' : 'Sin Firma'}
+                    </span>
+                  </div>
+
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pilotSigned}
+                      onChange={(e) => setPilotSigned(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div className="text-xs text-slate-300 leading-relaxed">
+                      El piloto <strong className="text-white">{selectedParticipant?.fullName}</strong> ({selectedParticipant?.competitorNumber}) ha revisado y <strong className="text-emerald-300">firma en conformidad</strong> sus tiempos, faltas y puntajes registrados en esta manga.
+                    </div>
+                  </label>
                 </div>
               </div>
             ) : (
