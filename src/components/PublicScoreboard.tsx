@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   AlertTriangle,
   Sparkles,
+  Sliders,
 } from 'lucide-react';
 import { useCompetition } from '../context/CompetitionContext';
 import {
@@ -37,10 +38,12 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
     publicParticipants,
     publicResults,
     isOnline,
+    setEventRankingColumns,
   } = useCompetition();
 
   type BoardViewMode = 'general' | 'top10' | 'podio';
 
+  const [showColumnToggles, setShowColumnToggles] = useState<boolean>(false);
   const [activeBoardView, setActiveBoardView] = useState<BoardViewMode>(() => {
     if (typeof window === 'undefined') return 'general';
     const params = new URLSearchParams(window.location.search);
@@ -365,149 +368,248 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
     top10Rows: RankingRow[]
   ) => {
     const isTrans = divisionKey === 'transmision';
-    const title = isTrans ? 'TOP 10 • TRANSMISIÓN (TX)' : 'TOP 10 • DISTRIBUCIÓN (DX)';
-    const headerGrad = isTrans
-      ? 'linear-gradient(90deg, #064e63 0%, #0891b2 50%, #064e63 100%)'
-      : 'linear-gradient(90deg, #78350f 0%, #d97706 50%, #78350f 100%)';
-    const borderAccent = isTrans ? 'border-cyan-400/70' : 'border-amber-400/70';
-    const badgeColor = isTrans ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50' : 'bg-amber-500/20 text-amber-200 border-amber-400/50';
+    const title = isTrans ? 'TOP 10 • TRANSMISIÓN' : 'TOP 10 • DISTRIBUCIÓN';
 
     return (
       <div
-        className={`flex flex-col overflow-hidden shadow-[0_16px_55px_rgba(0,0,0,0.96)] border-2 ${borderAccent} bg-[#0b0c10]/95 flex-1 min-h-0`}
+        className="w-full flex-1 min-h-0 flex flex-col overflow-hidden shadow-[0_14px_55px_rgba(0,0,0,0.96)] border-2 border-red-500/55 bg-[#0b0c10]/95"
         style={{
           clipPath:
-            'polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px)',
+            'polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 16px)',
         }}
       >
-        {/* Header Bar */}
+        {/* KV Crimson Header Bar */}
         <div
-          className="py-1.5 sm:py-2 px-3 sm:px-4 text-center border-b-2 border-white/20 flex items-center justify-between shrink-0"
+          className="py-1.5 sm:py-2 px-3 sm:px-5 text-center border-b-2 border-[#ff3b3b] flex items-center justify-between shrink-0"
           style={{
-            background: headerGrad,
-            boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.5)',
+            background:
+              'linear-gradient(90deg, #6e0007 0%, #c8000f 25%, #e60012 50%, #c8000f 75%, #6e0007 100%)',
+            boxShadow:
+              'inset 0 1.5px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.6)',
           }}
         >
-          <span className="text-sm sm:text-base md:text-lg font-black uppercase tracking-wider text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] flex items-center gap-1.5">
-            <span>{isTrans ? '⚡' : '🏅'}</span>
-            <span>{title}</span>
-          </span>
-          <span className={`px-2 py-0.5 rounded text-[11px] sm:text-xs font-black uppercase font-mono border ${badgeColor}`}>
-            {isTrans ? 'TX' : 'DX'}
+          <div className="flex items-center gap-2">
+            <span className="text-base sm:text-lg md:text-xl lg:text-2xl font-black italic uppercase tracking-wider text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
+              {title}
+            </span>
+          </div>
+          <span
+            className={`px-2.5 py-0.5 rounded text-xs sm:text-sm font-black uppercase font-mono tracking-wider border shadow-md ${
+              isTrans
+                ? 'bg-cyan-500/25 text-cyan-200 border-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.5)]'
+                : 'bg-amber-500/25 text-amber-200 border-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+            }`}
+          >
+            {isTrans ? '⚡ DIVISIÓN TX' : '🏅 DIVISIÓN DX'}
           </span>
         </div>
 
-        {/* Subheader */}
-        <div className="grid grid-cols-12 bg-[#12141c] border-b border-white/10 text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-300 py-1 px-3 sm:px-4 shrink-0">
-          <div className="col-span-2 sm:col-span-1 text-center">POS</div>
-          <div className="col-span-7 sm:col-span-8 pl-1">PILOTO</div>
-          <div className="col-span-3 text-right pr-1">PUNTOS</div>
-        </div>
-
-        {/* 10 Rows */}
-        <div className="divide-y divide-white/10 flex-1 flex flex-col justify-between">
-          {top10Rows.slice(0, 10).map((row, idx) => {
-            const divPos = idx + 1;
-            const isTop1 = divPos === 1;
-            const isTop2 = divPos === 2;
-            const isTop3 = divPos === 3;
-            const formattedDivPos = String(divPos).padStart(2, '0');
-            const totalTimeMs = getRowEffectiveTimeSummary(row);
-
-            const rowStyle: React.CSSProperties = isTop1
-              ? {
+        {/* Dynamic Table with Responsive Headers according to visibleColumns */}
+        <div className="w-full overflow-hidden flex-1 flex flex-col">
+          <table className="w-full border-collapse text-left table-auto flex-1">
+            <thead>
+              <tr
+                className="text-white text-xs sm:text-sm md:text-base font-black uppercase tracking-wider border-b-2 border-white/20"
+                style={{
                   background:
-                    'linear-gradient(90deg, rgba(230,0,18,0.45) 0%, rgba(245,158,11,0.35) 50%, rgba(230,0,18,0.38) 100%)',
-                }
-              : isTop2
-              ? {
-                  background:
-                    'linear-gradient(90deg, rgba(148,163,184,0.22) 0%, rgba(226,232,240,0.18) 50%, rgba(30,41,59,0.5) 100%)',
-                }
-              : isTop3
-              ? {
-                  background:
-                    'linear-gradient(90deg, rgba(217,119,6,0.25) 0%, rgba(180,83,9,0.18) 50%, rgba(69,26,3,0.5) 100%)',
-                }
-              : {
-                  background:
-                    idx % 2 === 0
-                      ? 'linear-gradient(90deg, rgba(18,20,26,0.92) 0%, rgba(26,28,36,0.88) 50%, rgba(18,20,26,0.92) 100%)'
-                      : 'linear-gradient(90deg, rgba(12,14,18,0.92) 0%, rgba(20,22,29,0.88) 50%, rgba(12,14,18,0.92) 100%)',
-                };
-
-            return (
-              <div
-                key={row.participantId}
-                style={rowStyle}
-                className="grid grid-cols-12 items-center px-3 sm:px-4 py-1 sm:py-1.5 transition-colors whitespace-nowrap"
+                    'linear-gradient(90deg, #181b24 0%, #222634 50%, #181b24 100%)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
+                }}
               >
-                {/* POS */}
-                <div className="col-span-2 sm:col-span-1 text-center pr-1.5">
-                  <span
-                    className={`inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded font-black text-xs sm:text-sm leading-none ${
-                      isTop1
-                        ? 'bg-amber-400 text-slate-950 shadow-[0_0_10px_rgba(251,191,36,0.8)]'
-                        : isTop2
-                        ? 'bg-slate-200 text-slate-950 shadow-[0_0_8px_rgba(255,255,255,0.6)]'
-                        : isTop3
-                        ? 'bg-amber-600 text-white shadow-[0_0_8px_rgba(217,119,6,0.6)]'
-                        : 'bg-white/10 text-slate-300'
-                    }`}
-                  >
-                    {formattedDivPos}
-                  </span>
-                </div>
+                <th className="py-1.5 px-2 sm:px-3 w-14 sm:w-16 md:w-20 text-center border-r border-white/15">
+                  POS.
+                </th>
 
-                {/* PILOT INFO (Single line: Number + Name + Company) */}
-                <div className="col-span-7 sm:col-span-8 flex items-center gap-1.5 sm:gap-2 min-w-0 pl-1 whitespace-nowrap">
-                  <span className="px-1.5 py-0.5 rounded bg-black/60 border border-white/25 text-amber-200 font-black text-[10px] sm:text-xs font-mono shrink-0">
-                    {row.competitorNumber || row.participantId}
-                  </span>
-                  <span
-                    className={`font-black uppercase whitespace-nowrap truncate leading-none ${
-                      isTop1
-                        ? 'text-xs sm:text-sm md:text-base text-amber-100'
-                        : isTop2
-                        ? 'text-xs sm:text-sm md:text-base text-white'
-                        : isTop3
-                        ? 'text-xs sm:text-sm md:text-base text-amber-200'
-                        : 'text-xs sm:text-sm md:text-base text-slate-100'
-                    }`}
-                  >
-                    {formatShortName(row.fullName)}
-                  </span>
-                  {row.companyOrTeam && (
-                    <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 whitespace-nowrap shrink-0">
-                      • {row.companyOrTeam}
-                    </span>
-                  )}
-                </div>
+                {hasCompetitorColumn && (
+                  <th className="py-1.5 px-3 sm:px-4 border-r border-white/15 text-left">
+                    COMPETIDOR
+                  </th>
+                )}
 
-                {/* POINTS & TIME */}
-                <div className="col-span-3 text-right pr-1 flex items-center justify-end gap-2 whitespace-nowrap">
-                  {totalTimeMs !== null && (
-                    <span className="text-[10px] sm:text-xs font-mono font-bold text-slate-400 hidden xl:inline">
-                      {formatMsToTime(totalTimeMs)}
-                    </span>
-                  )}
-                  <span
-                    className={`font-black text-sm sm:text-base font-mono leading-none ${
+                {visibleColumns.showTotalTime && (
+                  <th className="py-1.5 px-2 sm:px-3 text-center border-r border-white/15 w-24 sm:w-28 md:w-32">
+                    TIEMPO
+                  </th>
+                )}
+
+                {visibleColumns.showPoints && (
+                  <th className="py-1.5 px-2 sm:px-4 text-center w-24 sm:w-28 md:w-36">
+                    PUNTOS
+                  </th>
+                )}
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-white/10">
+              {top10Rows.slice(0, 10).map((row, idx) => {
+                const divPos = idx + 1;
+                const isTop1 = divPos === 1;
+                const isTop2 = divPos === 2;
+                const isTop3 = divPos === 3;
+                const isTop3Row = isTop1 || isTop2 || isTop3;
+                const formattedDivPos = String(divPos).padStart(2, '0');
+                const totalTimeMs = getRowEffectiveTimeSummary(row);
+
+                const rowStyle: React.CSSProperties = isTop1
+                  ? {
+                      background:
+                        'linear-gradient(90deg, rgba(230,0,18,0.55) 0%, rgba(245,158,11,0.42) 50%, rgba(230,0,18,0.48) 100%)',
+                      boxShadow:
+                        'inset 0 0 20px rgba(251,191,36,0.45), inset 0 2px 0 rgba(253,224,71,0.75), inset 0 -2px 0 rgba(251,191,36,0.65)',
+                    }
+                  : isTop2
+                  ? {
+                      background:
+                        'linear-gradient(90deg, rgba(245,158,11,0.28) 0%, rgba(226,232,240,0.24) 50%, rgba(30,41,59,0.65) 100%)',
+                      boxShadow:
+                        'inset 0 0 16px rgba(251,191,36,0.30), inset 0 2px 0 rgba(253,224,71,0.55), inset 0 -2px 0 rgba(226,232,240,0.45)',
+                    }
+                  : isTop3
+                  ? {
+                      background:
+                        'linear-gradient(90deg, rgba(217,119,6,0.36) 0%, rgba(180,83,9,0.25) 50%, rgba(69,26,3,0.60) 100%)',
+                      boxShadow:
+                        'inset 0 0 16px rgba(245,158,11,0.30), inset 0 1.5px 0 rgba(251,191,36,0.55), inset 0 -1.5px 0 rgba(217,119,6,0.50)',
+                    }
+                  : {
+                      background:
+                        divPos % 2 === 0
+                          ? 'linear-gradient(90deg, rgba(18,20,26,0.96) 0%, rgba(26,28,36,0.92) 50%, rgba(18,20,26,0.96) 100%)'
+                          : 'linear-gradient(90deg, rgba(12,14,18,0.96) 0%, rgba(20,22,29,0.92) 50%, rgba(12,14,18,0.96) 100%)',
+                    };
+
+                const cellPadding = 'py-1 sm:py-1.5 md:py-2';
+
+                return (
+                  <tr
+                    key={row.participantId}
+                    style={rowStyle}
+                    className={`border-b transition-colors ${
                       isTop1
-                        ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.7)]'
+                        ? 'border-amber-400/90'
                         : isTop2
-                        ? 'text-white'
+                        ? 'border-amber-300/70'
                         : isTop3
-                        ? 'text-amber-300'
-                        : 'text-amber-200'
+                        ? 'border-amber-500/75'
+                        : 'border-[#e60012]/40'
                     }`}
                   >
-                    {formatScore(row.totalContribution)}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+                    {/* POS */}
+                    <td className={`${cellPadding} px-2 sm:px-3 text-center border-r border-white/15`}>
+                      {isTop3Row ? (
+                        <div className="inline-flex flex-col items-center justify-center">
+                          <span
+                            className={`inline-flex items-center justify-center px-2 sm:px-2.5 py-0.5 rounded font-black tracking-tight leading-none ${
+                              isTop1
+                                ? 'text-lg sm:text-xl md:text-2xl bg-gradient-to-b from-yellow-200 via-amber-400 to-amber-600 text-slate-950 shadow-[0_0_14px_rgba(251,191,36,0.85)] border border-yellow-100'
+                                : isTop2
+                                ? 'text-base sm:text-lg md:text-xl bg-gradient-to-b from-yellow-100 via-amber-300 to-amber-500 text-slate-950 shadow-[0_0_12px_rgba(251,191,36,0.65)] border border-yellow-100'
+                                : 'text-base sm:text-lg md:text-xl bg-gradient-to-b from-amber-300 via-amber-500 to-amber-700 text-slate-950 shadow-[0_0_12px_rgba(217,119,6,0.65)] border border-amber-200'
+                            }`}
+                          >
+                            {formattedDivPos}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight leading-none font-mono">
+                          {formattedDivPos}
+                        </span>
+                      )}
+                    </td>
+
+                    {/* COMPETIDOR */}
+                    {hasCompetitorColumn && (
+                      <td className={`${cellPadding} px-3 sm:px-4 border-r border-white/15 whitespace-nowrap`}>
+                        <div className="flex items-center gap-2 sm:gap-2.5 whitespace-nowrap min-w-0">
+                          {visibleColumns.showCompetitorNumber && (
+                            <span
+                              className={`font-black px-2 py-0.5 rounded border leading-none shrink-0 font-mono ${
+                                isTop1
+                                  ? 'bg-amber-400/25 border-amber-300 text-amber-200 text-xs sm:text-sm md:text-base'
+                                  : isTop2
+                                  ? 'bg-amber-400/20 border-amber-300/80 text-amber-100 text-xs sm:text-sm md:text-base'
+                                  : isTop3
+                                  ? 'bg-amber-600/25 border-amber-400 text-amber-200 text-xs sm:text-sm md:text-base'
+                                  : 'bg-white/10 border-white/20 text-red-300 text-xs sm:text-sm md:text-base'
+                              }`}
+                            >
+                              {row.competitorNumber || row.participantId}
+                            </span>
+                          )}
+
+                          {visibleColumns.showFullName && (
+                            <span
+                              className={`font-black uppercase tracking-wide leading-none whitespace-nowrap truncate ${
+                                isTop1
+                                  ? 'text-base sm:text-lg md:text-xl lg:text-2xl text-amber-100 drop-shadow-[0_2px_10px_rgba(251,191,36,0.6)]'
+                                  : isTop2
+                                  ? 'text-base sm:text-lg md:text-xl lg:text-2xl text-white drop-shadow-[0_2px_8px_rgba(251,191,36,0.45)]'
+                                  : isTop3
+                                  ? 'text-sm sm:text-base md:text-lg lg:text-xl text-amber-100 drop-shadow-[0_2px_8px_rgba(217,119,6,0.45)]'
+                                  : 'text-sm sm:text-base md:text-lg lg:text-xl text-white'
+                              }`}
+                            >
+                              {formatShortName(row.fullName)}
+                            </span>
+                          )}
+
+                          {visibleColumns.showTeamDivision && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] sm:text-xs md:text-sm font-black uppercase tracking-wider border shrink-0 ${
+                                row.teamDivision === 'transmision'
+                                  ? 'bg-cyan-500/25 text-cyan-200 border-cyan-400/60'
+                                  : 'bg-amber-500/25 text-amber-200 border-amber-400/60'
+                              }`}
+                            >
+                              {row.teamDivision === 'transmision' ? 'Tx' : 'Dx'}
+                            </span>
+                          )}
+
+                          {visibleColumns.showCompany && row.companyOrTeam && (
+                            <span
+                              className={`font-extrabold uppercase tracking-wide text-xs sm:text-sm md:text-base shrink-0 ${
+                                isTop3Row ? 'text-amber-200/90' : 'text-slate-300'
+                              }`}
+                            >
+                              • {row.companyOrTeam}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    )}
+
+                    {/* TIEMPO TOTAL */}
+                    {visibleColumns.showTotalTime && (
+                      <td className={`${cellPadding} px-2 sm:px-3 text-center border-r border-white/15 whitespace-nowrap`}>
+                        <span className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-slate-200 font-mono">
+                          {totalTimeMs !== null ? formatMsToTime(totalTimeMs) : '—'}
+                        </span>
+                      </td>
+                    )}
+
+                    {/* PUNTOS */}
+                    {visibleColumns.showPoints && (
+                      <td className={`${cellPadding} px-2 sm:px-4 text-center whitespace-nowrap`}>
+                        <span
+                          className={`font-black tracking-tight font-mono leading-none ${
+                            isTop1
+                              ? 'text-xl sm:text-2xl md:text-3xl lg:text-4xl text-amber-300 drop-shadow-[0_0_14px_rgba(251,191,36,0.9)]'
+                              : isTop2
+                              ? 'text-lg sm:text-xl md:text-2xl lg:text-3xl text-yellow-200 drop-shadow-[0_0_10px_rgba(251,191,36,0.7)]'
+                              : isTop3
+                              ? 'text-lg sm:text-xl md:text-2xl lg:text-3xl text-amber-300 drop-shadow-[0_0_10px_rgba(245,158,11,0.7)]'
+                              : 'text-lg sm:text-xl md:text-2xl lg:text-3xl text-amber-400'
+                          }`}
+                        >
+                          {formatScore(row.totalContribution)}
+                        </span>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     );
@@ -740,7 +842,65 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
           >
             🏆 Podio Premiable
           </button>
+
+          <button
+            type="button"
+            onClick={() => setShowColumnToggles((prev) => !prev)}
+            title="Activar o desactivar columnas (Número, Nombre, Equipo, etc.)"
+            className={`px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-black uppercase transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+              showColumnToggles
+                ? 'bg-red-700 text-white shadow-[0_0_12px_rgba(230,0,18,0.8)] border border-red-400'
+                : 'bg-black/40 hover:bg-white/10 text-slate-300 border border-white/15'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5 text-red-400" />
+            <span>Columnas</span>
+          </button>
         </div>
+
+        {/* Live Column Selector Toolbar */}
+        {showColumnToggles && (
+          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mt-1.5 px-3 py-1 bg-black/90 backdrop-blur-md border border-red-500/40 rounded-xl z-30 shadow-2xl animate-in fade-in duration-200">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
+              <Sliders className="w-3.5 h-3.5 text-red-400" /> Visibilidad en TV:
+            </span>
+            {[
+              { key: 'showCompetitorNumber', label: 'N° Piloto' },
+              { key: 'showFullName', label: 'Nombre' },
+              { key: 'showCompany', label: 'Equipo / Empresa' },
+              { key: 'showTeamDivision', label: 'División' },
+              { key: 'showTotalTime', label: 'Tiempo Total' },
+              { key: 'showPoints', label: 'Puntos' },
+            ].map((item) => {
+              const active = visibleColumns[item.key as keyof RankingVisibleColumns];
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => {
+                    const updated = {
+                      ...visibleColumns,
+                      [item.key]: !active,
+                    };
+                    setEventRankingColumns(updated);
+                  }}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] sm:text-xs font-black uppercase border transition flex items-center gap-1 cursor-pointer ${
+                    active
+                      ? 'bg-emerald-500/25 border-emerald-400/80 text-emerald-200 shadow-[0_0_8px_rgba(52,211,153,0.4)]'
+                      : 'bg-white/5 border-white/15 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      active ? 'bg-emerald-400' : 'bg-slate-500'
+                    }`}
+                  />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </header>
 
       {/* ===================================================================== */}
