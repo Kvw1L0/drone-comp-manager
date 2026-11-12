@@ -9,8 +9,6 @@ import {
   WifiOff,
   FileWarning,
   X,
-  ChevronDown,
-  ChevronUp,
   ChevronRight,
   Ban,
   Pin,
@@ -18,6 +16,8 @@ import {
   Square,
   RotateCcw,
   Timer as TimerIcon,
+  MinusCircle,
+  Award,
 } from 'lucide-react';
 import {
   ConcurrencyConflictError,
@@ -230,7 +230,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
   const [centisecondsInput, setCentisecondsInput] = useState<string>('');
   const [secondsPenaltyInput, setSecondsPenaltyInput] = useState<string>('0');
   const [observation, setObservation] = useState<string>('');
-  const [showPenalties, setShowPenalties] = useState<boolean>(false);
 
   const [adminExceptionReason, setAdminExceptionReason] = useState<string>('');
   const [adminCorrectionReason, setAdminCorrectionReason] = useState<string>('');
@@ -351,11 +350,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
       if (existingServerResult.trackId) {
         setSelectedTrackId(existingServerResult.trackId);
       }
-      setShowPenalties(
-        (existingServerResult.pointsPenalty || 0) > 0 ||
-          (existingServerResult.secondsPenaltyMs || 0) > 0 ||
-          Boolean(existingServerResult.observation)
-      );
     } else {
       setParticipationStatus('completado');
       setRawScoreInput('');
@@ -366,7 +360,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
       setSecondsPenaltyInput('0');
       setObservation('');
       setBaseServerVersion(existingServerResult ? existingServerResult.version : 0);
-      setShowPenalties(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedParticipantId, selectedTestId, currentUser?.uid, activeEvent.id]);
@@ -489,9 +482,33 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
       return;
     }
 
-    if (parsedTime.error) {
-      setStatusMessage({ type: 'error', text: parsedTime.error });
-      return;
+    if (selectedTest.scoringMethod === 'manual') {
+      if (participationStatus === 'completado') {
+        if (parsedRawScore === null || isNaN(parsedRawScore)) {
+          setStatusMessage({ type: 'error', text: 'Debe ingresar el puntaje asignado para la pista.' });
+          return;
+        }
+        if (parsedRawScore < 0) {
+          setStatusMessage({ type: 'error', text: 'El puntaje no puede ser negativo.' });
+          return;
+        }
+        if (parsedRawScore > selectedTest.maxBaseScore) {
+          setStatusMessage({
+            type: 'error',
+            text: `El puntaje (${parsedRawScore}) no puede superar el máximo configurado (${selectedTest.maxBaseScore} pts).`,
+          });
+          return;
+        }
+      }
+    } else {
+      if (parsedTime.error) {
+        setStatusMessage({ type: 'error', text: parsedTime.error });
+        return;
+      }
+      if (participationStatus === 'completado' && (parsedTime.ms === null || parsedTime.ms <= 0)) {
+        setStatusMessage({ type: 'error', text: 'Debe ingresar un tiempo válido mayor a cero.' });
+        return;
+      }
     }
 
     if (!isOnline) {
@@ -957,7 +974,9 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                           {test.name}
                         </div>
                         <div className="text-[11px] text-slate-400 mt-0.5">
-                          `Límite ${Math.round(test.timeLimitMs / 60000)} min (${Math.round(test.timeLimitMs / 1000)}s) • Máx ${formatScore(test.maxContribution)} pts`
+                          test.scoringMethod === 'manual'
+                            ? `Evaluación por Puntos (Manual) • Máx ${formatScore(test.maxContribution)} pts`
+                            : `Límite ${Math.round(test.timeLimitMs / 60000)} min (${Math.round(test.timeLimitMs / 1000)}s) • Máx ${formatScore(test.maxContribution)} pts`
                         </div>
                       </div>
                     </div>
@@ -1060,212 +1079,313 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
 
             {/* Time / Score Input */}
             {participationStatus === 'completado' ? (
-              <div className="space-y-3">
-                {/* Touch Stopwatch & Large Digital Inputs */}
-                {/* 1. Touch Stopwatch Widget */}
-                <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                      <TimerIcon className="w-3.5 h-3.5 text-red-500" />
-                      Cronómetro Táctil Integrado
-                    </span>
-                    {stopwatchElapsedMs > 0 && (
-                      <span className="font-mono text-emerald-400 font-bold">
-                        {formatMsToTime(stopwatchElapsedMs)}
+              <div className="space-y-3.5">
+                {selectedTest.scoringMethod === 'manual' ? (
+                  /* ========================================================= */
+                  /* METODO MANUAL (Pistas 4, 5 y Pruebas por Puntos)          */
+                  /* ========================================================= */
+                  <div className="p-4 rounded-2xl bg-slate-950 border-2 border-amber-500/40 space-y-3 shadow-xl">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                        <Award className="w-4 h-4 text-amber-400" />
+                        Puntaje Asignado por Jueces (Sin Tiempo)
                       </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {!stopwatchRunning ? (
-                      <button
-                        type="button"
-                        onClick={handleStartStopwatch}
-                        className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition cursor-pointer"
-                      >
-                        <Play className="w-4 h-4 fill-white" />
-                        <span>{stopwatchElapsedMs > 0 ? 'Reanudar Vuelo' : 'Iniciar Vuelo'}</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleStopStopwatch}
-                        className="flex-1 py-3.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-98 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-rose-600/50 animate-pulse transition cursor-pointer"
-                      >
-                        <Square className="w-5 h-5 fill-white" />
-                        <span>Detener Vuelo ({formatMsToTime(stopwatchElapsedMs)})</span>
-                      </button>
-                    )}
-
-                    {stopwatchElapsedMs > 0 && !stopwatchRunning && (
-                      <button
-                        type="button"
-                        onClick={handleResetStopwatch}
-                        title="Reiniciar cronómetro"
-                        className="p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white cursor-pointer"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* 2. Three High-Visibility Fluor/Neon Digital Inputs (Min, Seg, Cent) */}
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-red-500" />
-                      Tiempo Manual (Auto-avance)
-                    </span>
-                    <span className="font-mono text-slate-400">
-                      Límite {(selectedTest.timeLimitMs / 1000).toFixed(0)}s
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <input
-                        ref={minutesRef}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={2}
-                        value={minutesInput}
-                        onChange={(e) => handleMinutesChange(e.target.value)}
-                        onKeyDown={handleMinutesKeyDown}
-                        placeholder="00"
-                        aria-label="Minutos"
-                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-700 text-white text-center text-3xl font-black font-mono focus:outline-none transition-all duration-200 focus:border-[#00ffcc] focus:ring-4 focus:ring-[#00ffcc]/35 focus:shadow-[0_0_25px_rgba(0,255,204,0.6)] focus:scale-[1.03]"
-                      />
-                      <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
-                        Min
+                      <span className="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold text-[11px] border border-amber-500/30">
+                        Máx {selectedTest.maxBaseScore} pts
                       </span>
                     </div>
 
+                    {/* Large Score Input */}
                     <div>
-                      <input
-                        ref={secondsRef}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={2}
-                        value={secondsInput}
-                        onChange={(e) => handleSecondsChange(e.target.value)}
-                        onKeyDown={handleSecondsKeyDown}
-                        placeholder="00"
-                        aria-label="Segundos"
-                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-700 text-white text-center text-3xl font-black font-mono focus:outline-none transition-all duration-200 focus:border-[#00ffcc] focus:ring-4 focus:ring-[#00ffcc]/35 focus:shadow-[0_0_25px_rgba(0,255,204,0.6)] focus:scale-[1.03]"
-                      />
-                      <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
-                        Seg
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max={selectedTest.maxBaseScore}
+                          step="any"
+                          value={rawScoreInput}
+                          onChange={(e) => setRawScoreInput(e.target.value)}
+                          placeholder="0 - 100"
+                          className="w-full py-3.5 px-4 rounded-xl bg-slate-900 border-2 border-slate-700 text-amber-300 text-center text-4xl font-black font-mono focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/30 transition shadow-inner"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500 font-mono">
+                          PTS
+                        </span>
+                      </div>
+                      <span className="block text-center text-[10px] uppercase text-slate-400 font-bold mt-1">
+                        Puntaje base bruto otorgado en pista (0 a {selectedTest.maxBaseScore})
                       </span>
                     </div>
 
-                    <div>
-                      <input
-                        ref={centisecondsRef}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={2}
-                        value={centisecondsInput}
-                        onChange={(e) => handleCentisecondsChange(e.target.value)}
-                        onKeyDown={handleCentisecondsKeyDown}
-                        placeholder="00"
-                        aria-label="Centésimas"
-                        className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-700 text-red-400 text-center text-3xl font-black font-mono focus:outline-none transition-all duration-200 focus:border-[#00ffcc] focus:ring-4 focus:ring-[#00ffcc]/35 focus:shadow-[0_0_25px_rgba(0,255,204,0.6)] focus:scale-[1.03]"
-                      />
-                      <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
-                        Cent
-                      </span>
+                    {/* Fast score preset buttons */}
+                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 pt-0.5">
+                      {[100, 95, 90, 85, 80, 75, 70].map((score) => (
+                        <button
+                          key={score}
+                          type="button"
+                          onClick={() => setRawScoreInput(String(score))}
+                          className={`py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                            rawScoreInput === String(score)
+                              ? 'bg-amber-400 text-slate-950 shadow'
+                              : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800'
+                          }`}
+                        >
+                          {score} pts
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </div>
-
-                {/* Compact Collapsible Penalties */}
-                <div className="rounded-2xl bg-slate-950/80 border border-slate-800/80 overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setShowPenalties((v) => !v)}
-                    className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-bold text-slate-400 hover:text-white cursor-pointer"
-                  >
-                    <span>Penalizaciones u Observación</span>
-                    {showPenalties ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                  </button>
-
-                  {showPenalties && (
-                    <div className="p-3 pt-2 border-t border-slate-800 space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        {selectedTest.enableSecondsPenalty && (
-                          <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-bold text-amber-300">
-                                + Segundos
-                              </span>
-                              <input
-                                type="number"
-                                min="0"
-                                value={secondsPenaltyInput}
-                                onChange={(e) => setSecondsPenaltyInput(e.target.value)}
-                                className="w-12 px-1 py-0.5 rounded bg-slate-950 border border-slate-700 text-white text-right font-mono text-xs"
-                              />
-                            </div>
-                            <div className="flex gap-1">
-                              {[0, 2, 5].map((s) => (
-                                <button
-                                  key={s}
-                                  type="button"
-                                  onClick={() => setSecondsPenaltyInput(String(s))}
-                                  className="flex-1 py-0.5 rounded bg-slate-800 text-[10px] text-amber-300 font-bold"
-                                >
-                                  {s === 0 ? '0s' : `+${s}s`}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
+                ) : (
+                  /* ========================================================= */
+                  /* METODO POR TIEMPO (Pistas 1, 2, 3)                        */
+                  /* ========================================================= */
+                  <div className="space-y-3">
+                    {/* Touch Stopwatch Widget */}
+                    <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                          <TimerIcon className="w-3.5 h-3.5 text-red-500" />
+                          Cronómetro Táctil Integrado
+                        </span>
+                        {stopwatchElapsedMs > 0 && (
+                          <span className="font-mono text-emerald-400 font-bold">
+                            {formatMsToTime(stopwatchElapsedMs)}
+                          </span>
                         )}
-
-                        <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold text-rose-300">
-                              - Puntos
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              value={pointsPenaltyInput}
-                              onChange={(e) => setPointsPenaltyInput(e.target.value)}
-                              className="w-12 px-1 py-0.5 rounded bg-slate-950 border border-slate-700 text-white text-right font-mono text-xs"
-                            />
-                          </div>
-                          <div className="flex gap-1">
-                            {[0, 2, 5].map((p) => (
-                              <button
-                                key={p}
-                                type="button"
-                                onClick={() => setPointsPenaltyInput(String(p))}
-                                className="flex-1 py-0.5 rounded bg-slate-800 text-[10px] text-rose-300 font-bold"
-                              >
-                                {p === 0 ? '0p' : `-${p}p`}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
                       </div>
 
-                      <input
-                        type="text"
-                        value={observation}
-                        onChange={(e) => setObservation(e.target.value)}
-                        placeholder="Observación opcional..."
-                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none"
-                      />
+                      <div className="flex items-center gap-2">
+                        {!stopwatchRunning ? (
+                          <button
+                            type="button"
+                            onClick={handleStartStopwatch}
+                            className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition cursor-pointer"
+                          >
+                            <Play className="w-4 h-4 fill-white" />
+                            <span>{stopwatchElapsedMs > 0 ? 'Reanudar Vuelo' : 'Iniciar Vuelo'}</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleStopStopwatch}
+                            className="flex-1 py-3.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-98 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-rose-600/50 animate-pulse transition cursor-pointer"
+                          >
+                            <Square className="w-5 h-5 fill-white" />
+                            <span>Detener Vuelo ({formatMsToTime(stopwatchElapsedMs)})</span>
+                          </button>
+                        )}
+
+                        {stopwatchElapsedMs > 0 && !stopwatchRunning && (
+                          <button
+                            type="button"
+                            onClick={handleResetStopwatch}
+                            title="Reiniciar cronómetro"
+                            className="p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white cursor-pointer"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  )}
+
+                    {/* Three High-Visibility Fluor Digital Inputs (Min, Seg, Cent) */}
+                    <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span className="font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-red-500" />
+                          Tiempo Manual (Auto-avance)
+                        </span>
+                        <span className="font-mono text-slate-400">
+                          Límite {(selectedTest.timeLimitMs / 1000).toFixed(0)}s
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <input
+                            ref={minutesRef}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={2}
+                            value={minutesInput}
+                            onChange={(e) => handleMinutesChange(e.target.value)}
+                            onKeyDown={handleMinutesKeyDown}
+                            placeholder="00"
+                            aria-label="Minutos"
+                            className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-700 text-white text-center text-3xl font-black font-mono focus:outline-none transition-all duration-200 focus:border-[#00ffcc] focus:ring-4 focus:ring-[#00ffcc]/35 focus:shadow-[0_0_25px_rgba(0,255,204,0.6)] focus:scale-[1.03]"
+                          />
+                          <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
+                            Min
+                          </span>
+                        </div>
+
+                        <div>
+                          <input
+                            ref={secondsRef}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={2}
+                            value={secondsInput}
+                            onChange={(e) => handleSecondsChange(e.target.value)}
+                            onKeyDown={handleSecondsKeyDown}
+                            placeholder="00"
+                            aria-label="Segundos"
+                            className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-700 text-white text-center text-3xl font-black font-mono focus:outline-none transition-all duration-200 focus:border-[#00ffcc] focus:ring-4 focus:ring-[#00ffcc]/35 focus:shadow-[0_0_25px_rgba(0,255,204,0.6)] focus:scale-[1.03]"
+                          />
+                          <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
+                            Seg
+                          </span>
+                        </div>
+
+                        <div>
+                          <input
+                            ref={centisecondsRef}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={2}
+                            value={centisecondsInput}
+                            onChange={(e) => handleCentisecondsChange(e.target.value)}
+                            onKeyDown={handleCentisecondsKeyDown}
+                            placeholder="00"
+                            aria-label="Centésimas"
+                            className="w-full py-3 px-1 rounded-xl bg-slate-900 border-2 border-slate-700 text-red-400 text-center text-3xl font-black font-mono focus:outline-none transition-all duration-200 focus:border-[#00ffcc] focus:ring-4 focus:ring-[#00ffcc]/35 focus:shadow-[0_0_25px_rgba(0,255,204,0.6)] focus:scale-[1.03]"
+                          />
+                          <span className="block text-center text-[10px] uppercase text-slate-500 font-bold mt-1">
+                            Cent
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* SECCION DESTACADA: DESCUENTO POR FALTAS (PENALIZACIONES)  */}
+                {/* ========================================================= */}
+                <div className="p-4 rounded-2xl bg-slate-950 border-2 border-rose-500/50 space-y-3 shadow-xl">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-black uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
+                      <MinusCircle className="w-4 h-4 text-rose-400" />
+                      Descuento por Faltas (Puntos a Restar)
+                    </span>
+                    {parsedPointsPenalty > 0 && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-black text-xs font-mono">
+                        -{formatScore(parsedPointsPenalty)} pts
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    Puntos de penalización por infracciones o faltas en pista cometidas por el piloto.
+                  </p>
+
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={pointsPenaltyInput}
+                        onChange={(e) => setPointsPenaltyInput(e.target.value)}
+                        placeholder="0"
+                        className="w-full py-2.5 px-3 rounded-xl bg-slate-900 border-2 border-rose-500/40 text-white font-mono text-xl font-bold focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-400/30"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-rose-400 font-mono">
+                        puntos descuento
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Botones de acceso rápido para faltas */}
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                    {[
+                      { label: '0p (Sin Faltas)', val: 0 },
+                      { label: '-2 pts', val: 2 },
+                      { label: '-5 pts', val: 5 },
+                      { label: '-10 pts', val: 10 },
+                      { label: '-15 pts', val: 15 },
+                      { label: '-20 pts', val: 20 },
+                    ].map((item) => (
+                      <button
+                        key={item.val}
+                        type="button"
+                        onClick={() => setPointsPenaltyInput(String(item.val))}
+                        className={`py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                          pointsPenaltyInput === String(item.val)
+                            ? 'bg-rose-600 text-white shadow'
+                            : 'bg-slate-900 hover:bg-slate-800 text-rose-300 border border-slate-800'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Resumen matemático en vivo */}
+                  {selectedTest.scoringMethod === 'manual' ? (
+                    <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs font-mono">
+                      <div className="text-slate-400">
+                        Bruto: <strong className="text-white">{parsedRawScore ?? 0}</strong> • Faltas: <strong className="text-rose-400">-{parsedPointsPenalty}</strong>
+                      </div>
+                      <div className="text-right">
+                        Neto: <strong className="text-amber-300 text-sm font-black">{Math.max(0, (parsedRawScore ?? 0) - parsedPointsPenalty)} pts</strong>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Penalización opcional en segundos (Solo para pruebas por tiempo que la tengan habilitada) */}
+                {selectedTest.scoringMethod === 'time_calculated' && selectedTest.enableSecondsPenalty && (
+                  <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        Penalización en Segundos (+seg)
+                      </span>
+                      {parsedSecondsPenaltyMs > 0 && (
+                        <span className="text-xs text-amber-400 font-mono font-bold">
+                          +{(parsedSecondsPenaltyMs / 1000).toFixed(0)}s
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        value={secondsPenaltyInput}
+                        onChange={(e) => setSecondsPenaltyInput(e.target.value)}
+                        placeholder="0"
+                        className="w-20 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm"
+                      />
+                      <div className="flex gap-1 flex-1">
+                        {[0, 2, 5, 10].map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setSecondsPenaltyInput(String(s))}
+                            className="flex-1 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs text-amber-300 font-bold border border-slate-800"
+                          >
+                            {s === 0 ? '0s' : `+${s}s`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Observación para jueces / staff */}
+                <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
+                  <span className="text-[11px] font-bold text-slate-400">Observación o motivo de faltas (opcional)</span>
+                  <input
+                    type="text"
+                    value={observation}
+                    onChange={(e) => setObservation(e.target.value)}
+                    placeholder="Detalles sobre penalizaciones o vuelo..."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-slate-600"
+                  />
                 </div>
               </div>
             ) : (
@@ -1317,7 +1437,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
               >
                 <span className="flex items-center gap-2">
                   <Send className="w-5 h-5" />
-                  <span>{isSubmitting ? 'Guardando...' : 'Publicar Tiempo'}</span>
+                  <span>{isSubmitting ? 'Guardando...' : selectedTest.scoringMethod === 'manual' ? 'Publicar Puntaje' : 'Publicar Tiempo'}</span>
                 </span>
                 {liveCalculation && participationStatus === 'completado' && (
                   <span className="px-3 py-1 rounded-xl bg-black/40 font-mono text-sm font-black text-amber-300">

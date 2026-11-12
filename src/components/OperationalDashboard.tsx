@@ -228,11 +228,21 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
                     testId: currentTest?.id || assignedTests[0]?.id,
                   })
                 }
-                className="w-full py-2.5 px-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                className={`w-full py-2.5 px-3 rounded-xl ${
+                  currentTest?.scoringMethod === 'manual'
+                    ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow'
+                    : 'bg-sky-500 hover:bg-sky-400 text-white font-extrabold'
+                } text-xs flex items-center justify-center gap-1.5 transition cursor-pointer`}
               >
-                <Timer className="w-3.5 h-3.5" />
+                {currentTest?.scoringMethod === 'manual' ? (
+                  <Award className="w-3.5 h-3.5" />
+                ) : (
+                  <Timer className="w-3.5 h-3.5" />
+                )}
                 {currentPilot
-                  ? `Cronometrar a ${currentPilot.fullName.split(' ')[0]}`
+                  ? (currentTest?.scoringMethod === 'manual'
+                      ? `Evaluar Puntos a ${currentPilot.fullName.split(' ')[0]}`
+                      : `Cronometrar a ${currentPilot.fullName.split(' ')[0]}`)
                   : `Abrir ${track.name.split('-')[0].trim()}`}
               </button>
             </div>
