@@ -44,9 +44,10 @@ import {
 } from '../utils/scoring';
 import {
   buildParticipantFromCsvRow,
-   generateRankingCsv,
+  generateRankingCsv,
   parseAndValidateParticipantsCsv,
 } from '../utils/csv';
+import { exportRankingToExcel } from '../utils/excel';
 
 interface AdminViewProps {
   onEditResultInForm: (params: {
@@ -454,6 +455,25 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
     }
   };
 
+  const handleExportRankingExcel = () => {
+    try {
+      const fileName = exportRankingToExcel({
+        eventName: activeEvent.name,
+        tests,
+        rows: rankingData.rows,
+      });
+      setBannerMsg({
+        type: 'success',
+        text: `Planilla Excel (.xlsx) tabulada descargada con éxito: ${fileName}`,
+      });
+    } catch (err) {
+      setBannerMsg({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Error al exportar ranking a Excel.',
+      });
+    }
+  };
+
   const handleExportRankingCsv = () => {
     const csvContent = generateRankingCsv(
       activeEvent.name,
@@ -595,11 +615,21 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
             </div>
             <button
               type="button"
-              onClick={handleExportRankingCsv}
-              className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs flex items-center gap-2 cursor-pointer"
+              onClick={handleExportRankingExcel}
+              className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all hover:scale-[1.02]"
+              title="Descargar ranking oficial en planilla Excel tabulada (.xlsx)"
             >
-              <Download className="w-4 h-4" />
-              Exportar Ranking CSV
+              <FileSpreadsheet className="w-4 h-4" />
+              Descargar Ranking Excel (.xlsx)
+            </button>
+            <button
+              type="button"
+              onClick={handleExportRankingCsv}
+              className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+              title="Descargar ranking en formato CSV plano"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-400" />
+              CSV
             </button>
             <a
               href="/Planilla_Control_Tiempos_Competencia_Drones.xlsx"
@@ -2284,6 +2314,17 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                   <ExternalLink className="w-4 h-4 text-sky-400" />
                   TV Ranking
                 </a>
+
+                {/* Botón Descargar Ranking en Excel */}
+                <button
+                  type="button"
+                  onClick={handleExportRankingExcel}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 border border-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 transition cursor-pointer shadow"
+                  title="Descargar Planilla Oficial de Ranking en Excel (.xlsx)"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Descargar Excel (.xlsx)
+                </button>
               </div>
             </div>
 

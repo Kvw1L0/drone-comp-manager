@@ -468,7 +468,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     return calculateResultMetrics({
       test: selectedTest,
       participationStatus,
-      rawScore: selectedTest.scoringMethod === 'manual' ? parsedRawScore : null,
+      rawScore: parsedRawScore,
       pointsPenalty: parsedPointsPenalty,
       registeredTimeMs: parsedTime.ms,
       secondsPenaltyMs: selectedTest.enableSecondsPenalty
@@ -512,37 +512,40 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
       return;
     }
 
-    if (selectedTest.scoringMethod === 'manual') {
-      if (participationStatus === 'completado') {
-        if (parsedRawScore === null || isNaN(parsedRawScore)) {
-          setStatusMessage({ type: 'error', text: 'Debe ingresar el puntaje asignado para la pista.' });
-          return;
-        }
-        if (parsedRawScore < 0) {
-          setStatusMessage({ type: 'error', text: 'El puntaje no puede ser negativo.' });
-          return;
-        }
-        const isUncapped =
-          selectedTest.id === 'test_pista4' ||
-          selectedTest.id === 'test_pista5' ||
-          selectedTest.id.includes('pista4') ||
-          selectedTest.id.includes('pista5');
+    if (participationStatus === 'completado') {
+      const hasRawScore = parsedRawScore !== null && !isNaN(parsedRawScore);
+      const hasTime = parsedTime.ms !== null && parsedTime.ms > 0;
 
-        if (!isUncapped && parsedRawScore > selectedTest.maxBaseScore) {
-          setStatusMessage({
-            type: 'error',
-            text: `El puntaje (${parsedRawScore}) no puede superar el máximo configurado (${selectedTest.maxBaseScore} pts).`,
-          });
-          return;
-        }
-      }
-    } else {
-      if (parsedTime.error) {
-        setStatusMessage({ type: 'error', text: parsedTime.error });
+      if (!hasRawScore && !hasTime) {
+        setStatusMessage({
+          type: 'error',
+          text: 'Debe ingresar al menos el puntaje en puntos o el tiempo de pista.',
+        });
         return;
       }
-      if (participationStatus === 'completado' && (parsedTime.ms === null || parsedTime.ms <= 0)) {
-        setStatusMessage({ type: 'error', text: 'Debe ingresar un tiempo válido mayor a cero.' });
+
+      if (hasRawScore && parsedRawScore < 0) {
+        setStatusMessage({ type: 'error', text: 'El puntaje en puntos no puede ser negativo.' });
+        return;
+      }
+
+      const isUncapped =
+        selectedTest.id === 'test_pista4' ||
+        selectedTest.id === 'test_pista5' ||
+        selectedTest.id.includes('pista4') ||
+        selectedTest.id.includes('pista5') ||
+        selectedTest.scoringMethod === 'time_calculated';
+
+      if (!isUncapped && hasRawScore && parsedRawScore > selectedTest.maxBaseScore) {
+        setStatusMessage({
+          type: 'error',
+          text: `El puntaje (${parsedRawScore}) no puede superar el máximo configurado (${selectedTest.maxBaseScore} pts).`,
+        });
+        return;
+      }
+
+      if (parsedTime.error) {
+        setStatusMessage({ type: 'error', text: parsedTime.error });
         return;
       }
     }
@@ -571,7 +574,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
         trackId: selectedTrack.id,
         participationStatus,
         targetPublicationStatus,
-        rawScore: selectedTest.scoringMethod === 'manual' ? parsedRawScore : null,
+        rawScore: parsedRawScore,
         pointsPenalty: parsedPointsPenalty,
         registeredTimeMs: parsedTime.ms,
         secondsPenaltyMs: selectedTest.enableSecondsPenalty
@@ -1118,68 +1121,60 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
             {/* Time / Score Input */}
             {participationStatus === 'completado' ? (
               <div className="space-y-3.5">
-                {/* 1. SECCION DE PUNTOS MANUALES: Para Pistas 3, 4, 5 y pruebas manuales */}
-                {selectedTest.scoringMethod === 'manual' && (
-                  <div className="p-4 rounded-2xl bg-slate-950 border-2 border-amber-500/40 space-y-3 shadow-xl">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                        <Award className="w-4 h-4 text-amber-400" />
-                        {isPista3
-                          ? 'Puntaje Asignado por Jueces (Prioritario)'
-                          : 'Puntaje Asignado por Jueces (Puntos Directos)'}
-                      </span>
-                      <span className="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold text-[11px] border border-amber-500/30">
-                        {selectedTest.id.includes('pista4') || selectedTest.id.includes('pista5')
-                          ? 'Puntos Libres Directos (Sin Tope)'
-                          : `Máx ${selectedTest.maxBaseScore} pts`}
-                      </span>
-                    </div>
-
-                    {/* Large Score Input */}
-                    <div>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          min="0"
-                          max={selectedTest.maxBaseScore}
-                          step="any"
-                          value={rawScoreInput}
-                          onChange={(e) => setRawScoreInput(e.target.value)}
-                          placeholder={`0 - ${selectedTest.maxBaseScore}`}
-                          className="w-full py-3.5 px-4 rounded-xl bg-slate-900 border-2 border-slate-700 text-amber-300 text-center text-4xl font-black font-mono focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/30 transition shadow-inner"
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500 font-mono">
-                          PTS
-                        </span>
-                      </div>
-                      <span className="block text-center text-[10px] uppercase text-slate-400 font-bold mt-1">
-                        Puntaje bruto directo otorgado en pista (0 a {selectedTest.maxBaseScore} pts sin conversión)
-                      </span>
-                    </div>
-
-                    {/* Fast score preset buttons */}
-                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 pt-0.5">
-                      {[20, 19, 18, 16, 15, 14, 12, 10].map((score) => (
-                        <button
-                          key={score}
-                          type="button"
-                          onClick={() => setRawScoreInput(String(score))}
-                          className={`py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
-                            rawScoreInput === String(score)
-                              ? 'bg-amber-400 text-slate-950 shadow'
-                              : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800'
-                          }`}
-                        >
-                          {score} pts
-                        </button>
-                      ))}
-                    </div>
+                {/* 1. SECCION DE PUNTOS DIRECTOS: Disponible en todas las pistas (1 a 5) */}
+                <div className="p-4 rounded-2xl bg-slate-950 border-2 border-amber-500/40 space-y-3 shadow-xl">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                      <Award className="w-4 h-4 text-amber-400" />
+                      1. Puntaje Directo Asignado en Pista
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold text-[11px] border border-amber-500/30">
+                      Puntos Directos (0 a {selectedTest.maxBaseScore || 20} pts)
+                    </span>
                   </div>
-                )}
 
-                {/* 2. SECCION DE TIEMPO: Obligatorio en Pistas 1 y 2, y de Respaldo Oficial en Pista 3 */}
-                {(selectedTest.scoringMethod === 'time_calculated' || isPista3) && (
-                  <div className="space-y-3">
+                  {/* Large Score Input */}
+                  <div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={rawScoreInput}
+                        onChange={(e) => setRawScoreInput(e.target.value)}
+                        placeholder={`0 - ${selectedTest.maxBaseScore || 20}`}
+                        className="w-full py-3.5 px-4 rounded-xl bg-slate-900 border-2 border-slate-700 text-amber-300 text-center text-4xl font-black font-mono focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/30 transition shadow-inner"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500 font-mono">
+                        PTS
+                      </span>
+                    </div>
+                    <span className="block text-center text-[10px] uppercase text-slate-400 font-bold mt-1">
+                      Puntaje directo otorgado por los jueces en pista (se puede ingresar directo, con o sin tiempo cronometrado)
+                    </span>
+                  </div>
+
+                  {/* Fast score preset buttons */}
+                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 pt-0.5">
+                    {[20, 19, 18, 16, 15, 14, 12, 10].map((score) => (
+                      <button
+                        key={score}
+                        type="button"
+                        onClick={() => setRawScoreInput(String(score))}
+                        className={`py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                          rawScoreInput === String(score)
+                            ? 'bg-amber-400 text-slate-950 shadow'
+                            : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800'
+                        }`}
+                      >
+                        {score} pts
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. SECCION DE TIEMPO: Disponible en todas las pistas (1 a 5) */}
+                <div className="space-y-3">
                     {/* Touch Stopwatch Widget */}
                     <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                       <div className="flex items-center justify-between text-[11px]">
@@ -1314,7 +1309,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                       </div>
                     </div>
                   </div>
-                )}
 
                 {/* ========================================================= */}
                 {/* SECCION DESTACADA: DESCUENTO POR FALTAS (PENALIZACIONES)  */}
@@ -1379,13 +1373,13 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                   </div>
 
                   {/* Resumen matemático en vivo */}
-                  {selectedTest.scoringMethod === 'manual' ? (
+                  {parsedRawScore !== null ? (
                     <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs font-mono">
                       <div className="text-slate-400">
-                        Bruto: <strong className="text-white">{parsedRawScore ?? 0}</strong> • Faltas: <strong className="text-rose-400">-{parsedPointsPenalty}</strong>
+                        Bruto: <strong className="text-white">{parsedRawScore}</strong> • Faltas: <strong className="text-rose-400">-{parsedPointsPenalty}</strong>
                       </div>
                       <div className="text-right">
-                        Neto: <strong className="text-amber-300 text-sm font-black">{Math.max(0, (parsedRawScore ?? 0) - parsedPointsPenalty)} pts</strong>
+                        Neto: <strong className="text-amber-300 text-sm font-black">{Math.max(0, parsedRawScore - parsedPointsPenalty)} pts</strong>
                       </div>
                     </div>
                   ) : null}
@@ -1558,7 +1552,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
               >
                 <span className="flex items-center gap-2">
                   <Send className="w-5 h-5" />
-                  <span>{isSubmitting ? 'Guardando...' : selectedTest.scoringMethod === 'manual' ? 'Publicar Puntaje' : 'Publicar Tiempo'}</span>
+                  <span>{isSubmitting ? 'Guardando...' : 'Publicar Resultado'}</span>
                 </span>
                 {liveCalculation && participationStatus === 'completado' && (
                   <span className="px-3 py-1 rounded-xl bg-black/40 font-mono text-sm font-black text-amber-300">

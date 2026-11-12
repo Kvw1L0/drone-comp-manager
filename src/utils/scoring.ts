@@ -275,36 +275,54 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
   }
 
   // Participation status === 'completado'
-  if (test.scoringMethod === 'manual') {
-    // Method A: Manual score
-    if (rawScore === null || rawScore === undefined || !Number.isFinite(rawScore)) {
-      validationErrors.push('Debe ingresar un puntaje bruto válido para una prueba completada.');
-    } else if (rawScore < 0) {
-      validationErrors.push('El puntaje bruto no puede ser negativo.');
-    } else if (rawScore > test.maxBaseScore) {
-      const isUncapped =
-        test.id === 'test_pista4' ||
-        test.id === 'test_pista5' ||
-        test.id.includes('pista4') ||
-        test.id.includes('pista5');
+  const hasRawScore = rawScore !== null && rawScore !== undefined && Number.isFinite(rawScore);
+  const hasTime =
+    registeredTimeMs !== null &&
+    registeredTimeMs !== undefined &&
+    Number.isFinite(registeredTimeMs) &&
+    registeredTimeMs > 0;
 
-      if (!isUncapped) {
-        validationErrors.push(
-          `El puntaje bruto (${rawScore}) no puede superar el puntaje base máximo configurado (${test.maxBaseScore}).`
-        );
-      }
+  if (registeredTimeMs !== null && registeredTimeMs <= 0) {
+    validationErrors.push('Se rechazan tiempos de cero o negativos.');
+  }
+
+  if (hasRawScore && rawScore < 0) {
+    validationErrors.push('El puntaje bruto no puede ser negativo.');
+  }
+
+  if (!hasRawScore && !hasTime) {
+    validationErrors.push('Debe ingresar un puntaje o un tiempo válido para una prueba completada.');
+    return {
+      effectiveTimeMs: null,
+      referenceBestTimeMs: null,
+      calculatedBaseScore: null,
+      netScore: null,
+      contribution: null,
+      exceedsTimeLimit,
+      validationErrors,
+    };
+  }
+
+  const appliedSecondsPenaltyMs = test.enableSecondsPenalty ? secondsPenaltyMs : 0;
+  const effectiveTimeMs =
+    registeredTimeMs !== null && registeredTimeMs > 0
+      ? registeredTimeMs + appliedSecondsPenaltyMs
+      : null;
+
+  if (hasRawScore) {
+    const isUncapped =
+      test.id === 'test_pista4' ||
+      test.id === 'test_pista5' ||
+      test.id.includes('pista4') ||
+      test.id.includes('pista5');
+
+    if (!isUncapped && rawScore > test.maxBaseScore) {
+      validationErrors.push(
+        `El puntaje bruto (${rawScore}) no puede superar el puntaje base máximo configurado (${test.maxBaseScore}).`
+      );
     }
 
-    if (registeredTimeMs !== null && registeredTimeMs <= 0) {
-      validationErrors.push('El tiempo registrado debe ser mayor que cero segundos.');
-    }
-
-    const effectiveTimeMs =
-      registeredTimeMs !== null && registeredTimeMs > 0
-        ? registeredTimeMs + (test.enableSecondsPenalty ? secondsPenaltyMs : 0)
-        : null;
-
-    if (validationErrors.length > 0 || rawScore === null) {
+    if (validationErrors.length > 0) {
       return {
         effectiveTimeMs,
         referenceBestTimeMs: null,
@@ -318,9 +336,11 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
 
     const calculatedBaseScore = stabilizeFloat(rawScore);
     const netScore = stabilizeFloat(Math.max(0, calculatedBaseScore - pointsPenalty));
-    // Para pruebas de puntaje manual (Pistas 3, 4 y 5): los puntos pasan directo sin conversión proporcional
+
+    // Si los puntos son directos (Pistas 3, 4, 5 o valor <= maxContribution), pasan directo
     const isDirectPass =
       test.maxBaseScore === test.maxContribution ||
+      rawScore <= test.maxContribution ||
       test.id === 'test_pista4' ||
       test.id === 'test_pista5' ||
       test.id === 'test_destreza' ||
@@ -342,13 +362,7 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
       validationErrors,
     };
   } else {
-    // Method B: Time-calculated score
-    if (registeredTimeMs === null || registeredTimeMs === undefined || !Number.isFinite(registeredTimeMs)) {
-      validationErrors.push('Debe ingresar el tiempo registrado para calcular el puntaje.');
-    } else if (registeredTimeMs <= 0) {
-      validationErrors.push('Se rechazan tiempos de cero o negativos.');
-    }
-
+    // Method B: Time-calculated score fallback cuando no se ingresaron puntos directos
     if (validationErrors.length > 0 || registeredTimeMs === null) {
       return {
         effectiveTimeMs: null,
@@ -361,10 +375,7 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
       };
     }
 
-    const appliedSecondsPenaltyMs = test.enableSecondsPenalty ? secondsPenaltyMs : 0;
-    const effectiveTimeMs = registeredTimeMs + appliedSecondsPenaltyMs;
-
-    if (effectiveTimeMs <= 0) {
+    if (effectiveTimeMs === null || effectiveTimeMs <= 0) {
       validationErrors.push('El tiempo efectivo debe ser mayor que cero.');
       return {
         effectiveTimeMs: null,

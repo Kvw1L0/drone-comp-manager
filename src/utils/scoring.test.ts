@@ -391,4 +391,34 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
     expect(resP4.contribution).toBe(15);
     expect(resP4.effectiveTimeMs).toBeNull();
   });
+
+  it('11. Ingreso de puntos directamente en cualquier pista (incluyendo Velocidad / Habilidades) aparte del tiempo', () => {
+    // Caso A: Pista de velocidad ingresando 18 puntos directos + tiempo registrado 85.000 ms
+    const resVelWithPoints = calculateResultMetrics({
+      test: testVelocidad,
+      participationStatus: 'completado',
+      rawScore: 18,
+      pointsPenalty: 0,
+      registeredTimeMs: 85000,
+      secondsPenaltyMs: 0,
+      bestEffectiveTimeMsForTest: null,
+    });
+    expect(resVelWithPoints.netScore).toBe(18);
+    expect(resVelWithPoints.contribution).toBe(18); // Puntos directos otorgados
+    expect(resVelWithPoints.effectiveTimeMs).toBe(85000); // Tiempo registrado conservado
+
+    // Caso B: Pista de velocidad ingresando sólo puntos directos (sin tiempo)
+    const resVelOnlyPoints = calculateResultMetrics({
+      test: testVelocidad,
+      participationStatus: 'completado',
+      rawScore: 20,
+      pointsPenalty: 2,
+      registeredTimeMs: null,
+      secondsPenaltyMs: 0,
+      bestEffectiveTimeMsForTest: null,
+    });
+    expect(resVelOnlyPoints.netScore).toBe(18);
+    expect(resVelOnlyPoints.contribution).toBe(18);
+    expect(resVelOnlyPoints.effectiveTimeMs).toBeNull();
+  });
 });
