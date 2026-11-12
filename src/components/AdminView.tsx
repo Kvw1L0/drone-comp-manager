@@ -2544,11 +2544,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                                   </div>
 
                                   <div className="text-right shrink-0">
-                                    <div className="text-base sm:text-lg font-black text-amber-300 font-mono leading-none">
-                                      {formatScore(p.totalContribution)} PTS
-                                    </div>
-                                    <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                                    <div className="text-base sm:text-lg font-black text-cyan-300 font-mono leading-none">
                                       {hasTime ? formatMsToTime(sumMs) : '—'}
+                                    </div>
+                                    <div className="text-[11px] font-mono text-amber-300 font-bold mt-0.5">
+                                      {formatScore(p.totalContribution)} PTS
                                     </div>
                                   </div>
                                 </div>
@@ -2726,11 +2726,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
 
                                   {p && (
                                     <div className="text-right shrink-0">
-                                      <div className="text-lg sm:text-2xl font-black text-amber-300 leading-none">
-                                        {formatScore(p.totalContribution)} PTS
-                                      </div>
-                                      <div className="text-xs font-bold text-slate-300 mt-0.5">
+                                      <div className="text-lg sm:text-2xl font-black text-cyan-300 font-mono leading-none">
                                         {hasTime ? formatMsToTime(sumMs) : '—'}
+                                      </div>
+                                      <div className="text-xs font-bold text-amber-300 font-mono mt-0.5">
+                                        {formatScore(p.totalContribution)} PTS
                                       </div>
                                     </div>
                                   )}

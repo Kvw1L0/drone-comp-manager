@@ -248,7 +248,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
         <div className="grid grid-cols-12 bg-[#14161d] border-b border-red-500/40 text-xs sm:text-sm md:text-base font-black uppercase tracking-wider text-slate-300 py-2 px-4 sm:px-6">
           <div className="col-span-3 text-center">PREMIO</div>
           <div className="col-span-6">PILOTO PREMIADO</div>
-          <div className="col-span-3 text-right pr-2">PTS / TIEMPO</div>
+          <div className="col-span-3 text-right pr-2">TIEMPO / PTS</div>
         </div>
 
         {/* 6 Podium Slots: 1st (1), 2nd (2), 3rd (3) */}
@@ -341,23 +341,23 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                   )}
                 </div>
 
-                {/* SCORE & TIME */}
+                {/* TIME & SCORE (Tiempo destacado en grande, puntos en más pequeño) */}
                 <div className="col-span-3 text-right pr-2">
                   {row ? (
                     <div className="leading-tight flex flex-col items-end">
                       <div
-                        className={`font-black leading-none ${
+                        className={`font-black font-mono leading-none ${
                           isTier1
-                            ? 'text-2xl sm:text-3xl md:text-4xl lg:text-[40px] text-amber-300 drop-shadow-[0_0_14px_rgba(251,191,36,0.85)]'
+                            ? 'text-2xl sm:text-3xl md:text-4xl lg:text-[40px] text-cyan-300 drop-shadow-[0_0_14px_rgba(6,182,212,0.85)]'
                             : isTier2
-                            ? 'text-xl sm:text-2xl md:text-3xl lg:text-[34px] text-white'
-                            : 'text-xl sm:text-2xl md:text-3xl lg:text-[34px] text-amber-300'
+                            ? 'text-xl sm:text-2xl md:text-3xl lg:text-[34px] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.6)]'
+                            : 'text-xl sm:text-2xl md:text-3xl lg:text-[34px] text-cyan-300'
                         }`}
                       >
-                        {formatScore(row.totalContribution)}
-                      </div>
-                      <div className="text-xs sm:text-sm md:text-base font-bold text-slate-200 mt-1 font-mono">
                         {totalTimeMs !== null ? formatMsToTime(totalTimeMs) : '—'}
+                      </div>
+                      <div className="text-xs sm:text-sm md:text-base font-black text-amber-300 mt-1 font-mono tracking-wide">
+                        {formatScore(row.totalContribution)} PTS
                       </div>
                     </div>
                   ) : (
