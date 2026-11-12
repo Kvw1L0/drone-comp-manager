@@ -47,8 +47,8 @@ export const RouletteLiveCarousel = forwardRef<
   ) => {
   const isEmbedded = mode === 'embedded';
 
-  const cardWidth = isEmbedded ? 240 : 290;
-  const cardGap = isEmbedded ? 14 : 18;
+  const cardWidth = isEmbedded ? 240 : 280;
+  const cardGap = isEmbedded ? 14 : 20;
   const itemStride = cardWidth + cardGap;
 
   const [soundEnabled, setSoundEnabled] = useState<boolean>(
@@ -333,11 +333,11 @@ export const RouletteLiveCarousel = forwardRef<
         {/* Glowing Central Target Reticle Frame */}
         <div
           className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 rounded-2xl border-2 border-red-500 ${
-            isEmbedded ? 'w-[252px] h-[155px]' : 'w-[304px] h-[190px]'
+            isEmbedded ? 'w-[252px] h-[165px]' : 'w-[294px] h-[202px]'
           }`}
           style={{
             boxShadow:
-              '0 0 35px rgba(255, 42, 42, 0.75), inset 0 0 20px rgba(255, 42, 42, 0.35)',
+              '0 0 35px rgba(255, 42, 42, 0.8), inset 0 0 25px rgba(255, 42, 42, 0.4)',
           }}
         >
           {/* Corner brackets */}
@@ -381,17 +381,24 @@ export const RouletteLiveCarousel = forwardRef<
                 style={{
                   width: `${cardWidth}px`,
                   marginRight: `${cardGap}px`,
+                  clipPath:
+                    'polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px)',
                 }}
-                className={`shrink-0 rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border-2 border-red-500/50 bg-gradient-to-b from-[#1c1f2e] via-[#12141f] to-[#0a0b12] shadow-[0_12px_40px_rgba(0,0,0,0.95)] relative overflow-hidden select-none ${
-                  isEmbedded ? 'h-[142px]' : 'h-[174px]'
+                className={`shrink-0 p-3 sm:p-4 flex flex-col items-center justify-between border-2 border-red-500/60 bg-gradient-to-b from-[#1c1f2e] via-[#12141f] to-[#07080d] shadow-[0_16px_45px_rgba(0,0,0,0.95)] relative overflow-hidden select-none group ${
+                  isEmbedded ? 'h-[155px]' : 'h-[190px]'
                 }`}
               >
+                {/* Tech Chamfered Corner Accent Borders */}
+                <div className="pointer-events-none absolute inset-0 border border-white/10" />
+                <div className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#e60012] to-transparent opacity-80" />
+                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-60" />
+
                 {/* Background Subtle Accent Glow */}
-                <div className="absolute inset-0 bg-radial from-red-600/15 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-radial from-red-600/20 via-transparent to-transparent pointer-events-none" />
 
                 {/* Division Badge if custom upload has it */}
-                {p.division && (
-                  <div className="absolute top-2 right-2">
+                {p.division ? (
+                  <div className="absolute top-2.5 right-3 z-20">
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-black uppercase tracking-wider ${
                         p.division === 'Tx' || p.division === 'transmision'
@@ -406,18 +413,18 @@ export const RouletteLiveCarousel = forwardRef<
                         : p.division}
                     </span>
                   </div>
-                )}
+                ) : null}
 
-                {/* Center Number / Name in Bold Glowing Racing Typography */}
-                <div className="relative z-10 text-center flex flex-col items-center justify-center">
+                {/* Center Number in Bold Glowing Racing Typography */}
+                <div className="relative z-10 w-full text-center flex-1 flex flex-col items-center justify-center pt-1">
                   <div
-                    className={`font-black tracking-tight leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-amber-200 drop-shadow-[0_4px_16px_rgba(255,255,255,0.35)] ${
+                    className={`font-black tracking-tight leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-amber-200 drop-shadow-[0_4px_16px_rgba(255,255,255,0.4)] ${
                       isEmbedded
                         ? 'text-4xl sm:text-5xl font-mono'
                         : 'text-5xl sm:text-7xl font-mono'
                     }`}
                     style={{
-                      textShadow: '0 0 25px rgba(230, 0, 18, 0.45)',
+                      textShadow: '0 0 25px rgba(230, 0, 18, 0.55)',
                     }}
                   >
                     {p.number || p.shortName || p.name}
@@ -436,6 +443,15 @@ export const RouletteLiveCarousel = forwardRef<
                       {p.company}
                     </div>
                   )}
+                </div>
+
+                {/* Bottom Row: Official Plug / Energy House Logo Icon */}
+                <div className="relative z-10 w-full flex items-center justify-center pt-1.5 border-t border-white/10 shrink-0">
+                  <img
+                    src="/icon-distribucion-plug.png"
+                    alt="Logo"
+                    className="h-6 sm:h-7 w-auto object-contain drop-shadow-[0_0_10px_rgba(230,0,18,0.85)] filter brightness-110"
+                  />
                 </div>
               </div>
             ))}
@@ -573,6 +589,15 @@ export const RouletteLiveCarousel = forwardRef<
                   {activeWinner.company}
                 </div>
               )}
+
+              {/* Bottom Plug / Energy House Logo Icon in Modal */}
+              <div className="mt-4 pt-3 w-full flex items-center justify-center border-t border-white/10">
+                <img
+                  src="/icon-distribucion-plug.png"
+                  alt="Logo"
+                  className="h-8 sm:h-10 w-auto object-contain drop-shadow-[0_0_15px_rgba(230,0,18,0.9)] filter brightness-110"
+                />
+              </div>
             </div>
 
             {/* Modal Actions */}
