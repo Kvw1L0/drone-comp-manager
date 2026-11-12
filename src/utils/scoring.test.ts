@@ -56,7 +56,7 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
 
     const queryTilde = normalizeSearchText('aaron nunez');
     const matchTilde = DEMO_PARTICIPANTS.find((p) => p.normalizedName.includes(queryTilde));
-    expect(matchTilde?.id).toBe('PIL-TX-07');
+    expect(matchTilde?.id).toBe('PIL-24');
     expect(matchTilde?.fullName).toBe('Aarón Nuñez Gilberto');
 
     // CSV validation

@@ -64,7 +64,7 @@ import {
 } from '../utils/scoring';
 import { getFirebaseInstances, FirebaseEnvironmentStatus } from '../services/firebase';
 
-const LOCAL_DB_STORAGE_KEY = 'drone_comp_manager_local_db_v7';
+const LOCAL_DB_STORAGE_KEY = 'drone_comp_manager_local_db_v9';
 const BROADCAST_CHANNEL_NAME = 'drone_comp_realtime_sync_v1';
 
 interface LocalDatabaseState {
@@ -83,8 +83,8 @@ function getInitialLocalDb(): LocalDatabaseState {
     const raw = localStorage.getItem(LOCAL_DB_STORAGE_KEY);
         if (raw) {
       const parsed = JSON.parse(raw) as LocalDatabaseState;
-      // If loaded state still has old mock pilots or old results, reset to fresh initial seed
-      const hasOldPilot = parsed.participants?.some(p => p.companyOrTeam === 'AeroTech Chile' || p.id === 'PIL-001');
+      // If loaded state has old mock pilots or results, or participant count is not 31, reset to fresh initial seed
+      const hasOldPilot = parsed.participants?.some(p => p.companyOrTeam === 'AeroTech Chile' || p.id === 'PIL-001' || p.fullName === 'Matías Rojas Valdés') || (parsed.participants && parsed.participants.length !== 31);
       if (hasOldPilot) {
         throw new Error('Migrating to official 31-pilot roster');
       }
@@ -2394,6 +2394,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const resetDemoDatabase = useCallback(() => {
+    for (let i = 1; i <= 9; i++) { localStorage.removeItem(`drone_comp_manager_local_db_v${i}`); }
     localStorage.removeItem(LOCAL_DB_STORAGE_KEY);
     const fresh = getInitialLocalDb();
     fresh.lastUpdatedAt = Math.max(Date.now(), (localDb.lastUpdatedAt || 0) + 1);

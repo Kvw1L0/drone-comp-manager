@@ -608,7 +608,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
               onClick={() => {
                 if (
                   window.confirm(
-                    '¿Restaurar todos los datos ficticios de demostración (35 pilotos y 4 pistas) a su estado inicial?'
+                    '¿Restablecer la base de datos a la nómina oficial (31 pilotos, 0 puntajes)?'
                   )
                 ) {
                   resetDemoDatabase();

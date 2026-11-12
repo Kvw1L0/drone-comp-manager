@@ -1,6 +1,7 @@
 import { get, put } from '@vercel/blob';
 
-const STATE_BLOB_PATH = 'state/competition-db-v7.json';
+// Bumped to v9 to guarantee fresh clean start
+const STATE_BLOB_PATH = 'state/competition-db-v9.json';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -30,11 +31,18 @@ export default async function handler(req, res) {
 
         const text = await new Response(result.stream).text();
         const parsed = JSON.parse(text);
-        return res.status(200).json({ state: parsed });
-      } catch (err) {
-        if (err && (err.name === 'BlobNotFoundError' || String(err.message).includes('not found'))) {
+
+        // Safety verification: if stored state has old mock pilots (Matías Rojas / AeroTech) or more than 31 pilots, discard it
+        const hasOldPilots = parsed?.participants?.some(
+          (p) => p.companyOrTeam === 'AeroTech Chile' || p.fullName === 'Matías Rojas Valdés'
+        ) || (parsed?.participants?.length && parsed?.participants?.length !== 31);
+
+        if (hasOldPilots) {
           return res.status(200).json({ state: null });
         }
+
+        return res.status(200).json({ state: parsed });
+      } catch (err) {
         return res.status(200).json({ state: null });
       }
     }
@@ -45,6 +53,14 @@ export default async function handler(req, res) {
 
       if (!state || typeof state !== 'object') {
         return res.status(400).json({ error: 'Invalid state payload' });
+      }
+
+      // Never allow old mock pilots to be written
+      const hasOldPilots = state.participants?.some(
+        (p) => p.companyOrTeam === 'AeroTech Chile' || p.fullName === 'Matías Rojas Valdés'
+      );
+      if (hasOldPilots) {
+        return res.status(400).json({ error: 'Cannot save legacy mock pilots' });
       }
 
       await put(STATE_BLOB_PATH, JSON.stringify(state), {
