@@ -13,7 +13,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { useCompetition } from '../context/CompetitionContext';
-import { computeEventRanking, formatMsToTime, formatScore } from '../utils/scoring';
+import { computeEventRanking, formatMsToTime, formatScore, formatShortName } from '../utils/scoring';
 import { TrackStatus } from '../types/domain';
 
 interface OperationalDashboardProps {
@@ -308,7 +308,7 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({
                     {row.position}
                   </span>
                   <span className="font-bold text-xs text-white truncate">
-                    {row.fullName}
+                    {formatShortName(row.fullName)}
                   </span>
                 </div>
                 <span className="text-xs font-black text-amber-300 font-mono shrink-0">

@@ -38,6 +38,7 @@ import {
   formatScore,
   filterAndRankByDivision,
   formatTeamDivisionLabel,
+  formatShortName,
 } from '../utils/scoring';
 import {
   buildParticipantFromCsvRow,
@@ -2518,12 +2519,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                               </span>
                             )}
                           </td>
-                          <td className="py-2.5 px-4">
+                          <td className="py-2.5 px-4 whitespace-nowrap">
                             <span className="font-mono text-sky-400 font-bold mr-2">
                               {row.competitorNumber}
                             </span>
                             <span className="font-extrabold text-white">
-                              {row.fullName}
+                              {formatShortName(row.fullName)}
                             </span>
                             <span
                               className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-black uppercase ${
@@ -2637,12 +2638,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                               </span>
                             )}
                           </td>
-                          <td className="py-2.5 px-3">
+                          <td className="py-2.5 px-3 whitespace-nowrap">
                             <div className="font-bold text-white">
                               <span className="font-mono text-sky-400 mr-1.5">
                                 {row.competitorNumber}
                               </span>
-                              {row.fullName}
+                              {formatShortName(row.fullName)}
                             </div>
                             <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
                               <span
@@ -2824,7 +2825,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                               className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-xs"
                             >
                               <span className="font-bold text-white">
-                                Orden #{idx + 1}: {row.fullName} ({row.competitorNumber} —{' '}
+                                Orden #{idx + 1}: {formatShortName(row.fullName)} ({row.competitorNumber} —{' '}
                                 {row.companyOrTeam})
                               </span>
                               <div className="flex gap-1">

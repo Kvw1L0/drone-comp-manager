@@ -265,26 +265,24 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                 {/* PILOT INFO */}
                 <div className="col-span-6 pl-4 sm:pl-5 pr-2 min-w-0">
                   {row ? (
-                    <div className="flex flex-col min-w-0 justify-center">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="px-2 py-0.5 rounded bg-black/60 border border-white/30 text-amber-200 font-black text-xs sm:text-base md:text-lg shrink-0">
-                          {row.competitorNumber}
-                        </span>
-                        <span
-                          className={`font-black uppercase truncate leading-tight ${
-                            isTier1
-                              ? 'text-xl sm:text-2xl md:text-3xl lg:text-[32px] text-amber-100 drop-shadow-[0_2px_10px_rgba(251,191,36,0.7)]'
-                              : isTier2
-                              ? 'text-lg sm:text-xl md:text-2xl lg:text-[28px] text-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.4)]'
-                              : 'text-base sm:text-xl md:text-2xl lg:text-[26px] text-amber-100'
-                          }`}
-                        >
-                          {formatShortName(row.fullName)}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded bg-black/60 border border-white/30 text-amber-200 font-black text-xs sm:text-base md:text-lg shrink-0">
+                        {row.competitorNumber}
+                      </span>
+                      <span
+                        className={`font-black uppercase whitespace-nowrap leading-none truncate ${
+                          isTier1
+                            ? 'text-lg sm:text-xl md:text-2xl lg:text-[26px] text-amber-100 drop-shadow-[0_2px_10px_rgba(251,191,36,0.7)]'
+                            : isTier2
+                            ? 'text-base sm:text-lg md:text-xl lg:text-[23px] text-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.4)]'
+                            : 'text-sm sm:text-base md:text-lg lg:text-[21px] text-amber-100'
+                        }`}
+                      >
+                        {formatShortName(row.fullName)}
+                      </span>
                       {row.companyOrTeam && (
-                        <span className="text-xs sm:text-sm md:text-base font-bold uppercase text-slate-300 truncate mt-0.5 pl-0.5">
-                          {row.companyOrTeam}
+                        <span className="text-xs sm:text-sm md:text-base font-bold uppercase text-slate-300 whitespace-nowrap shrink-0">
+                          • {row.companyOrTeam}
                         </span>
                       )}
                     </div>
