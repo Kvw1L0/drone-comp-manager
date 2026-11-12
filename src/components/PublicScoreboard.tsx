@@ -184,7 +184,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       >
         {/* Team Header Bar */}
         <div
-          className="py-3 sm:py-3.5 md:py-4 px-5 sm:px-6 text-center border-b-2 border-white/25 flex items-center justify-between"
+          className="py-3 sm:py-3.5 md:py-4 px-5 sm:px-6 text-center border-b-2 border-white/25 flex items-center justify-center"
           style={{
             background: headerGrad,
             boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.4), 0 4px 14px rgba(0,0,0,0.6)',
@@ -193,9 +193,6 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
           <span className="text-xl sm:text-2xl md:text-3xl lg:text-[32px] font-black uppercase tracking-wider text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
             {isTrans ? '⚡ ' : '🏅 '}
             {title}
-          </span>
-          <span className="px-3 py-1 rounded bg-black/55 border border-white/30 text-xs sm:text-sm md:text-base font-black uppercase tracking-wider text-amber-200 shadow-inner">
-            1° • 2° • 3° LUGAR
           </span>
         </div>
 
