@@ -828,3 +828,20 @@ export function filterAndRankByDivision(
     (r) => (r.teamDivision || 'distribucion') === divisionFilter
   );
 }
+
+
+/**
+ * Formats a competitor's full name to show only their First Name and First Surname.
+ * Example: "Carlos Cristian Rigotti Basoalto" -> "Carlos Rigotti"
+ * Example: "Diego Vera Pizarro" -> "Diego Vera"
+ */
+export function formatShortName(fullName?: string | null): string {
+  if (!fullName) return '';
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length >= 4) {
+    return parts[0] + ' ' + parts[2];
+  } else if (parts.length === 3) {
+    return parts[0] + ' ' + parts[1];
+  }
+  return fullName;
+}

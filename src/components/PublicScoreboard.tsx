@@ -11,7 +11,7 @@ import {
   formatMsToTime,
   formatScore,
   filterAndRankByDivision,
-  formatTeamDivisionLabel,
+  formatShortName,
 } from '../utils/scoring';
 import {
   DEFAULT_RANKING_COLUMNS,
@@ -279,7 +279,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                               : 'text-base sm:text-xl md:text-2xl lg:text-[26px] text-amber-100'
                           }`}
                         >
-                          {row.fullName}
+                          {formatShortName(row.fullName)}
                         </span>
                       </div>
                       {row.companyOrTeam && (
@@ -645,22 +645,22 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                           )}
                         </td>
 
-                        {/* COMPETIDOR COLUMN (Dynamic Sub-filters from Admin, NO relative group position) */}
+                        {/* COMPETIDOR COLUMN (Single line, first name + first surname) */}
                         {hasCompetitorColumn && (
                           <td
-                            className={`${cellPadding} px-4 sm:px-6 border-r border-white/15`}
+                            className={`${cellPadding} px-3 sm:px-4 border-r border-white/15 whitespace-nowrap`}
                           >
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                            <div className="flex items-center gap-2 sm:gap-2.5 whitespace-nowrap min-w-0">
                               {visibleColumns.showCompetitorNumber && (
                                 <span
-                                  className={`font-black px-2 py-0.5 rounded border leading-none ${
+                                  className={`font-black px-2 py-0.5 rounded border leading-none shrink-0 ${
                                     isTop1
-                                      ? 'bg-amber-400/25 border-amber-300 text-amber-200 text-sm sm:text-lg'
+                                      ? 'bg-amber-400/25 border-amber-300 text-amber-200 text-xs sm:text-sm md:text-base'
                                       : isTop2
-                                      ? 'bg-amber-400/20 border-amber-300/80 text-amber-100 text-sm sm:text-base'
+                                      ? 'bg-amber-400/20 border-amber-300/80 text-amber-100 text-xs sm:text-sm md:text-base'
                                       : isTop3
-                                      ? 'bg-amber-600/25 border-amber-400 text-amber-200 text-sm sm:text-base'
-                                      : 'bg-white/10 border-white/20 text-red-300 text-sm sm:text-base'
+                                      ? 'bg-amber-600/25 border-amber-400 text-amber-200 text-xs sm:text-sm md:text-base'
+                                      : 'bg-white/10 border-white/20 text-red-300 text-xs sm:text-sm md:text-base'
                                   }`}
                                 >
                                   {row.competitorNumber || row.participantId}
@@ -669,38 +669,38 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
 
                               {visibleColumns.showFullName && (
                                 <span
-                                  className={`font-black uppercase tracking-wide leading-tight ${
+                                  className={`font-black uppercase tracking-wide leading-none whitespace-nowrap shrink-0 ${
                                     isTop1
-                                      ? 'text-xl sm:text-3xl md:text-[32px] text-amber-100 drop-shadow-[0_2px_10px_rgba(251,191,36,0.6)]'
+                                      ? 'text-base sm:text-lg md:text-xl lg:text-[22px] text-amber-100 drop-shadow-[0_2px_10px_rgba(251,191,36,0.6)]'
                                       : isTop2
-                                      ? 'text-lg sm:text-2xl md:text-[28px] text-white drop-shadow-[0_2px_8px_rgba(251,191,36,0.45)]'
+                                      ? 'text-base sm:text-lg md:text-xl lg:text-[20px] text-white drop-shadow-[0_2px_8px_rgba(251,191,36,0.45)]'
                                       : isTop3
-                                      ? 'text-lg sm:text-2xl md:text-[26px] text-amber-100 drop-shadow-[0_2px_8px_rgba(217,119,6,0.45)]'
-                                      : 'text-lg sm:text-xl md:text-2xl text-white'
+                                      ? 'text-sm sm:text-base md:text-lg lg:text-[19px] text-amber-100 drop-shadow-[0_2px_8px_rgba(217,119,6,0.45)]'
+                                      : 'text-sm sm:text-base md:text-lg text-white'
                                   }`}
                                 >
-                                  {row.fullName}
+                                  {formatShortName(row.fullName)}
                                 </span>
                               )}
 
                               {visibleColumns.showTeamDivision && (
                                 <span
-                                  className={`px-2 py-0.5 rounded text-xs sm:text-sm font-black uppercase tracking-wider border ${
+                                  className={`px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-black uppercase tracking-wider border shrink-0 ${
                                     row.teamDivision === 'transmision'
                                       ? 'bg-cyan-500/25 text-cyan-200 border-cyan-400/60'
                                       : 'bg-amber-500/25 text-amber-200 border-amber-400/60'
                                   }`}
                                 >
-                                  {formatTeamDivisionLabel(row.teamDivision)}
+                                  {row.teamDivision === 'transmision' ? 'Tx' : 'Dx'}
                                 </span>
                               )}
 
                               {visibleColumns.showCompany && row.companyOrTeam && (
                                 <span
-                                  className={`font-bold uppercase tracking-wide ${
+                                  className={`font-bold uppercase tracking-wide text-xs sm:text-sm shrink-0 ${
                                     isTop3GeneralRow
-                                      ? 'text-sm sm:text-base md:text-lg text-amber-200/90'
-                                      : 'text-xs sm:text-sm md:text-base text-slate-300'
+                                      ? 'text-amber-200/90'
+                                      : 'text-slate-300'
                                   }`}
                                 >
                                   • {row.companyOrTeam}
@@ -708,8 +708,8 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
                               )}
 
                               {row.hasPendingTie && (
-                                <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-xs font-black uppercase flex items-center gap-1">
-                                  <AlertTriangle className="w-3.5 h-3.5" /> Empate
+                                <span className="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] sm:text-xs font-black uppercase flex items-center gap-1 shrink-0">
+                                  <AlertTriangle className="w-3 h-3" /> Empate
                                 </span>
                               )}
                             </div>
