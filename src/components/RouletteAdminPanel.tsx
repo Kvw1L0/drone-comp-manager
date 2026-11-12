@@ -24,12 +24,14 @@ import {
   loadRouletteState,
   saveRouletteState,
   subscribeRouletteState,
+  broadcastSpinCommand,
   parseExcelParticipants,
   downloadSampleExcelTemplate,
   exportWinnersToExcel,
   RouletteParticipant,
   RouletteState,
 } from '../services/rouletteStorage';
+import { RouletteLiveCarousel } from './RouletteLiveCarousel';
 import { useCompetition } from '../context/CompetitionContext';
 import { formatShortName } from '../utils/scoring';
 
@@ -132,7 +134,8 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
   // 3. Trigger Spin Activation
   const handleTriggerSpin = () => {
     if (state.participants.length === 0) {
-      showFeedback('error', 'No hay participantes en la ruleta para sortear.');
+      showFeedback('error', 'No hay participantes en la ruleta. Se sincronizaron los participantes oficiales del torneo.');
+      handleLoadFromTournament();
       return;
     }
 
@@ -142,7 +145,9 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
       winnerId = state.participants[randomIdx].id;
     }
 
-    const nonce = state.spinNonce + 1;
+    const duration = state.spinDurationSeconds || 8;
+    const nonce = (state.spinNonce || 0) + 1;
+
     updateState((prev) => ({
       ...prev,
       spinNonce: nonce,
@@ -151,7 +156,10 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
       isSpinning: true,
     }));
 
-    showFeedback('success', '🎰 ¡Ruleta activada! La pantalla de transmisión está girando.');
+    // Broadcast spin command to all screens
+    broadcastSpinCommand(winnerId, duration, nonce);
+
+    showFeedback('success', '🎰 ¡Ruleta activada y girando en tiempo real!');
   };
 
   // 4. Manual participant addition
@@ -299,7 +307,28 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
       </div>
 
       {/* ===================================================================== */}
-      {/* 2-COLUMN SETTINGS & EXCEL IMPORT GRID                                 */}
+      {/* LIVE INTERACTIVE CAROUSEL COCKPIT (Visible in Admin & in Real-Time)   */}
+      {/* ===================================================================== */}
+      <div className="relative overflow-hidden rounded-3xl border-2 border-red-500/50 bg-[#0a0c12] p-4 sm:p-6 shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
+        <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-amber-400" />
+            <span className="text-sm sm:text-base font-black italic uppercase tracking-wider text-white">
+              Cabina de Ruleta en Vivo (Giro Directo y Sincronizado)
+            </span>
+          </div>
+          <span className="text-xs font-mono font-bold text-amber-300 px-2.5 py-1 rounded-full bg-black/50 border border-white/15">
+            🔴 Sincronizado en Tiempo Real
+          </span>
+        </div>
+
+        <RouletteLiveCarousel
+          mode="embedded"
+          state={state}
+          onUpdateState={updateState}
+          showSpinButton={true}
+        />
+      </div>
       {/* ===================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* LEFT COLUMN: EXCEL IMPORT & PARTICIPANT MANAGEMENT (7 COLS) */}

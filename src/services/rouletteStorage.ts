@@ -18,6 +18,14 @@ export interface RouletteWinner {
   timestamp: number;
 }
 
+export interface RouletteSpinCommand {
+  type: 'SPIN_COMMAND';
+  winnerId: string;
+  durationSec: number;
+  nonce: number;
+  timestamp: number;
+}
+
 export interface RouletteState {
   participants: RouletteParticipant[];
   winners: RouletteWinner[];
@@ -33,8 +41,8 @@ export interface RouletteState {
   spinTimestamp: number;
 }
 
-const STORAGE_KEY = 'drone_comp_roulette_state_v2';
-const CHANNEL_NAME = 'drone_roulette_channel';
+const STORAGE_KEY = 'drone_comp_roulette_state_v3';
+const CHANNEL_NAME = 'drone_roulette_channel_v3';
 
 export function getDefaultRouletteParticipants(): RouletteParticipant[] {
   return DEMO_PARTICIPANTS.map((p) => ({
@@ -69,7 +77,7 @@ export function loadRouletteState(): RouletteState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return getDefaultRouletteState();
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed.participants)) {
+    if (!Array.isArray(parsed.participants) || parsed.participants.length === 0) {
       parsed.participants = getDefaultRouletteParticipants();
     }
     return {
@@ -110,12 +118,39 @@ export function saveRouletteState(state: RouletteState, broadcast = true): void 
   }
 }
 
-export function subscribeRouletteState(callback: (state: RouletteState) => void): () => void {
+/**
+ * Broadcasts an explicit spin command across tabs and windows
+ */
+export function broadcastSpinCommand(winnerId: string, durationSec: number, nonce: number): void {
+  const ch = getChannel();
+  if (ch) {
+    try {
+      ch.postMessage({
+        type: 'SPIN_COMMAND',
+        winnerId,
+        durationSec,
+        nonce,
+        timestamp: Date.now(),
+      });
+    } catch (err) {
+      console.warn('BroadcastChannel error', err);
+    }
+  }
+}
+
+export function subscribeRouletteEvents(
+  onStateUpdate: (state: RouletteState) => void,
+  onSpinCommand?: (cmd: RouletteSpinCommand) => void
+): () => void {
   const ch = getChannel();
 
   const handleMessage = (event: MessageEvent) => {
-    if (event.data && event.data.type === 'STATE_UPDATED') {
-      callback(event.data.state);
+    if (event.data) {
+      if (event.data.type === 'STATE_UPDATED' && event.data.state) {
+        onStateUpdate(event.data.state);
+      } else if (event.data.type === 'SPIN_COMMAND' && onSpinCommand) {
+        onSpinCommand(event.data);
+      }
     }
   };
 
@@ -123,7 +158,7 @@ export function subscribeRouletteState(callback: (state: RouletteState) => void)
     if (event.key === STORAGE_KEY && event.newValue) {
       try {
         const parsed = JSON.parse(event.newValue);
-        callback(parsed);
+        onStateUpdate(parsed);
       } catch {
         // ignore
       }
@@ -141,6 +176,10 @@ export function subscribeRouletteState(callback: (state: RouletteState) => void)
     }
     window.removeEventListener('storage', handleStorage);
   };
+}
+
+export function subscribeRouletteState(callback: (state: RouletteState) => void): () => void {
+  return subscribeRouletteEvents(callback);
 }
 
 /**
