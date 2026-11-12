@@ -106,14 +106,16 @@ export const PublicRouletteView: React.FC<PublicRouletteViewProps> = ({
           className="h-16 sm:h-20 md:h-24 lg:h-28 max-h-[115px] w-auto object-contain drop-shadow-[0_4px_20px_rgba(230,0,18,0.85)] filter brightness-110 select-none"
         />
 
-        <div className="flex items-center justify-center gap-2 sm:gap-4 w-full max-w-2xl mt-1">
-          <div className="h-[2.5px] flex-1 max-w-[160px] bg-gradient-to-r from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_12px_#e60012]" />
-          <span className="text-xs sm:text-base md:text-lg font-black uppercase tracking-[0.24em] text-amber-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] flex items-center gap-2">
-            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
-            {state.prizeTitle || 'SORTEO OFICIAL DE COMPETENCIA'}
-          </span>
-          <div className="h-[2.5px] flex-1 max-w-[160px] bg-gradient-to-l from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_12px_#e60012]" />
-        </div>
+        {state.prizeTitle ? (
+          <div className="flex items-center justify-center gap-2 sm:gap-4 w-full max-w-2xl mt-1">
+            <div className="h-[2.5px] flex-1 max-w-[160px] bg-gradient-to-r from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_12px_#e60012]" />
+            <span className="text-xs sm:text-base md:text-lg font-black uppercase tracking-[0.24em] text-amber-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+              {state.prizeTitle}
+            </span>
+            <div className="h-[2.5px] flex-1 max-w-[160px] bg-gradient-to-l from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_12px_#e60012]" />
+          </div>
+        ) : null}
       </header>
 
       {/* MAIN CAROUSEL ROULETTE STAGE */}

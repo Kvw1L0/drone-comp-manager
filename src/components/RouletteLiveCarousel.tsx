@@ -382,16 +382,16 @@ export const RouletteLiveCarousel = forwardRef<
                   width: `${cardWidth}px`,
                   marginRight: `${cardGap}px`,
                 }}
-                className={`shrink-0 rounded-2xl p-3 sm:p-4 flex flex-col justify-between border-2 border-red-500/40 bg-gradient-to-b from-[#181a24] via-[#10121a] to-[#0a0b10] shadow-[0_10px_35px_rgba(0,0,0,0.9)] relative overflow-hidden select-none ${
+                className={`shrink-0 rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border-2 border-red-500/50 bg-gradient-to-b from-[#1c1f2e] via-[#12141f] to-[#0a0b12] shadow-[0_12px_40px_rgba(0,0,0,0.95)] relative overflow-hidden select-none ${
                   isEmbedded ? 'h-[142px]' : 'h-[174px]'
                 }`}
               >
-                {/* Top Row: Division Badge & Number */}
-                <div className="flex items-center justify-between h-5">
-                  <span className="px-1.5 py-0.5 rounded bg-black/60 border border-white/20 text-amber-300 font-mono text-[10px] sm:text-xs font-black">
-                    {p.number || `#${(idx % state.participants.length) + 1}`}
-                  </span>
-                  {p.division && (
+                {/* Background Subtle Accent Glow */}
+                <div className="absolute inset-0 bg-radial from-red-600/15 via-transparent to-transparent pointer-events-none" />
+
+                {/* Division Badge if custom upload has it */}
+                {p.division && (
+                  <div className="absolute top-2 right-2">
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-black uppercase tracking-wider ${
                         p.division === 'Tx' || p.division === 'transmision'
@@ -405,61 +405,75 @@ export const RouletteLiveCarousel = forwardRef<
                         ? 'Dx'
                         : p.division}
                     </span>
-                  )}
-                </div>
-
-                {/* Middle Row: Name in Bold Racing Typography */}
-                <div className="text-center my-auto px-1">
-                  <div
-                    className={`font-black uppercase text-white tracking-wide leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] line-clamp-2 ${
-                      isEmbedded
-                        ? 'text-lg sm:text-xl'
-                        : 'text-2xl sm:text-3xl'
-                    }`}
-                  >
-                    {p.shortName || p.name}
                   </div>
-                </div>
+                )}
 
-                {/* Bottom Row: Company / Organization */}
-                <div className="text-center border-t border-white/10 pt-1.5">
-                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate block">
-                    {p.company || 'Competidor'}
-                  </span>
+                {/* Center Number / Name in Bold Glowing Racing Typography */}
+                <div className="relative z-10 text-center flex flex-col items-center justify-center">
+                  <div
+                    className={`font-black tracking-tight leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-amber-200 drop-shadow-[0_4px_16px_rgba(255,255,255,0.35)] ${
+                      isEmbedded
+                        ? 'text-4xl sm:text-5xl font-mono'
+                        : 'text-5xl sm:text-7xl font-mono'
+                    }`}
+                    style={{
+                      textShadow: '0 0 25px rgba(230, 0, 18, 0.45)',
+                    }}
+                  >
+                    {p.number || p.shortName || p.name}
+                  </div>
+
+                  {/* If custom participant has a distinct name separate from the number */}
+                  {p.name && p.name !== p.number && p.name !== `Número ${p.number}` && (
+                    <div className="mt-1 text-xs sm:text-sm font-extrabold uppercase text-slate-300 tracking-wider truncate max-w-[220px]">
+                      {p.name}
+                    </div>
+                  )}
+
+                  {/* If custom participant has a company / area (non-tombola) */}
+                  {p.company && p.company !== 'Tómbola Oficial' && (
+                    <div className="text-[10px] sm:text-xs font-bold uppercase text-amber-400/90 tracking-wider truncate max-w-[200px]">
+                      {p.company}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Bottom Status Row */}
-        <div className="mt-2 flex items-center justify-between px-3 text-xs text-slate-400 font-bold">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-black/60 border border-white/15 text-slate-300 text-[11px]">
-              {state.participants.length} Participantes en pozo
-            </span>
-            <span className="text-amber-300 font-mono text-[11px]">
-              Premio: {state.prizeTitle || 'Sorteo Oficial'}
-            </span>
-          </div>
+        {/* Bottom Status Row (Solo en modo embedded / admin) */}
+        {isEmbedded ? (
+          <div className="mt-2 flex items-center justify-between px-3 text-xs text-slate-400 font-bold">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-black/60 border border-white/15 text-slate-300 text-[11px]">
+                {state.participants.length} Participantes
+              </span>
+              {state.prizeTitle ? (
+                <span className="text-amber-300 font-mono text-[11px]">
+                  Premio: {state.prizeTitle}
+                </span>
+              ) : null}
+            </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              const nextSound = !soundEnabled;
-              setSoundEnabled(nextSound);
-              onUpdateState((prev) => ({ ...prev, soundEnabled: nextSound }));
-            }}
-            className="p-1 rounded bg-black/50 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
-            title={soundEnabled ? 'Silenciar sonidos' : 'Activar sonido'}
-          >
-            {soundEnabled ? (
-              <Volume2 className="w-4 h-4 text-emerald-400" />
-            ) : (
-              <VolumeX className="w-4 h-4 text-slate-500" />
-            )}
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => {
+                const nextSound = !soundEnabled;
+                setSoundEnabled(nextSound);
+                onUpdateState((prev) => ({ ...prev, soundEnabled: nextSound }));
+              }}
+              className="p-1 rounded bg-black/50 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
+              title={soundEnabled ? 'Silenciar sonidos' : 'Activar sonido'}
+            >
+              {soundEnabled ? (
+                <Volume2 className="w-4 h-4 text-emerald-400" />
+              ) : (
+                <VolumeX className="w-4 h-4 text-slate-500" />
+              )}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {/* Main Big Spin Button (Solo si showSpinButton es true) */}
@@ -505,19 +519,20 @@ export const RouletteLiveCarousel = forwardRef<
               ¡FELICITACIONES AL GANADOR!
             </div>
 
-            <div className="mt-1 text-sm sm:text-base font-extrabold uppercase text-slate-300">
-              {state.prizeTitle || 'Sorteo Oficial'}
-            </div>
+            {state.prizeTitle ? (
+              <div className="mt-1 text-sm sm:text-base font-extrabold uppercase text-slate-300">
+                {state.prizeTitle}
+              </div>
+            ) : null}
 
             {/* Winner Card in Modal */}
-            <div className="mt-4 p-5 rounded-2xl border-2 border-red-500/60 bg-[#161822] shadow-2xl space-y-2">
-              <div className="flex items-center justify-center gap-2">
-                <span className="px-2.5 py-1 rounded bg-black/70 border border-white/20 text-amber-300 font-mono text-sm font-black">
-                  {activeWinner.number || '#01'}
-                </span>
-                {activeWinner.division && (
+            <div className="mt-4 p-6 sm:p-8 rounded-2xl border-2 border-red-500/70 bg-gradient-to-b from-[#1c1f2e] via-[#12141f] to-[#0a0b12] shadow-2xl flex flex-col items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-radial from-red-600/20 via-transparent to-transparent pointer-events-none" />
+
+              {activeWinner.division && (
+                <div className="mb-2">
                   <span
-                    className={`px-2.5 py-1 rounded text-xs font-black uppercase tracking-wider ${
+                    className={`px-3 py-1 rounded text-xs font-black uppercase tracking-wider ${
                       activeWinner.division === 'Tx' ||
                       activeWinner.division === 'transmision'
                         ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/60'
@@ -530,16 +545,34 @@ export const RouletteLiveCarousel = forwardRef<
                       ? 'Dx'
                       : activeWinner.division}
                   </span>
+                </div>
+              )}
+
+              {/* Huge glowing lucky number */}
+              <div
+                className="text-6xl sm:text-8xl font-black font-mono leading-none tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-amber-200 drop-shadow-[0_4px_24px_rgba(255,255,255,0.4)]"
+                style={{
+                  textShadow: '0 0 35px rgba(230, 0, 18, 0.65)',
+                }}
+              >
+                {activeWinner.number || activeWinner.shortName || activeWinner.name}
+              </div>
+
+              {/* If custom participant has a distinct name */}
+              {activeWinner.name &&
+                activeWinner.name !== activeWinner.number &&
+                activeWinner.name !== `Número ${activeWinner.number}` && (
+                  <div className="mt-2 text-xl sm:text-2xl font-black uppercase text-white tracking-wide">
+                    {activeWinner.name}
+                  </div>
                 )}
-              </div>
 
-              <div className="text-2xl sm:text-4xl font-black uppercase text-white tracking-wide drop-shadow-md">
-                {activeWinner.name}
-              </div>
-
-              <div className="text-sm sm:text-base font-bold uppercase text-slate-300">
-                {activeWinner.company || 'Competidor Oficial'}
-              </div>
+              {/* If custom participant has a company / area (non-tombola) */}
+              {activeWinner.company && activeWinner.company !== 'Tómbola Oficial' && (
+                <div className="mt-1 text-xs sm:text-sm font-bold uppercase text-slate-300">
+                  {activeWinner.company}
+                </div>
+              )}
             </div>
 
             {/* Modal Actions */}

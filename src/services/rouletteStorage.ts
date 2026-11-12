@@ -40,8 +40,8 @@ export interface RouletteState {
   spinTimestamp: number;
 }
 
-const STORAGE_KEY = 'drone_comp_tombola_194_v1';
-const CHANNEL_NAME = 'drone_tombola_194_channel_v1';
+const STORAGE_KEY = 'drone_comp_tombola_clean_v2';
+const CHANNEL_NAME = 'drone_tombola_clean_channel_v2';
 
 /**
  * Generates numbered participants from 1 to `count` (default 194)
@@ -49,13 +49,12 @@ const CHANNEL_NAME = 'drone_tombola_194_channel_v1';
 export function generateNumberedParticipants(count = 194): RouletteParticipant[] {
   const list: RouletteParticipant[] = [];
   for (let i = 1; i <= count; i++) {
-    const formattedNum = String(i).padStart(3, '0');
     list.push({
       id: `num-${i}`,
-      name: `Número ${i}`,
-      shortName: `N° ${i}`,
-      number: `#${formattedNum}`,
-      company: 'Tómbola Oficial',
+      name: `${i}`,
+      shortName: `${i}`,
+      number: `${i}`,
+      company: '',
       division: undefined,
     });
   }
@@ -70,7 +69,7 @@ export function getDefaultRouletteState(): RouletteState {
   return {
     participants: generateNumberedParticipants(194),
     winners: [],
-    prizeTitle: 'TÓMBOLA OFICIAL • NÚMEROS 1 AL 194',
+    prizeTitle: '',
     spinDurationSeconds: 8,
     removeWinnerFromPool: true,
     soundEnabled: true,
@@ -303,9 +302,9 @@ export function downloadSampleExcelTemplate(): void {
   const sampleData: Array<Record<string, string>> = [];
   for (let i = 1; i <= 194; i++) {
     sampleData.push({
-      'N°': String(i).padStart(3, '0'),
-      'Nombre y Apellido': `Número ${i}`,
-      'Empresa / Área': 'Tómbola Oficial',
+      'N°': String(i),
+      'Nombre y Apellido': `${i}`,
+      'Empresa / Área': '',
       'División': '',
     });
   }
