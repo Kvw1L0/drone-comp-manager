@@ -31,7 +31,10 @@ import {
   RouletteParticipant,
   RouletteState,
 } from '../services/rouletteStorage';
-import { RouletteLiveCarousel } from './RouletteLiveCarousel';
+import {
+  RouletteLiveCarousel,
+  RouletteCarouselHandle,
+} from './RouletteLiveCarousel';
 import { useCompetition } from '../context/CompetitionContext';
 import { formatShortName } from '../utils/scoring';
 
@@ -60,6 +63,7 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
   const [newDivision, setNewDivision] = useState<string>('Dx');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const carouselRef = useRef<RouletteCarouselHandle>(null);
 
   // Subscribe to live state
   useEffect(() => {
@@ -158,6 +162,9 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
 
     // Broadcast spin command to all screens
     broadcastSpinCommand(winnerId, duration, nonce);
+
+    // Also trigger carousel handle directly
+    carouselRef.current?.spin(winnerId);
 
     showFeedback('success', '🎰 ¡Ruleta activada y girando en tiempo real!');
   };
@@ -323,6 +330,7 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
         </div>
 
         <RouletteLiveCarousel
+          ref={carouselRef}
           mode="embedded"
           state={state}
           onUpdateState={updateState}

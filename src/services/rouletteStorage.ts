@@ -41,8 +41,8 @@ export interface RouletteState {
   spinTimestamp: number;
 }
 
-const STORAGE_KEY = 'drone_comp_roulette_state_v3';
-const CHANNEL_NAME = 'drone_roulette_channel_v3';
+const STORAGE_KEY = 'drone_comp_roulette_state_v4';
+const CHANNEL_NAME = 'drone_roulette_channel_v4';
 
 export function getDefaultRouletteParticipants(): RouletteParticipant[] {
   return DEMO_PARTICIPANTS.map((p) => ({
@@ -119,19 +119,35 @@ export function saveRouletteState(state: RouletteState, broadcast = true): void 
 }
 
 /**
- * Broadcasts an explicit spin command across tabs and windows
+ * Broadcasts an explicit spin command across tabs and windows, and also dispatches locally in the same window
  */
 export function broadcastSpinCommand(winnerId: string, durationSec: number, nonce: number): void {
+  if (typeof window === 'undefined') return;
+
+  const eventPayload: RouletteSpinCommand = {
+    type: 'SPIN_COMMAND',
+    winnerId,
+    durationSec,
+    nonce,
+    timestamp: Date.now(),
+  };
+
+  // 1. Same-window dispatch (so local carousels in the current window react immediately)
+  try {
+    window.dispatchEvent(
+      new CustomEvent('ROULETTE_SPIN_COMMAND', {
+        detail: eventPayload,
+      })
+    );
+  } catch (err) {
+    console.warn('CustomEvent dispatch error', err);
+  }
+
+  // 2. Cross-window / tab dispatch via BroadcastChannel
   const ch = getChannel();
   if (ch) {
     try {
-      ch.postMessage({
-        type: 'SPIN_COMMAND',
-        winnerId,
-        durationSec,
-        nonce,
-        timestamp: Date.now(),
-      });
+      ch.postMessage(eventPayload);
     } catch (err) {
       console.warn('BroadcastChannel error', err);
     }
@@ -144,13 +160,20 @@ export function subscribeRouletteEvents(
 ): () => void {
   const ch = getChannel();
 
-  const handleMessage = (event: MessageEvent) => {
+  const handleChannelMessage = (event: MessageEvent) => {
     if (event.data) {
       if (event.data.type === 'STATE_UPDATED' && event.data.state) {
         onStateUpdate(event.data.state);
       } else if (event.data.type === 'SPIN_COMMAND' && onSpinCommand) {
         onSpinCommand(event.data);
       }
+    }
+  };
+
+  const handleCustomEvent = (event: Event) => {
+    const customEv = event as CustomEvent<RouletteSpinCommand>;
+    if (customEv.detail && onSpinCommand) {
+      onSpinCommand(customEv.detail);
     }
   };
 
@@ -166,15 +189,21 @@ export function subscribeRouletteEvents(
   };
 
   if (ch) {
-    ch.addEventListener('message', handleMessage);
+    ch.addEventListener('message', handleChannelMessage);
   }
-  window.addEventListener('storage', handleStorage);
+  if (typeof window !== 'undefined') {
+    window.addEventListener('ROULETTE_SPIN_COMMAND', handleCustomEvent);
+    window.addEventListener('storage', handleStorage);
+  }
 
   return () => {
     if (ch) {
-      ch.removeEventListener('message', handleMessage);
+      ch.removeEventListener('message', handleChannelMessage);
     }
-    window.removeEventListener('storage', handleStorage);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('ROULETTE_SPIN_COMMAND', handleCustomEvent);
+      window.removeEventListener('storage', handleStorage);
+    }
   };
 }
 
