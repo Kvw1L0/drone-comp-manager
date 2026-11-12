@@ -465,12 +465,15 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
       disqualifiedIds
     );
 
+    const hasRaw = parsedRawScore !== null && !isNaN(parsedRawScore);
+    const timeMs = hasRaw && (!parsedTime.ms || parsedTime.ms <= 0) ? null : parsedTime.ms;
+
     return calculateResultMetrics({
       test: selectedTest,
       participationStatus,
       rawScore: parsedRawScore,
       pointsPenalty: parsedPointsPenalty,
-      registeredTimeMs: parsedTime.ms,
+      registeredTimeMs: timeMs,
       secondsPenaltyMs: selectedTest.enableSecondsPenalty
         ? parsedSecondsPenaltyMs
         : 0,
@@ -529,22 +532,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
         return;
       }
 
-      const isUncapped =
-        selectedTest.id === 'test_pista4' ||
-        selectedTest.id === 'test_pista5' ||
-        selectedTest.id.includes('pista4') ||
-        selectedTest.id.includes('pista5') ||
-        selectedTest.scoringMethod === 'time_calculated';
-
-      if (!isUncapped && hasRawScore && parsedRawScore > selectedTest.maxBaseScore) {
-        setStatusMessage({
-          type: 'error',
-          text: `El puntaje (${parsedRawScore}) no puede superar el máximo configurado (${selectedTest.maxBaseScore} pts).`,
-        });
-        return;
-      }
-
-      if (parsedTime.error) {
+      if (!hasRawScore && parsedTime.error) {
         setStatusMessage({ type: 'error', text: parsedTime.error });
         return;
       }
@@ -576,7 +564,10 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
         targetPublicationStatus,
         rawScore: parsedRawScore,
         pointsPenalty: parsedPointsPenalty,
-        registeredTimeMs: parsedTime.ms,
+        registeredTimeMs:
+          parsedRawScore !== null && (!parsedTime.ms || parsedTime.ms <= 0)
+            ? null
+            : parsedTime.ms,
         secondsPenaltyMs: selectedTest.enableSecondsPenalty
           ? parsedSecondsPenaltyMs
           : 0,
@@ -642,11 +633,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     setBaseServerVersion(srv.version);
     setConflictModalResult(null);
   };
-
-  const isAlreadyPublishedOnServer =
-    existingServerResult?.publicationStatus === 'publicado';
-  const isStaffBlockedFromOverwriting =
-    isAlreadyPublishedOnServer && currentUser?.role !== 'admin';
 
   return (
     <div className="max-w-lg mx-auto space-y-3">
@@ -1540,7 +1526,6 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                 type="button"
                 disabled={
                   isSubmitting ||
-                  isStaffBlockedFromOverwriting ||
                   Boolean(liveCalculation && liveCalculation.validationErrors.length > 0)
                 }
                 onClick={async () => {

@@ -229,6 +229,7 @@ export interface PublicResult {
   attemptNumber: number;
   participationStatus: ParticipationStatus;
   publicationStatus: 'publicado' | 'anulado';
+  rawScore?: number | null;
   effectiveTimeMs: number | null;
   registeredTimeMs: number | null;
   secondsPenaltyMs: number;

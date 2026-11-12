@@ -282,34 +282,11 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
     Number.isFinite(registeredTimeMs) &&
     registeredTimeMs > 0;
 
-  if (registeredTimeMs !== null && registeredTimeMs <= 0) {
-    validationErrors.push('Se rechazan tiempos de cero o negativos.');
-  }
-
-  if (hasRawScore && rawScore < 0) {
-    validationErrors.push('El puntaje bruto no puede ser negativo.');
-  }
-
-  if (!hasRawScore && !hasTime) {
-    validationErrors.push('Debe ingresar un puntaje o un tiempo válido para una prueba completada.');
-    return {
-      effectiveTimeMs: null,
-      referenceBestTimeMs: null,
-      calculatedBaseScore: null,
-      netScore: null,
-      contribution: null,
-      exceedsTimeLimit,
-      validationErrors,
-    };
-  }
-
-  const appliedSecondsPenaltyMs = test.enableSecondsPenalty ? secondsPenaltyMs : 0;
-  const effectiveTimeMs =
-    registeredTimeMs !== null && registeredTimeMs > 0
-      ? registeredTimeMs + appliedSecondsPenaltyMs
-      : null;
-
   if (hasRawScore) {
+    if (rawScore < 0) {
+      validationErrors.push('El puntaje no puede ser negativo.');
+    }
+
     const isUncapped =
       test.id === 'test_pista4' ||
       test.id === 'test_pista5' ||
@@ -324,12 +301,12 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
 
     if (validationErrors.length > 0) {
       return {
-        effectiveTimeMs,
+        effectiveTimeMs: null,
         referenceBestTimeMs: null,
         calculatedBaseScore: null,
         netScore: null,
         contribution: null,
-        exceedsTimeLimit,
+        exceedsTimeLimit: false,
         validationErrors,
       };
     }
@@ -337,7 +314,7 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
     const calculatedBaseScore = stabilizeFloat(rawScore);
     const netScore = stabilizeFloat(Math.max(0, calculatedBaseScore - pointsPenalty));
 
-    // Si los puntos son directos (Pistas 3, 4, 5 o valor <= maxContribution), pasan directo
+    // Si los puntos son directos o el valor es acorde a la prueba, pasan directo al ranking
     const isDirectPass =
       test.maxBaseScore === test.maxContribution ||
       rawScore <= test.maxContribution ||
@@ -352,16 +329,41 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
       ? netScore
       : stabilizeFloat((netScore / test.maxBaseScore) * test.maxContribution);
 
+    const effectiveTimeMs = hasTime
+      ? registeredTimeMs + (test.enableSecondsPenalty ? secondsPenaltyMs : 0)
+      : null;
+
     return {
       effectiveTimeMs,
       referenceBestTimeMs: null,
       calculatedBaseScore,
       netScore,
       contribution,
+      exceedsTimeLimit: false,
+      validationErrors: [],
+    };
+  }
+
+  // Cuando NO hay puntaje manual directo, se evalúa el tiempo
+  if (registeredTimeMs !== null && registeredTimeMs <= 0) {
+    validationErrors.push('Se rechazan tiempos de cero o negativos.');
+  }
+
+  if (!hasTime) {
+    validationErrors.push('Debe ingresar un puntaje en puntos o un tiempo válido.');
+    return {
+      effectiveTimeMs: null,
+      referenceBestTimeMs: null,
+      calculatedBaseScore: null,
+      netScore: null,
+      contribution: null,
       exceedsTimeLimit,
       validationErrors,
     };
-  } else {
+  }
+
+  const appliedSecondsPenaltyMs = test.enableSecondsPenalty ? secondsPenaltyMs : 0;
+  const effectiveTimeMs = registeredTimeMs + appliedSecondsPenaltyMs;
     // Method B: Time-calculated score fallback cuando no se ingresaron puntos directos
     if (validationErrors.length > 0 || registeredTimeMs === null) {
       return {
@@ -415,7 +417,6 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
       validationErrors,
     };
   }
-}
 
 /**
  * Recalculates all results for a given test so that any change in best effective time
@@ -591,8 +592,22 @@ export function computeEventRanking(params: {
       let baseScore = res.calculatedBaseScore;
       let effectiveTimeMs = res.effectiveTimeMs;
 
-      // Always ensure time-calculated scores reflect the fixed time limit reference (e.g. 5 min = 300s -> 0 pts)
-      if (test.scoringMethod === 'time_calculated') {
+      const rawScoreVal = res.rawScore ?? null;
+      const hasManualRawScore = rawScoreVal !== null && Number.isFinite(rawScoreVal);
+
+      if (hasManualRawScore && rawScoreVal !== null) {
+        // PUNTOS MANUALES DIRECTOS: Respetar siempre el puntaje ingresado para la suma del ranking
+        baseScore = rawScoreVal;
+        const penalty = res.pointsPenalty || 0;
+        netScore = Math.max(0, rawScoreVal - penalty);
+        contribution =
+          res.contribution !== null &&
+          res.contribution !== undefined &&
+          Number.isFinite(res.contribution)
+            ? res.contribution
+            : netScore;
+      } else if (test.scoringMethod === 'time_calculated') {
+        // Solo calcular por tiempo si NO se ingresaron puntos manuales directos
         const regMs = res.registeredTimeMs;
         const penMs = test.enableSecondsPenalty ? res.secondsPenaltyMs || 0 : 0;
         effectiveTimeMs = regMs !== null && regMs > 0 ? regMs + penMs : null;

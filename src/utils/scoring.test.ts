@@ -421,4 +421,52 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
     expect(resVelOnlyPoints.contribution).toBe(18);
     expect(resVelOnlyPoints.effectiveTimeMs).toBeNull();
   });
+
+  it('12. computeEventRanking suma los puntos manuales directos sin tiempo al total del participante', () => {
+    const demoEvent: CompetitionEvent = DEMO_EVENTS[0];
+    const demoPilots = DEMO_PARTICIPANTS.slice(0, 2);
+    // Piloto 1 tiene puntaje manual de 19 pts en test_velocidad sin tiempo
+    const res1: CompetitionResult = {
+      id: `${demoPilots[0].id}__test_velocidad`,
+      eventId: demoEvent.id,
+      participantId: demoPilots[0].id,
+      testId: 'test_velocidad',
+      trackId: 'track_1',
+      attemptNumber: 1,
+      participationStatus: 'completado',
+      publicationStatus: 'publicado',
+      rawScore: 19,
+      pointsPenalty: 0,
+      registeredTimeMs: null,
+      secondsPenaltyMs: 0,
+      effectiveTimeMs: null,
+      calculatedBaseScore: 19,
+      netScore: 19,
+      contribution: 19,
+      observation: '',
+      adminException: null,
+      previousAttempts: [],
+      version: 1,
+      configVersionUsed: 1,
+      createdBy: 'admin',
+      createdByName: 'Admin',
+      updatedBy: 'admin',
+      updatedByName: 'Admin',
+      publishedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    const ranking = computeEventRanking({
+      event: demoEvent,
+      tests: DEMO_TESTS,
+      participants: demoPilots,
+      results: [res1],
+    });
+
+    const row1 = ranking.rows.find((r) => r.participantId === demoPilots[0].id);
+    expect(row1).toBeDefined();
+    expect(row1?.totalContribution).toBe(19);
+    expect(row1?.testCells['test_velocidad']?.contribution).toBe(19);
+    expect(row1?.testCells['test_velocidad']?.status).toBe('completado');
+  });
 });

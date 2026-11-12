@@ -1029,23 +1029,6 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
           );
         }
 
-        // PERMISSION & DUPLICATE OFFICIAL RESULT PROTECTION:
-        if (existingResult && existingResult.publicationStatus === 'publicado') {
-          if (actor.role !== 'admin') {
-            throw new Error(
-              `Ya existe un resultado oficial publicado para ${participant.fullName} en ${test.name}. El perfil Staff no puede sobrescribir resultados publicados. Solicite una corrección o repetición extraordinaria a un Administrador.`
-            );
-          }
-          if (
-            !payload.isExtraordinaryRepeat &&
-            actor.role !== 'admin' && !payload.adminCorrectionReason?.trim()
-          ) {
-            throw new Error(
-              'Para corregir o repetir un resultado ya publicado, el Administrador debe indicar el motivo obligatorio.'
-            );
-          }
-        }
-
         // UNACCREDITED PARTICIPANT CHECK:
         let adminException: AdminException | null = null;
         if (
@@ -1091,7 +1074,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
         const calc = calculateResultMetrics({
           test,
           participationStatus: payload.participationStatus,
-          rawScore: test.scoringMethod === 'manual' ? payload.rawScore : null,
+          rawScore: payload.rawScore,
           pointsPenalty: payload.pointsPenalty,
           registeredTimeMs: payload.registeredTimeMs,
           secondsPenaltyMs: test.enableSecondsPenalty ? payload.secondsPenaltyMs : 0,
@@ -1199,7 +1182,7 @@ export const CompetitionProvider: React.FC<{ children: React.ReactNode }> = ({
           attemptNumber,
           participationStatus: payload.participationStatus,
           publicationStatus: payload.targetPublicationStatus,
-          rawScore: test.scoringMethod === 'manual' ? payload.rawScore : null,
+          rawScore: payload.rawScore,
           pointsPenalty: payload.pointsPenalty,
           registeredTimeMs: payload.registeredTimeMs,
           secondsPenaltyMs: test.enableSecondsPenalty ? payload.secondsPenaltyMs : 0,
