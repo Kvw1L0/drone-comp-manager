@@ -487,33 +487,6 @@ export const RouletteLiveCarousel = forwardRef<
         </div>
       )}
 
-      {/* Indicador sutil de activación por barra espaciadora */}
-      {!showSpinButton && (
-        <div className="mt-4 flex items-center justify-center select-none">
-          <div className="px-5 py-2 rounded-full bg-black/75 border border-white/20 text-slate-300 text-xs sm:text-sm font-mono flex items-center gap-2.5 shadow-2xl backdrop-blur-md">
-            {isSpinning ? (
-              <>
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-                <span className="font-black text-amber-300 tracking-wider uppercase">
-                  ¡Ruleta girando en vivo...!
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>
-                  Presiona{' '}
-                  <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-amber-400/60 text-amber-300 font-black shadow-inner">
-                    ESPACIO
-                  </kbd>{' '}
-                  para girar
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Winner Spotlight Modal */}
       {showWinnerModal && activeWinner && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-300">
