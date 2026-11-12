@@ -310,7 +310,19 @@ export function calculateResultMetrics(input: ScoreCalculationInput): ScoreCalcu
 
     const calculatedBaseScore = stabilizeFloat(rawScore);
     const netScore = stabilizeFloat(Math.max(0, calculatedBaseScore - pointsPenalty));
-    const contribution = stabilizeFloat((netScore / test.maxBaseScore) * test.maxContribution);
+    // Para pruebas de puntaje manual (Pistas 3, 4 y 5): los puntos pasan directo sin conversión proporcional
+    const isDirectPass =
+      test.maxBaseScore === test.maxContribution ||
+      test.id === 'test_pista4' ||
+      test.id === 'test_pista5' ||
+      test.id === 'test_destreza' ||
+      test.id.includes('destreza') ||
+      test.id.includes('pista4') ||
+      test.id.includes('pista5');
+
+    const contribution = isDirectPass
+      ? netScore
+      : stabilizeFloat((netScore / test.maxBaseScore) * test.maxContribution);
 
     return {
       effectiveTimeMs,

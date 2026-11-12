@@ -290,6 +290,15 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
     [tracks, selectedTrackId]
   );
 
+  const isPista3 = useMemo(() => {
+    if (!selectedTest) return false;
+    return (
+      selectedTest.id === 'test_destreza' ||
+      selectedTest.id.includes('destreza') ||
+      selectedTrack?.id === 'track_3'
+    );
+  }, [selectedTest, selectedTrack]);
+
   const existingServerResult = useMemo(() => {
     if (!selectedParticipantId || !selectedTestId) return null;
     return (
@@ -1081,15 +1090,15 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
             {/* Time / Score Input */}
             {participationStatus === 'completado' ? (
               <div className="space-y-3.5">
-                {selectedTest.scoringMethod === 'manual' ? (
-                  /* ========================================================= */
-                  /* METODO MANUAL (Pistas 4, 5 y Pruebas por Puntos)          */
-                  /* ========================================================= */
+                {/* 1. SECCION DE PUNTOS MANUALES: Para Pistas 3, 4, 5 y pruebas manuales */}
+                {selectedTest.scoringMethod === 'manual' && (
                   <div className="p-4 rounded-2xl bg-slate-950 border-2 border-amber-500/40 space-y-3 shadow-xl">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
                         <Award className="w-4 h-4 text-amber-400" />
-                        Puntaje Asignado por Jueces (Sin Tiempo)
+                        {isPista3
+                          ? 'Puntaje Asignado por Jueces (Prioritario)'
+                          : 'Puntaje Asignado por Jueces (Puntos Directos)'}
                       </span>
                       <span className="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold text-[11px] border border-amber-500/30">
                         Máx {selectedTest.maxBaseScore} pts
@@ -1106,7 +1115,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                           step="any"
                           value={rawScoreInput}
                           onChange={(e) => setRawScoreInput(e.target.value)}
-                          placeholder="0 - 100"
+                          placeholder={`0 - ${selectedTest.maxBaseScore}`}
                           className="w-full py-3.5 px-4 rounded-xl bg-slate-900 border-2 border-slate-700 text-amber-300 text-center text-4xl font-black font-mono focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/30 transition shadow-inner"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500 font-mono">
@@ -1114,13 +1123,13 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                         </span>
                       </div>
                       <span className="block text-center text-[10px] uppercase text-slate-400 font-bold mt-1">
-                        Puntaje base bruto otorgado en pista (0 a {selectedTest.maxBaseScore})
+                        Puntaje bruto directo otorgado en pista (0 a {selectedTest.maxBaseScore} pts sin conversión)
                       </span>
                     </div>
 
                     {/* Fast score preset buttons */}
-                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 pt-0.5">
-                      {[100, 95, 90, 85, 80, 75, 70].map((score) => (
+                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 pt-0.5">
+                      {[20, 19, 18, 16, 15, 14, 12, 10].map((score) => (
                         <button
                           key={score}
                           type="button"
@@ -1136,20 +1145,22 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                       ))}
                     </div>
                   </div>
-                ) : (
-                  /* ========================================================= */
-                  /* METODO POR TIEMPO (Pistas 1, 2, 3)                        */
-                  /* ========================================================= */
+                )}
+
+                {/* 2. SECCION DE TIEMPO: Obligatorio en Pistas 1 y 2, y de Respaldo Oficial en Pista 3 */}
+                {(selectedTest.scoringMethod === 'time_calculated' || isPista3) && (
                   <div className="space-y-3">
                     {/* Touch Stopwatch Widget */}
                     <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                          <TimerIcon className="w-3.5 h-3.5 text-red-500" />
-                          Cronómetro Táctil Integrado
+                          <TimerIcon className="w-3.5 h-3.5 text-cyan-400" />
+                          {isPista3
+                            ? 'Cronómetro Táctil de Respaldo'
+                            : 'Cronómetro Táctil Integrado'}
                         </span>
                         {stopwatchElapsedMs > 0 && (
-                          <span className="font-mono text-emerald-400 font-bold">
+                          <span className="font-mono text-cyan-400 font-bold">
                             {formatMsToTime(stopwatchElapsedMs)}
                           </span>
                         )}
@@ -1160,10 +1171,20 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                           <button
                             type="button"
                             onClick={handleStartStopwatch}
-                            className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition cursor-pointer"
+                            className={`flex-1 py-3 px-4 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg transition cursor-pointer ${
+                              isPista3
+                                ? 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-600/30'
+                                : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+                            }`}
                           >
                             <Play className="w-4 h-4 fill-white" />
-                            <span>{stopwatchElapsedMs > 0 ? 'Reanudar Vuelo' : 'Iniciar Vuelo'}</span>
+                            <span>
+                              {stopwatchElapsedMs > 0
+                                ? 'Reanudar Cronómetro'
+                                : isPista3
+                                ? 'Iniciar Cronómetro Respaldo'
+                                : 'Iniciar Vuelo'}
+                            </span>
                           </button>
                         ) : (
                           <button
@@ -1172,7 +1193,7 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                             className="flex-1 py-3.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-98 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-rose-600/50 animate-pulse transition cursor-pointer"
                           >
                             <Square className="w-5 h-5 fill-white" />
-                            <span>Detener Vuelo ({formatMsToTime(stopwatchElapsedMs)})</span>
+                            <span>Detener Cronómetro ({formatMsToTime(stopwatchElapsedMs)})</span>
                           </button>
                         )}
 
@@ -1193,11 +1214,13 @@ export const ResultEntryView: React.FC<ResultEntryViewProps> = ({
                     <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                       <div className="flex items-center justify-between text-[11px] text-slate-400">
                         <span className="font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-red-500" />
-                          Tiempo Manual (Auto-avance)
+                          <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                          {isPista3
+                            ? 'Tiempo de Respaldo Manual (MM:SS.CC)'
+                            : 'Tiempo Manual (Auto-avance)'}
                         </span>
                         <span className="font-mono text-slate-400">
-                          Límite {(selectedTest.timeLimitMs / 1000).toFixed(0)}s
+                          {isPista3 ? 'Respaldo para desempate' : `Límite ${(selectedTest.timeLimitMs / 1000).toFixed(0)}s`}
                         </span>
                       </div>
 

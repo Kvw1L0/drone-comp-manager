@@ -346,4 +346,49 @@ describe('Suite Integral de Verificación — Competencia de Drones (13 Casos Cr
     };
     expect(toPublicResult(draftResult)).toBeNull();
   });
+
+  it('10. Pista 3 (Destreza): puntos prioritarios directos + tiempo de respaldo conservado, y Pistas 4 y 5 con puntos directos sin conversión a 20', () => {
+    const testPista3 = DEMO_TESTS.find((t) => t.id === 'test_destreza')!;
+    const testPista4 = DEMO_TESTS.find((t) => t.id === 'test_pista4')!;
+    const testPista5 = DEMO_TESTS.find((t) => t.id === 'test_pista5')!;
+
+    // Pista 3: 18 pts directos, 2 pts faltas, 120.000 ms tiempo de respaldo
+    const resP3 = calculateResultMetrics({
+      test: testPista3,
+      participationStatus: 'completado',
+      rawScore: 18,
+      pointsPenalty: 2,
+      registeredTimeMs: 120000,
+      secondsPenaltyMs: 0,
+      bestEffectiveTimeMsForTest: null,
+    });
+    expect(resP3.netScore).toBe(16);
+    expect(resP3.contribution).toBe(16); // Direct points, no proportion
+    expect(resP3.effectiveTimeMs).toBe(120000); // Backup time preserved
+
+    // Pistas 4 y 5: 15 pts directos, sin tiempo, sin conversión a 20
+    const resP5 = calculateResultMetrics({
+      test: testPista5,
+      participationStatus: 'completado',
+      rawScore: 20,
+      pointsPenalty: 0,
+      registeredTimeMs: null,
+      secondsPenaltyMs: 0,
+      bestEffectiveTimeMsForTest: null,
+    });
+    expect(resP5.contribution).toBe(20);
+
+    const resP4 = calculateResultMetrics({
+      test: testPista4,
+      participationStatus: 'completado',
+      rawScore: 15,
+      pointsPenalty: 0,
+      registeredTimeMs: null,
+      secondsPenaltyMs: 0,
+      bestEffectiveTimeMsForTest: null,
+    });
+    expect(resP4.netScore).toBe(15);
+    expect(resP4.contribution).toBe(15);
+    expect(resP4.effectiveTimeMs).toBeNull();
+  });
 });

@@ -125,7 +125,7 @@ function getInitialLocalDb(): LocalDatabaseState {
             if (!hasTest5 && seedTest5) parsed.tests.push(seedTest5);
             // Rebalance contributions to 20 each across the 5 tests
             parsed.tests = parsed.tests.map((t) => {
-              const isManualPista = t.id === 'test_pista4' || t.id === 'test_pista5';
+              const isManualPista = t.id === 'test_pista4' || t.id === 'test_pista5' || t.id === 'test_destreza' || t.id.includes('destreza');
               return {
                 ...t,
                 scoringMethod: isManualPista ? 'manual' : t.scoringMethod,
@@ -136,10 +136,10 @@ function getInitialLocalDb(): LocalDatabaseState {
             needsSave = true;
           } else {
             parsed.tests = parsed.tests.map((t) => {
-              const isManualPista = t.id === 'test_pista4' || t.id === 'test_pista5';
-              if (isManualPista && t.scoringMethod !== 'manual') {
+              const isManualPista = t.id === 'test_pista4' || t.id === 'test_pista5' || t.id === 'test_destreza' || t.id.includes('destreza');
+              if (isManualPista && (t.scoringMethod !== 'manual' || t.maxBaseScore !== 20 || t.maxContribution !== 20)) {
                 needsSave = true;
-                return { ...t, scoringMethod: 'manual', enableSecondsPenalty: false };
+                return { ...t, scoringMethod: 'manual', enableSecondsPenalty: false, maxBaseScore: 20, maxContribution: 20 };
               }
               return t;
             });
