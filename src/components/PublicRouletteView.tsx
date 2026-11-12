@@ -122,7 +122,7 @@ export const PublicRouletteView: React.FC<PublicRouletteViewProps> = ({
           mode="fullscreen"
           state={state}
           onUpdateState={updateState}
-          showSpinButton={true}
+          showSpinButton={false}
         />
       </main>
 

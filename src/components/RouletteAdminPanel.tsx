@@ -171,6 +171,31 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
     showFeedback('success', '🎰 ¡Ruleta activada y girando en tiempo real!');
   };
 
+  // Atajo de teclado: Barra espaciadora para activar la ruleta desde el panel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        handleTriggerSpin();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [state.participants, manualWinnerId, selectedWinnerMode, state.spinDurationSeconds]);
+
   // 4. Manual participant addition
   const handleAddManualParticipant = (e: React.FormEvent) => {
     e.preventDefault();
@@ -336,7 +361,8 @@ export const RouletteAdminPanel: React.FC<RouletteAdminPanelProps> = ({
           mode="embedded"
           state={state}
           onUpdateState={updateState}
-          showSpinButton={true}
+          showSpinButton={false}
+          enableSpacebarTrigger={false}
         />
       </div>
       {/* ===================================================================== */}

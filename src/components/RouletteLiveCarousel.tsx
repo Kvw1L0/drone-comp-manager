@@ -26,6 +26,7 @@ interface RouletteLiveCarouselProps {
   state: RouletteState;
   onUpdateState: (updater: (prev: RouletteState) => RouletteState) => void;
   showSpinButton?: boolean;
+  enableSpacebarTrigger?: boolean;
 }
 
 const REPETITIONS = 12;
@@ -33,7 +34,17 @@ const REPETITIONS = 12;
 export const RouletteLiveCarousel = forwardRef<
   RouletteCarouselHandle,
   RouletteLiveCarouselProps
->(({ mode = 'embedded', state, onUpdateState, showSpinButton = true }, ref) => {
+>(
+  (
+    {
+      mode = 'embedded',
+      state,
+      onUpdateState,
+      showSpinButton = false,
+      enableSpacebarTrigger = true,
+    },
+    ref
+  ) => {
   const isEmbedded = mode === 'embedded';
 
   const cardWidth = isEmbedded ? 240 : 290;
@@ -256,6 +267,45 @@ export const RouletteLiveCarousel = forwardRef<
     broadcastSpinCommand(chosenWinner.id, duration, nonce);
   };
 
+  // Keyboard Spacebar listener to start/spin roulette and Escape/Space to dismiss winner modal
+  useEffect(() => {
+    if (!enableSpacebarTrigger) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is focused inside an input/textarea
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        // If winner spotlight modal is currently showing, close it
+        if (showWinnerModal) {
+          setShowWinnerModal(false);
+          return;
+        }
+
+        if (state.participants.length > 0 && !isSpinning && !isSpinningRef.current) {
+          handleStartSpin();
+        }
+      } else if (e.key === 'Escape' && showWinnerModal) {
+        e.preventDefault();
+        setShowWinnerModal(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [enableSpacebarTrigger, state.participants, isSpinning, showWinnerModal]);
+
   return (
     <div
       className={`relative flex flex-col ${
@@ -412,7 +462,7 @@ export const RouletteLiveCarousel = forwardRef<
         </div>
       </div>
 
-      {/* Main Big Spin Button */}
+      {/* Main Big Spin Button (Solo si showSpinButton es true) */}
       {showSpinButton && (
         <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
@@ -434,6 +484,33 @@ export const RouletteLiveCarousel = forwardRef<
               {isSpinning ? '¡RULETA GIRANDO...!' : '¡GIRAR RULETA AHORA!'}
             </span>
           </button>
+        </div>
+      )}
+
+      {/* Indicador sutil de activación por barra espaciadora */}
+      {!showSpinButton && (
+        <div className="mt-4 flex items-center justify-center select-none">
+          <div className="px-5 py-2 rounded-full bg-black/75 border border-white/20 text-slate-300 text-xs sm:text-sm font-mono flex items-center gap-2.5 shadow-2xl backdrop-blur-md">
+            {isSpinning ? (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                <span className="font-black text-amber-300 tracking-wider uppercase">
+                  ¡Ruleta girando en vivo...!
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>
+                  Presiona{' '}
+                  <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-amber-400/60 text-amber-300 font-black shadow-inner">
+                    ESPACIO
+                  </kbd>{' '}
+                  para girar
+                </span>
+              </>
+            )}
+          </div>
         </div>
       )}
 
