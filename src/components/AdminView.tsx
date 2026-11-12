@@ -18,8 +18,9 @@ import {
   Edit3,
   Trash2,
   ExternalLink,
-
+  Sparkles,
 } from 'lucide-react';
+import { RouletteAdminPanel } from './RouletteAdminPanel';
 import { useCompetition } from '../context/CompetitionContext';
 import {
   AccreditationRequirement,
@@ -59,6 +60,7 @@ type AdminTab =
   | 'pruebas_pistas'
   | 'participantes'
   | 'resultados_empates'
+  | 'ruleta'
   | 'usuarios'
   | 'auditoria';
 
@@ -648,13 +650,18 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
                 icon: Award,
               },
               {
+                id: 'ruleta',
+                label: '5. Ruleta de Sorteos',
+                icon: Sparkles,
+              },
+              {
                 id: 'usuarios',
-                label: `5. Accesos Staff (${users.length})`,
+                label: `6. Accesos Staff (${users.length})`,
                 icon: Users,
               },
               {
                 id: 'auditoria',
-                label: `6. Historial (${auditLogs.length})`,
+                label: `7. Historial (${auditLogs.length})`,
                 icon: History,
               },
             ] as const
@@ -3068,7 +3075,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onEditResultInForm }) => {
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 5: GESTIÓN DE ACCESOS DEL STAFF                                   */}
+      {/* TAB 5: RULETA Y SORTEOS EN VIVO                                       */}
+      {/* ===================================================================== */}
+      {activeTab === 'ruleta' && (
+        <RouletteAdminPanel />
+      )}
+
+      {/* ===================================================================== */}
+      {/* TAB 6: GESTIÓN DE ACCESOS DEL STAFF                                   */}
       {/* ===================================================================== */}
       {activeTab === 'usuarios' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

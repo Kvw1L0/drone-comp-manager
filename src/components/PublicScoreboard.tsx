@@ -4,6 +4,7 @@ import {
   Maximize2,
   ArrowLeft,
   AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 import { useCompetition } from '../context/CompetitionContext';
 import {
@@ -38,6 +39,28 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
     isOnline,
   } = useCompetition();
 
+  type BoardViewMode = 'general' | 'top10' | 'podio';
+
+  const [activeBoardView, setActiveBoardView] = useState<BoardViewMode>(() => {
+    if (typeof window === 'undefined') return 'general';
+    const params = new URLSearchParams(window.location.search);
+    if (
+      params.get('vista') === 'top10' ||
+      params.get('vista') === 'divisiones' ||
+      params.get('vista') === 'dx_tx' ||
+      params.get('top10') !== null
+    ) {
+      return 'top10';
+    }
+    if (
+      params.get('vista') === 'podio' ||
+      params.get('pantalla') === 'podio' ||
+      params.get('podio') !== null
+    ) {
+      return 'podio';
+    }
+    return 'general';
+  });
   const [currentPage, setCurrentPage] = useState<number>(0);
 
   // Check if URL explicitly forces the split-screen Podium view (?vista=podio or ?podio)
@@ -120,6 +143,14 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
       .slice(0, 6);
   }, [liveRanking.rows]);
 
+  const distribucionTop10 = useMemo(() => {
+    return filterAndRankByDivision(liveRanking.rows, 'distribucion').slice(0, 10);
+  }, [liveRanking.rows]);
+
+  const transmisionTop10 = useMemo(() => {
+    return filterAndRankByDivision(liveRanking.rows, 'transmision').slice(0, 10);
+  }, [liveRanking.rows]);
+
   const totalPages = Math.max(1, Math.ceil(displayedRows.length / ROWS_PER_PAGE));
 
   useEffect(() => {
@@ -148,8 +179,13 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
   };
 
   // Subtitle below main header
-  const subtitleLabel = showSplitTeamPodium
+  const isPodioActive = activeBoardView === 'podio' || showSplitTeamPodium;
+  const isTop10Active = activeBoardView === 'top10';
+
+  const subtitleLabel = isPodioActive
     ? 'PODIO OFICIAL POR EQUIPOS • DISTRIBUCIÓN & TRANSMISIÓN'
+    : isTop10Active
+    ? 'TOP 10 • DISTRIBUCIÓN (DX) & TRANSMISIÓN (TX)'
     : teamFilter === 'distribucion'
     ? 'CLASIFICACIÓN • DISTRIBUCIÓN'
     : teamFilter === 'transmision'
@@ -324,6 +360,159 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
     );
   };
 
+  const renderTop10DivisionColumn = (
+    divisionKey: 'distribucion' | 'transmision',
+    top10Rows: RankingRow[]
+  ) => {
+    const isTrans = divisionKey === 'transmision';
+    const title = isTrans ? 'TOP 10 • TRANSMISIÓN (TX)' : 'TOP 10 • DISTRIBUCIÓN (DX)';
+    const headerGrad = isTrans
+      ? 'linear-gradient(90deg, #064e63 0%, #0891b2 50%, #064e63 100%)'
+      : 'linear-gradient(90deg, #78350f 0%, #d97706 50%, #78350f 100%)';
+    const borderAccent = isTrans ? 'border-cyan-400/70' : 'border-amber-400/70';
+    const badgeColor = isTrans ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50' : 'bg-amber-500/20 text-amber-200 border-amber-400/50';
+
+    return (
+      <div
+        className={`flex flex-col overflow-hidden shadow-[0_16px_55px_rgba(0,0,0,0.96)] border-2 ${borderAccent} bg-[#0b0c10]/95 flex-1 min-h-0`}
+        style={{
+          clipPath:
+            'polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px)',
+        }}
+      >
+        {/* Header Bar */}
+        <div
+          className="py-1.5 sm:py-2 px-3 sm:px-4 text-center border-b-2 border-white/20 flex items-center justify-between shrink-0"
+          style={{
+            background: headerGrad,
+            boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.5)',
+          }}
+        >
+          <span className="text-sm sm:text-base md:text-lg font-black uppercase tracking-wider text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] flex items-center gap-1.5">
+            <span>{isTrans ? '⚡' : '🏅'}</span>
+            <span>{title}</span>
+          </span>
+          <span className={`px-2 py-0.5 rounded text-[11px] sm:text-xs font-black uppercase font-mono border ${badgeColor}`}>
+            {isTrans ? 'TX' : 'DX'}
+          </span>
+        </div>
+
+        {/* Subheader */}
+        <div className="grid grid-cols-12 bg-[#12141c] border-b border-white/10 text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-300 py-1 px-3 sm:px-4 shrink-0">
+          <div className="col-span-2 sm:col-span-1 text-center">POS</div>
+          <div className="col-span-7 sm:col-span-8 pl-1">PILOTO</div>
+          <div className="col-span-3 text-right pr-1">PUNTOS</div>
+        </div>
+
+        {/* 10 Rows */}
+        <div className="divide-y divide-white/10 flex-1 flex flex-col justify-between">
+          {top10Rows.slice(0, 10).map((row, idx) => {
+            const divPos = idx + 1;
+            const isTop1 = divPos === 1;
+            const isTop2 = divPos === 2;
+            const isTop3 = divPos === 3;
+            const formattedDivPos = String(divPos).padStart(2, '0');
+            const totalTimeMs = getRowEffectiveTimeSummary(row);
+
+            const rowStyle: React.CSSProperties = isTop1
+              ? {
+                  background:
+                    'linear-gradient(90deg, rgba(230,0,18,0.45) 0%, rgba(245,158,11,0.35) 50%, rgba(230,0,18,0.38) 100%)',
+                }
+              : isTop2
+              ? {
+                  background:
+                    'linear-gradient(90deg, rgba(148,163,184,0.22) 0%, rgba(226,232,240,0.18) 50%, rgba(30,41,59,0.5) 100%)',
+                }
+              : isTop3
+              ? {
+                  background:
+                    'linear-gradient(90deg, rgba(217,119,6,0.25) 0%, rgba(180,83,9,0.18) 50%, rgba(69,26,3,0.5) 100%)',
+                }
+              : {
+                  background:
+                    idx % 2 === 0
+                      ? 'linear-gradient(90deg, rgba(18,20,26,0.92) 0%, rgba(26,28,36,0.88) 50%, rgba(18,20,26,0.92) 100%)'
+                      : 'linear-gradient(90deg, rgba(12,14,18,0.92) 0%, rgba(20,22,29,0.88) 50%, rgba(12,14,18,0.92) 100%)',
+                };
+
+            return (
+              <div
+                key={row.participantId}
+                style={rowStyle}
+                className="grid grid-cols-12 items-center px-3 sm:px-4 py-1 sm:py-1.5 transition-colors whitespace-nowrap"
+              >
+                {/* POS */}
+                <div className="col-span-2 sm:col-span-1 text-center pr-1.5">
+                  <span
+                    className={`inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded font-black text-xs sm:text-sm leading-none ${
+                      isTop1
+                        ? 'bg-amber-400 text-slate-950 shadow-[0_0_10px_rgba(251,191,36,0.8)]'
+                        : isTop2
+                        ? 'bg-slate-200 text-slate-950 shadow-[0_0_8px_rgba(255,255,255,0.6)]'
+                        : isTop3
+                        ? 'bg-amber-600 text-white shadow-[0_0_8px_rgba(217,119,6,0.6)]'
+                        : 'bg-white/10 text-slate-300'
+                    }`}
+                  >
+                    {formattedDivPos}
+                  </span>
+                </div>
+
+                {/* PILOT INFO (Single line: Number + Name + Company) */}
+                <div className="col-span-7 sm:col-span-8 flex items-center gap-1.5 sm:gap-2 min-w-0 pl-1 whitespace-nowrap">
+                  <span className="px-1.5 py-0.5 rounded bg-black/60 border border-white/25 text-amber-200 font-black text-[10px] sm:text-xs font-mono shrink-0">
+                    {row.competitorNumber || row.participantId}
+                  </span>
+                  <span
+                    className={`font-black uppercase whitespace-nowrap truncate leading-none ${
+                      isTop1
+                        ? 'text-xs sm:text-sm md:text-base text-amber-100'
+                        : isTop2
+                        ? 'text-xs sm:text-sm md:text-base text-white'
+                        : isTop3
+                        ? 'text-xs sm:text-sm md:text-base text-amber-200'
+                        : 'text-xs sm:text-sm md:text-base text-slate-100'
+                    }`}
+                  >
+                    {formatShortName(row.fullName)}
+                  </span>
+                  {row.companyOrTeam && (
+                    <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 whitespace-nowrap shrink-0">
+                      • {row.companyOrTeam}
+                    </span>
+                  )}
+                </div>
+
+                {/* POINTS & TIME */}
+                <div className="col-span-3 text-right pr-1 flex items-center justify-end gap-2 whitespace-nowrap">
+                  {totalTimeMs !== null && (
+                    <span className="text-[10px] sm:text-xs font-mono font-bold text-slate-400 hidden xl:inline">
+                      {formatMsToTime(totalTimeMs)}
+                    </span>
+                  )}
+                  <span
+                    className={`font-black text-sm sm:text-base font-mono leading-none ${
+                      isTop1
+                        ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.7)]'
+                        : isTop2
+                        ? 'text-white'
+                        : isTop3
+                        ? 'text-amber-300'
+                        : 'text-amber-200'
+                    }`}
+                  >
+                    {formatScore(row.totalContribution)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       onDoubleClick={handleToggleFullscreen}
@@ -429,6 +618,14 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
 
       {/* Discreet Hover-Only Controls (Invisible during TV Broadcast) */}
       <div className="fixed top-2 right-3 z-50 flex items-center gap-2 opacity-0 hover:opacity-100 transition-opacity duration-200">
+        <a
+          href="?vista=ruleta"
+          title="Abrir Ruleta de Sorteos"
+          className="px-2.5 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 border border-red-500/50 text-amber-300 text-xs font-bold flex items-center gap-1 cursor-pointer"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <span className="hidden sm:inline">Ruleta</span>
+        </a>
         {!isOnline && (
           <div className="px-3 py-1 rounded-lg bg-rose-950/95 border border-rose-500 text-rose-200 text-xs font-extrabold flex items-center gap-1.5">
             <WifiOff className="w-3.5 h-3.5 text-rose-400" />
@@ -473,7 +670,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
             textRendering: 'geometricPrecision',
           }}
         >
-          {showSplitTeamPodium ? 'PODIO POR EQUIPOS' : 'RANKING GENERAL'}
+          {isPodioActive ? 'PODIO POR EQUIPOS' : isTop10Active ? 'TOP 10 POR DIVISIONES' : 'RANKING GENERAL'}
         </h1>
 
         {/* — CLASIFICACIÓN — with flanking red bars */}
@@ -484,16 +681,83 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
           </span>
           <div className="h-[2.5px] flex-1 max-w-[150px] bg-gradient-to-l from-transparent via-[#e60012] to-[#ff2a2a] shadow-[0_0_10px_#e60012]" />
         </div>
+
+        {/* Interactive View Switcher Tabs */}
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2 mt-1 sm:mt-1.5 z-20">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveBoardView('general');
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('vista');
+                url.searchParams.delete('top10');
+                url.searchParams.delete('podio');
+                window.history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
+              }
+            }}
+            className={`px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-black uppercase transition-all duration-200 cursor-pointer ${
+              activeBoardView === 'general' && !showSplitTeamPodium
+                ? 'bg-red-600 text-white shadow-[0_0_12px_rgba(230,0,18,0.8)] border border-red-400'
+                : 'bg-black/40 hover:bg-white/10 text-slate-300 border border-white/15'
+            }`}
+          >
+            📊 Ranking General
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveBoardView('top10');
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.set('vista', 'top10');
+                window.history.replaceState(null, '', url.pathname + '?' + url.searchParams.toString());
+              }
+            }}
+            className={`px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-black uppercase transition-all duration-200 cursor-pointer ${
+              activeBoardView === 'top10'
+                ? 'bg-gradient-to-r from-amber-500 to-cyan-500 text-slate-950 font-black shadow-[0_0_14px_rgba(245,158,11,0.8)] border border-amber-300'
+                : 'bg-black/40 hover:bg-white/10 text-slate-300 border border-white/15'
+            }`}
+          >
+            ⚡ Top 10 DX & TX
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveBoardView('podio');
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.set('vista', 'podio');
+                window.history.replaceState(null, '', url.pathname + '?' + url.searchParams.toString());
+              }
+            }}
+            className={`px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-black uppercase transition-all duration-200 cursor-pointer ${
+              isPodioActive
+                ? 'bg-amber-400 text-slate-950 shadow-[0_0_12px_rgba(251,191,36,0.8)] border border-amber-200'
+                : 'bg-black/40 hover:bg-white/10 text-slate-300 border border-white/15'
+            }`}
+          >
+            🏆 Podio Premiable
+          </button>
+        </div>
       </header>
 
       {/* ===================================================================== */}
       {/* MAIN BODY: EITHER SPLIT-SCREEN TEAM PODIUM OR GENERAL RANKING TABLE   */}
       {/* ===================================================================== */}
-      {showSplitTeamPodium ? (
+      {isPodioActive ? (
         <main className="relative z-10 flex-1 min-h-0 flex flex-col justify-center w-full max-w-[98vw] 2xl:max-w-[99vw] mx-auto px-2 sm:px-4 md:px-6 my-1 overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-7 items-stretch w-full">
             {renderTeamPodiumColumn('distribucion', distribucionWinners)}
             {renderTeamPodiumColumn('transmision', transmisionWinners)}
+          </div>
+        </main>
+      ) : isTop10Active ? (
+        <main className="relative z-10 flex-1 min-h-0 flex flex-col justify-center w-full max-w-[99vw] 2xl:max-w-[1900px] mx-auto px-2 sm:px-3 md:px-4 my-0.5 sm:my-1 overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-5 items-stretch w-full flex-1 min-h-0 overflow-hidden">
+            {renderTop10DivisionColumn('distribucion', distribucionTop10)}
+            {renderTop10DivisionColumn('transmision', transmisionTop10)}
           </div>
         </main>
       ) : (
@@ -816,7 +1080,7 @@ export const PublicScoreboard: React.FC<PublicScoreboardProps> = ({
           />
         </div>
 
-        {!showSplitTeamPodium && totalPages > 1 && (
+        {!isPodioActive && !isTop10Active && totalPages > 1 && (
           <div className="flex items-center gap-1.5 mt-0.5">
             {Array.from({ length: totalPages }).map((_, idx) => (
               <span

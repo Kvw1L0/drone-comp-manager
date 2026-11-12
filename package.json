@@ -13,13 +13,16 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@vercel/blob": "^2.8.2",
+    "canvas-confetti": "^1.9.4",
     "firebase": "^13.2.0",
     "lucide-react": "^1.66.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

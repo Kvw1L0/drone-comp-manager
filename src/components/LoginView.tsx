@@ -7,6 +7,7 @@ import {
   AlertCircle,
   CheckCircle2,
   ArrowRight,
+  Sparkles,
 } from 'lucide-react';
 import { useCompetition } from '../context/CompetitionContext';
 import { BrandLogo } from './BrandLogo';
@@ -14,11 +15,15 @@ import { BrandLogo } from './BrandLogo';
 interface LoginViewProps {
   onLoginSuccess: () => void;
   onOpenPublicScreen: () => void;
+  onOpenRouletteScreen?: () => void;
+  onOpenRouletteAdmin?: () => void;
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({
   onLoginSuccess,
   onOpenPublicScreen,
+  onOpenRouletteScreen,
+  onOpenRouletteAdmin,
 }) => {
   const {
     isDemoMode,
@@ -175,16 +180,43 @@ export const LoginView: React.FC<LoginViewProps> = ({
           )}
         </div>
 
-        {/* Public Scoreboard Shortcut */}
-        <div className="pt-3 border-t border-slate-800">
-          <button
-            type="button"
-            onClick={onOpenPublicScreen}
-            className="w-full py-3 px-4 rounded-2xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-amber-300 font-extrabold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
-          >
-            <Tv className="w-4 h-4" />
-            Abrir Pantalla Pública 16:9
-          </button>
+        {/* Quick Access Buttons */}
+        <div className="pt-3 border-t border-slate-800 space-y-2">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 text-center">
+            Accesos Rápidos a Pantallas
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={onOpenPublicScreen}
+              className="py-2.5 px-3 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+            >
+              <Tv className="w-4 h-4 text-amber-400" />
+              <span>Ranking 16:9</span>
+            </button>
+
+            {onOpenRouletteScreen && (
+              <button
+                type="button"
+                onClick={onOpenRouletteScreen}
+                className="py-2.5 px-3 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-500/60 text-amber-300 hover:text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-lg shadow-red-900/30"
+              >
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>Ruleta 16:9</span>
+              </button>
+            )}
+          </div>
+
+          {onOpenRouletteAdmin && (
+            <button
+              type="button"
+              onClick={onOpenRouletteAdmin}
+              className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-red-950 via-slate-900 to-red-950 hover:brightness-125 border border-red-500/40 text-red-200 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Panel de Control Ruleta (Adm)</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ import {
   WifiOff,
   LogOut,
   Sun,
+  Sparkles,
 } from 'lucide-react';
 import {
   CompetitionProvider,
@@ -18,9 +19,11 @@ import { OperationalDashboard } from './components/OperationalDashboard';
 import { ResultEntryView } from './components/ResultEntryView';
 import { AdminView } from './components/AdminView';
 import { PublicScoreboard } from './components/PublicScoreboard';
+import { PublicRouletteView } from './components/PublicRouletteView';
+import { RouletteAdminPanel } from './components/RouletteAdminPanel';
 import { BrandLogo } from './components/BrandLogo';
 
-type ActiveScreen = 'dashboard' | 'result_entry' | 'admin';
+type ActiveScreen = 'dashboard' | 'result_entry' | 'admin' | 'ruleta';
 
 const MainShell: React.FC = () => {
   const {
@@ -37,6 +40,7 @@ const MainShell: React.FC = () => {
   } = useCompetition();
 
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('result_entry');
+  const [isRouletteScreenMode, setIsRouletteScreenMode] = useState<boolean>(false);
   const [highContrastOutdoor, setHighContrastOutdoor] = useState<boolean>(false);
 
   // Contextual navigation parameters
@@ -50,11 +54,31 @@ const MainShell: React.FC = () => {
     undefined
   );
 
-  // Check URL query parameter ?vista=ranking or ?vista=podio for direct giant screen projection
+  // Check URL query parameters for direct giant screen projection (?vista=ranking, ?vista=podio, ?vista=ruleta)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (
+      params.get('vista') === 'ruleta' ||
+      params.get('pantalla') === 'ruleta' ||
+      params.get('screen') === 'ruleta' ||
+      params.get('ruleta') !== null
+    ) {
+      setIsRouletteScreenMode(true);
+    } else if (
+      params.get('admin') === 'ruleta' ||
+      params.get('panel') === 'ruleta' ||
+      params.get('adm') === 'ruleta'
+    ) {
+      if (!currentUser) {
+        loginWithDemoProfile('demo-admin-1');
+      }
+      setActiveScreen('ruleta');
+    } else if (
       params.get('vista') === 'ranking' ||
+      params.get('vista') === 'top10' ||
+      params.get('vista') === 'divisiones' ||
+      params.get('vista') === 'dx_tx' ||
+      params.get('top10') !== null ||
       params.get('vista') === 'podio' ||
       params.get('pantalla') === 'publica' ||
       params.get('pantalla') === 'podio' ||
@@ -64,9 +88,18 @@ const MainShell: React.FC = () => {
     ) {
       setIsPublicScreenMode(true);
     }
-  }, [setIsPublicScreenMode]);
+  }, [setIsPublicScreenMode, currentUser, loginWithDemoProfile]);
 
-  // 1. Giant 16:9 Public Screen Mode (No login required, zero private data exposed)
+  // 1. Giant 16:9 Public Roulette Screen Mode
+  if (isRouletteScreenMode) {
+    return (
+      <PublicRouletteView
+        onExitPublicView={() => setIsRouletteScreenMode(false)}
+      />
+    );
+  }
+
+  // 2. Giant 16:9 Public Scoreboard Screen Mode
   if (isPublicScreenMode) {
     return (
       <PublicScoreboard
@@ -75,12 +108,17 @@ const MainShell: React.FC = () => {
     );
   }
 
-  // 2. Staff / Admin Login Screen
+  // 3. Staff / Admin Login Screen
   if (!currentUser) {
     return (
       <LoginView
         onLoginSuccess={() => setActiveScreen('result_entry')}
         onOpenPublicScreen={() => setIsPublicScreenMode(true)}
+        onOpenRouletteScreen={() => setIsRouletteScreenMode(true)}
+        onOpenRouletteAdmin={() => {
+          loginWithDemoProfile('demo-admin-1');
+          setActiveScreen('ruleta');
+        }}
       />
     );
   }
@@ -195,11 +233,35 @@ const MainShell: React.FC = () => {
 
               <button
                 type="button"
+                onClick={() => setActiveScreen('ruleta')}
+                className={`px-3.5 py-2 rounded-xl font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                  activeScreen === 'ruleta'
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                    : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>Ruleta</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setIsPublicScreenMode(true)}
                 className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-red-500/40 text-red-400 font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer"
+                title="Abrir Ranking General en Pantalla 16:9"
               >
                 <Tv className="w-4 h-4" />
                 <span>16:9</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsRouletteScreenMode(true)}
+                className="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-red-950 border border-amber-500/40 text-amber-300 font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer"
+                title="Abrir Ruleta de Sorteos en Pantalla 16:9"
+              >
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span className="hidden lg:inline">Ruleta</span>
               </button>
             </nav>
 
@@ -282,66 +344,85 @@ const MainShell: React.FC = () => {
             }}
           />
         )}
+
+        {activeScreen === 'ruleta' && (
+          <RouletteAdminPanel
+            onOpenPublicRoulette={() => setIsRouletteScreenMode(true)}
+          />
+        )}
       </main>
 
       {/* Mobile Bottom Thumb Navigation Bar (Visible on Phones) */}
       <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-950/95 border-t border-red-500/30 backdrop-blur-lg px-2 py-1.5">
-        <div className="grid grid-cols-4 gap-1 max-w-md mx-auto">
+        <div className="grid grid-cols-5 gap-1 max-w-md mx-auto">
           <button
             type="button"
             onClick={() => setActiveScreen('result_entry')}
-            className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[11px] transition cursor-pointer ${
+            className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[10px] transition cursor-pointer ${
               activeScreen === 'result_entry'
                 ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Timer className="w-5 h-5" />
+            <Timer className="w-4 h-4" />
             <span>Tiempos</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveScreen('dashboard')}
-            className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[11px] transition cursor-pointer ${
+            className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[10px] transition cursor-pointer ${
               activeScreen === 'dashboard'
                 ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <LayoutDashboard className="w-5 h-5" />
+            <LayoutDashboard className="w-4 h-4" />
             <span>Pistas</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setIsPublicScreenMode(true)}
-            className="py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[11px] text-slate-400 hover:text-red-400 transition cursor-pointer"
+            onClick={() => setActiveScreen('ruleta')}
+            className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[10px] transition cursor-pointer ${
+              activeScreen === 'ruleta'
+                ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                : 'text-amber-400 hover:text-white'
+            }`}
           >
-            <Tv className="w-5 h-5" />
-            <span>Ranking</span>
+            <Sparkles className="w-4 h-4" />
+            <span>Ruleta</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsPublicScreenMode(true)}
+            className="py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[10px] text-slate-400 hover:text-red-400 transition cursor-pointer"
+          >
+            <Tv className="w-4 h-4" />
+            <span>16:9</span>
           </button>
 
           {currentUser.role === 'admin' ? (
             <button
               type="button"
               onClick={() => setActiveScreen('admin')}
-              className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[11px] transition cursor-pointer ${
+              className={`py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[10px] transition cursor-pointer ${
                 activeScreen === 'admin'
                   ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-4 h-4" />
               <span>Admin</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={() => logout()}
-              className="py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[11px] text-slate-400 hover:text-rose-400 transition cursor-pointer"
+              className="py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 font-extrabold text-[10px] text-slate-400 hover:text-rose-400 transition cursor-pointer"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
               <span>Salir</span>
             </button>
           )}
